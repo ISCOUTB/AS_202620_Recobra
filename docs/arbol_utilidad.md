@@ -1,11 +1,11 @@
 # Árbol de utilidad — Recobra
 
-Estructura: **Utilidad → Atributo → Refinamiento → Escenario**, priorizando las hojas según impacto en el negocio y riesgo técnico. Los escenarios referenciados están definidos completos en `escenarios_calidad.md`.
+Seguimos la estructura clásica: **Utilidad → Atributo → Refinamiento → Escenario**, y priorizamos las hojas según qué tanto impacto tienen en el negocio y qué tan riesgosas son técnicamente. Los escenarios completos están en `escenarios_calidad.md`.
 
 ```text
 UTILIDAD DE RECOBRA
-Facilitar la recuperación de objetos perdidos dentro de un espacio delimitado,
-conectando a quienes pierden objetos con quienes los encuentran.
+Conectar a quienes pierden objetos con quienes los encuentran, dentro de un
+espacio delimitado, facilitando la recuperación del objeto.
 │
 ├── Seguridad — Prioridad 1
 │   ├── Protección contra reclamaciones falsas
@@ -62,8 +62,4 @@ conectando a quienes pierden objetos con quienes los encuentran.
 | S7 — Escalabilidad | Medio | Medio | **6** |
 | S6 — Trazabilidad | Alto | Medio | Transversal a S2 |
 
-La seguridad ocupa el primer lugar porque una falsa reclamación afecta directamente la confianza en Recobra. El rendimiento y las notificaciones son igualmente relevantes porque forman parte del propósito principal de la plataforma: que quien perdió un objeto encuentre información útil rápidamente. La escalabilidad se agrega en esta versión con prioridad y escenario propio (S7), antes ausente.
-
-## Nota de corrección respecto a versiones previas
-
-Una versión anterior de este árbol usaba escenarios S1-S5 distintos a los de `escenarios_calidad.md` (bajo los mismos nombres), no incluía una rama de Seguridad pese a ser la prioridad más alta del proyecto, y no tenía ningún escenario para Escalabilidad. Esta versión corrige los tres problemas y queda alineada 1:1 con `escenarios_calidad.md` y `aspectos.md`.
+Seguridad queda primero porque una reclamación falsa golpea directamente la confianza que la gente le tiene a la plataforma. Rendimiento y notificaciones vienen justo después porque son el corazón de para qué sirve Recobra: que alguien encuentre su objeto rápido y se entere a tiempo. Disponibilidad, mantenibilidad y escalabilidad importan, pero de nada sirven si lo anterior no funciona.
