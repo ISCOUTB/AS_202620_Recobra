@@ -43,6 +43,35 @@ Recobra se ubica entre los usuarios y los servicios que permiten gestionar las p
 
 El diagrama de contexto de nivel 1 (C4), con personas, sistema y sistemas externos, está en `C4.md`. El contexto del problema y la tabla completa de interesados están en `ficha-problema.md`.
 
+# Sección 4 — Estrategia de solución
+
+## Estrategia general
+
+Recobra adopta una arquitectura inspirada en **Hexagonal (Ports & Adapters)** organizada como un **monolito modular**.
+
+La lógica del dominio permanece aislada de la base de datos, la interfaz y los servicios externos, permitiendo modificar la infraestructura sin afectar las reglas del negocio.
+
+## Capas
+
+### Dominio
+Contiene las entidades y reglas de negocio relacionadas con objetos perdidos, reclamaciones y trazabilidad.
+
+### Aplicación
+Implementa los casos de uso, coordinando las operaciones entre el dominio y los puertos.
+
+### Infraestructura
+Incluye adaptadores para persistencia, autenticación y notificaciones.
+
+### Interfaces
+Expone la aplicación mediante API REST o interfaz web.
+
+## Beneficios
+
+- Bajo acoplamiento.
+- Mayor mantenibilidad.
+- Facilita pruebas automatizadas.
+- Permite reemplazar servicios externos sin modificar el dominio.
+
 ## Sección 10 — Relación entre escenarios y decisiones de arquitectura
 
 Los escenarios de `escenarios_calidad.md` son la referencia que usamos para tomar decisiones durante el desarrollo. No elegimos tecnologías porque estén de moda, sino porque ayudan a cumplir los escenarios prioritarios definidos en `arbol_utilidad.md`.
