@@ -24,8 +24,7 @@ mezclado con Express/PostgreSQL es costoso para un equipo de este tamaño.
 
 ### 1. Arquitectura en capas (layered)
 
-Organización clásica: `routes/ → controllers/ → services/ → models/`. Es el
-estilo que el equipo ya usó en Steamlinker.
+Organización clásica: `routes/ → controllers/ → services/ → models/`.
 
 - **A favor:** curva de aprendizaje mínima, rápida de montar, coincide con
   tutoriales y con la experiencia previa del equipo.
