@@ -1,0 +1,15 @@
+{
+  "name": "recobra-backend",
+  "version": "0.1.0",
+  "description": "Esqueleto ejecutable de Recobra (arquitectura hexagonal) - Evidencia S3",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test tests/health.test.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
