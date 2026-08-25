@@ -1,53 +1,58 @@
-# C4 — Recobra
-
-Reemplaza `docs/C4.md` (texto plano) por diagramas como código. GitHub
-renderiza Mermaid automáticamente en la vista del `.md`. Ajusta actores,
-sistemas y flechas a la realidad del proyecto; esto es un punto de partida
-con leyenda y flechas etiquetadas, tal como pide la retroalimentación.
+# C4 - Recobra
 
 ## Nivel 1 — Diagrama de contexto
 
 ```mermaid
-C4Context
-    title Diagrama de contexto — Recobra
+flowchart LR
+    usuario["Usuario del campus<br/><i>Persona</i><br/>Pierde o encuentra un objeto"]
+    admin["Administrador<br/><i>Persona</i><br/>Modera publicaciones y reclamos"]
+    recobra["Recobra<br/><i>Sistema de software</i><br/>Centraliza, empareja y notifica objetos perdidos/encontrados"]
+    notif["Proveedor de notificaciones<br/><i>Sistema externo</i><br/>Envio de correo/push"]
+    auth["Proveedor de autenticacion<br/><i>Sistema externo</i><br/>Verifica identidad institucional"]
 
-    Person(usuario, "Usuario del campus", "Pierde o encuentra un objeto")
-    Person(admin, "Administrador", "Modera publicaciones y reclamos")
+    usuario -->|"Publica objetos, consulta coincidencias (HTTPS)"| recobra
+    admin -->|"Modera publicaciones, resuelve reclamos (HTTPS)"| recobra
+    recobra -->|"Envia alerta de coincidencia (API/HTTPS)"| notif
+    recobra -->|"Valida credenciales del usuario (API/HTTPS)"| auth
 
-    System(recobra, "Recobra", "Centraliza, empareja y notifica objetos perdidos/encontrados")
+    classDef persona fill:#08427b,color:#fff,stroke:#052e56;
+    classDef sistema fill:#1168bd,color:#fff,stroke:#0b4884;
+    classDef externo fill:#999999,color:#fff,stroke:#6b6b6b;
 
-    System_Ext(notificaciones, "Proveedor de notificaciones", "Envío de correo/push")
-    System_Ext(auth, "Proveedor de autenticación", "Verifica identidad institucional")
-
-    Rel(usuario, recobra, "Publica objetos perdidos/encontrados, consulta coincidencias", "HTTPS")
-    Rel(admin, recobra, "Modera publicaciones, resuelve reclamos disputados", "HTTPS")
-    Rel(recobra, notificaciones, "Envía alerta de coincidencia probable", "API/HTTPS")
-    Rel(recobra, auth, "Valida credenciales del usuario", "API/HTTPS")
+    class usuario,admin persona;
+    class recobra sistema;
+    class notif,auth externo;
 ```
+
+**Leyenda:** azul oscuro = persona · azul = sistema Recobra · gris = sistema externo. Las etiquetas de las flechas indican la accion y el protocolo.
 
 ## Nivel 2 — Diagrama de contenedores
 
 ```mermaid
-C4Container
-    title Diagrama de contenedores — Recobra
+flowchart LR
+    usuario["Usuario del campus<br/><i>Persona</i>"]
 
-    Person(usuario, "Usuario del campus")
+    subgraph recobra["Recobra"]
+        direction LR
+        app["App cliente<br/><i>Contenedor: Flutter</i><br/>Publicar, buscar, ver coincidencias"]
+        api["API backend<br/><i>Contenedor: Node.js/Express</i><br/>Expone REST, aplica reglas de emparejamiento"]
+        db[("Base de datos<br/><i>Contenedor: PostgreSQL</i><br/>Publicaciones, usuarios, emparejamientos")]
+    end
 
-    System_Boundary(recobra, "Recobra") {
-        Container(api, "API backend", "Node.js / Express", "Expone REST, aplica reglas de emparejamiento")
-        Container(app, "App cliente", "Flutter", "Publicar, buscar y ver coincidencias")
-        ContainerDb(db, "Base de datos", "PostgreSQL", "Publicaciones, usuarios, emparejamientos")
-    }
+    notif["Proveedor de notificaciones<br/><i>Sistema externo</i>"]
 
-    System_Ext(notificaciones, "Proveedor de notificaciones")
+    usuario -->|"Usa (UI)"| app
+    app -->|"Llama (HTTPS/JSON)"| api
+    api -->|"Lee/escribe (SQL)"| db
+    api -->|"Solicita envio de alerta (API/HTTPS)"| notif
 
-    Rel(usuario, app, "Usa", "UI")
-    Rel(app, api, "Llama", "HTTPS/JSON")
-    Rel(api, db, "Lee/escribe", "SQL")
-    Rel(api, notificaciones, "Solicita envío de alerta", "API/HTTPS")
+    classDef persona fill:#08427b,color:#fff,stroke:#052e56;
+    classDef contenedor fill:#438dd5,color:#fff,stroke:#2e6295;
+    classDef externo fill:#999999,color:#fff,stroke:#6b6b6b;
+
+    class usuario persona;
+    class app,api,db contenedor;
+    class notif externo;
 ```
 
-> Ajusten actores, sistemas externos y verbos de las flechas a lo que
-> realmente hace su MVP; lo importante es que quede como código versionable
-> (Mermaid), con leyenda de qué representa cada rectángulo y flechas
-> etiquetadas con el protocolo/acción, no como texto narrativo.
+**Leyenda:** azul oscuro = persona · azul claro = contenedor dentro de Recobra · gris = sistema externo. El cilindro representa la base de datos.
