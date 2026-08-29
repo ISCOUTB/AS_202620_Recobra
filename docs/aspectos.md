@@ -1,11 +1,7 @@
 # Aspectos del proyecto Recobra
 
-## Seguridad en la entrega de los objetos
+## Tabla de aspectos arquitectónicos
 
-Uno de los aspectos que queremos tener en cuenta en Recobra es la seguridad al momento de entregar un objeto perdido.
-
-La idea es que una persona no pueda simplemente decir que un objeto es suyo y llevárselo. Para evitar esto, el sistema podría pedir algunos datos que permitan comprobar que la persona pertenece a la universidad, como el código estudiantil, el correo institucional o el carné.
-
-También sería importante que la información de los usuarios y de los objetos reportados esté protegida y que solamente se utilice para el proceso de recuperación.
-
-Con esto buscamos que los estudiantes tengan más confianza al publicar un objeto que encontraron y que, al mismo tiempo, la persona que perdió el objeto tenga una forma más segura de recuperarlo.
+| Aspecto | Decisión | Justificación | Pruebas |
+|---------|----------|---------------|---------|
+| **Seguridad en la entrega de objetos** | Para reclamar un objeto, el sistema solicitará al usuario que verifique su identidad mediante el código estudiantil, correo institucional o carné universitario. La información sensible se almacenará de forma protegida y solo se usará para el proceso de recuperación. | Evita que personas no autorizadas reclamen objetos que no les pertenecen (fraude). Genera confianza en los usuarios que publican objetos encontrados, al saber que solo el dueño legítimo podrá recuperarlos. Protege los datos personales de los usuarios, cumpliendo con las restricciones de privacidad del proyecto. | **Prueba de integración**: Se verificará que el flujo de reclamación requiera y valide correctamente los datos de identificación (código/correo/carné). **Prueba de seguridad**: Se comprobará que la información sensible no se expone en respuestas de la API ni en logs. **Prueba de aceptación**: Se simularán intentos de reclamación fraudulenta para confirmar que el sistema los bloquea. |
