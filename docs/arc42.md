@@ -12,7 +12,7 @@
 - Mantener trazabilidad.
 - Reducir reclamaciones fraudulentas.
 
-**Interesados principales:** usuarios que pierden objetos, usuarios que encuentran objetos, administradores, la organización que utiliza Recobra, el equipo de desarrollo y los responsables de seguridad. El detalle completo está en `ficha-problema.md`.
+**Interesados principales:** usuarios que pierden objetos, usuarios que encuentran objetos, administradores, la organización que usa Recobra, el equipo de desarrollo y los responsables de seguridad. El desarollo completo está en `ficha-problema.md`.
 
 Los seis atributos de calidad y sus escenarios medibles están en `aspectos.md` y `escenarios_calidad.md`, y se conectan con las decisiones de arquitectura en la sección 10 de este mismo archivo.
 
@@ -116,4 +116,4 @@ Los escenarios de `escenarios_calidad.md` son la referencia que usamos para toma
 - **S6 Trazabilidad:** orienta el diseño del historial de estados por publicación.
 - **S7 Escalabilidad:** orienta las decisiones de escalado horizontal o vertical y particionamiento de datos.
 
-Los escenarios funcionan, entonces, como evidencia para justificar decisiones de arquitectura, y más adelante pueden relacionarse con ADR y pruebas concretas.
+Los escenarios funcionan, entonces, como evidencia para justificar de cierta manera las decisiones de arquitectura, y más adelante pueden relacionarse con ADR y pruebas justamente mucho mas concretas.
