@@ -2,9 +2,8 @@
 
 Plataforma para publicar y encontrar objetos perdidos dentro de un espacio delimitado (campus universitario, empresa, edificio de apartamentos, etc.), conectando a quien pierde algo con quien lo encuentra.
 
-### Problema
+### Problema:
 No existe un canal centralizado, buscable y con notificaciones que conecte de forma eficiente a quien pierde un objeto con quien lo encuentra, lo que genera:
-
 Objetos que nunca son reclamados por falta de visibilidad.
 Tiempo perdido preguntando en múltiples canales no oficiales.
 Falta de trazabilidad sobre quién encontró qué y cuándo.
