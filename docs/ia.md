@@ -51,4 +51,20 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 * *Documentación técnica:* Ayuda para mantener actualizados el README y la documentación de arquitectura (ADR, arc42) conforme avanza el desarrollo.
 
 ### 3. Declaración de Autonomía
+
+## Registro de Uso de IA - [Verónica Ubarne]
+
+### 1. Nivel de Uso
+* *Frecuencia:* Uso moderado como asistente para la documentación y revisión del proyecto.
+* *Herramientas empleadas:* Claude (frecuencia media de uso).
+
+### 2. Casos de Uso Específicos
+* *Revisión del repositorio:* Análisis de la estructura del proyecto, archivos clave (package.json, server.js, adaptadores HTTP) y verificación del estado del corte vertical.
+* *Completar documentación arc42:* Apoyo para redactar las secciones 5 (Requisitos de calidad) y 6 (Construcción y despliegue) que faltaban en el archivo `arc42.md`.
+* *Estructuración de la tabla de aspectos:* Transformación del texto plano sobre seguridad en una tabla con el formato solicitado (Aspecto, Decisión, Justificación, Pruebas).
+* *Verificación de entregables:* Revisión de la lista de chequeo de la entrega incremental (arc42, C4, corte vertical, tabla de aspectos) para confirmar que todo estuviera completo.
+* *Organización del trabajo:* Guía sobre el flujo de trabajo con Git y la estructura de carpetas para la documentación.
+
+### 3. Declaración de Autonomía
+* Toda la documentación generada con apoyo de IA fue revisada, ajustada y validada por mí antes de integrarse al repositorio. El contenido final refleja el entendimiento del proyecto y sus requisitos.
 * Todo el código y la documentación generados con apoyo de IA fueron revisados, ejecutados (pruebas automatizadas y pruebas manuales) y comprendidos por mí antes de integrarlos al repositorio.
