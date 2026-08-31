@@ -1,17 +1,37 @@
-// Adaptador de entrada HTTP (infraestructura).
-// No contiene lógica de negocio: solo expone la app para que un runner
-// (src/server.js) la levante, y para que las pruebas puedan importarla
-// sin abrir un socket real.
 const express = require('express');
+const { CrearPublicacion } = require('../../../application/use-cases/crear-publicacion');
+const { PublicacionInvalidaError } = require('../../../domain/entities/publicacion');
 
-function createApp() {
+function createApp({ publicacionRepository }) {
   const app = express();
   app.use(express.json());
 
-  // Endpoint de salud: confirma que el esqueleto arranca y responde.
-  // Sirve como base para la prueba automatizada del Corte 1.
+  const crearPublicacion = new CrearPublicacion(publicacionRepository);
+
   app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', service: 'recobra-backend' });
+  });
+
+  app.post('/publicaciones', async (req, res) => {
+    try {
+      const publicacion = await crearPublicacion.ejecutar(req.body || {});
+      res.status(201).json(publicacion);
+    } catch (error) {
+      if (error instanceof PublicacionInvalidaError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  });
+
+  app.get('/publicaciones/:id', async (req, res) => {
+    const publicacion = await publicacionRepository.buscarPorId(req.params.id);
+    if (!publicacion) {
+      res.status(404).json({ error: 'Publicación no encontrada' });
+      return;
+    }
+    res.status(200).json(publicacion);
   });
 
   return app;

@@ -1,13 +1,11 @@
-// Prueba automatizada mínima exigida por la Evidencia S3:
-// confirma que el esqueleto arranca y responde, sin depender de
-// lógica de negocio (todavía no implementada).
 const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
 const { createApp } = require('../src/infrastructure/adapters/http/server');
+const { MemoriaPublicacionRepository } = require('../src/infrastructure/adapters/persistence/memoria-publicacion-repository');
 
 test('GET /health responde 200 y status ok', async () => {
-  const app = createApp();
+  const app = createApp({ publicacionRepository: new MemoriaPublicacionRepository() });
   const server = http.createServer(app);
 
   await new Promise((resolve) => server.listen(0, resolve));
