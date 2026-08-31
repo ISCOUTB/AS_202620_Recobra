@@ -3,9 +3,6 @@
 Este documento registra los usos reales de herramientas de IA durante el
 desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 
-> Si algún integrante no ha usado IA todavía, decláralo explícitamente en su
-> fila (`No he usado IA en esta evidencia`) en vez de dejar la fila vacía.
-
 | Fecha | Integrante | Herramienta | Qué se le pidió | Qué se usó del resultado / qué se descartó |
 |---|---|---|---|---|
 | 2026-08-23 | Equipo | Claude / ChatGPT  | Ej: comparar arquitectura en capas, hexagonal y monolito modular para el backend de Recobra | Ej: se usó la matriz comparativa como base y se ajustaron los pesos según nuestras restricciones reales; se descartó la recomendación de microservicios por sobredimensionada |
@@ -41,3 +38,17 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 
 ### 3. Declaración de Autonomía
 * El código final y la documentación enviada fueron revisados, comprendidos y validados manualmente antes de su integración al repositorio.
+
+## Registro de Uso de IA - [Camilo Conde]
+
+### 1. Nivel de Uso
+* *Frecuencia:* Uso frecuente como apoyo técnico durante el desarrollo del backend.
+* *Herramientas empleadas:* Claude (frecuencia media-alta de uso).
+
+### 2. Casos de Uso Específicos
+* *Diseño y arquitectura:* Consultas sobre la aplicación práctica del estilo hexagonal (puertos y adaptadores) en casos de uso concretos del proyecto.
+* *Generación de código base:* Apoyo en la escritura de entidades, casos de uso, adaptadores y pruebas automatizadas siguiendo la estructura ya definida en el repositorio.
+* *Documentación técnica:* Ayuda para mantener actualizados el README y la documentación de arquitectura (ADR, arc42) conforme avanza el desarrollo.
+
+### 3. Declaración de Autonomía
+* Todo el código y la documentación generados con apoyo de IA fueron revisados, ejecutados (pruebas automatizadas y pruebas manuales) y comprendidos por mí antes de integrarlos al repositorio.
