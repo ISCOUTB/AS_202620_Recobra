@@ -45,6 +45,9 @@ a través del puerto `PublicacionRepository`, tal como lo exige ADR-0001.
 - `domain/ports/publicacion-repository.js` — puerto de persistencia.
 - `application/use-cases/crear-publicacion.js` — caso de uso que orquesta la
   entidad y el puerto, sin conocer HTTP ni el motor de persistencia.
+- `application/use-cases/consultar-publicacion.js` — caso de uso simétrico al
+  anterior: el adaptador HTTP tampoco llama directo al repositorio, sino que
+  pasa siempre por `application/`, como exige ADR-0001.
 - `infrastructure/adapters/persistence/memoria-publicacion-repository.js` —
   adaptador que implementa el puerto en memoria. Es el adaptador real de este
   corte (no un mock): se reemplazará por un adaptador de PostgreSQL sin tocar
@@ -105,6 +108,7 @@ src/
   application/                 # casos de uso: orquestan el dominio
     use-cases/
       crear-publicacion.js
+      consultar-publicacion.js
   infrastructure/               # adaptadores concretos (entran o salen del sistema)
     adapters/
       http/                     # adaptador de entrada (API REST)
@@ -114,6 +118,11 @@ src/
   server.js                     # punto de entrada único (composition root)
 tests/
   health.test.js                 # prueba automatizada base
-  crear-publicacion.test.js      # prueba del caso de uso contra el puerto en memoria
+  crear-publicacion.test.js      # prueba del caso de uso crear, contra el puerto en memoria
+  consultar-publicacion.test.js  # prueba del caso de uso consultar, contra el puerto en memoria
   publicaciones-http.test.js     # prueba de extremo a extremo del corte vertical
 ```
+
+Con este ajuste, el corte vertical queda simétrico: tanto crear como
+consultar atraviesan las mismas tres capas (HTTP → aplicación → dominio/
+puerto), sin atajos desde el adaptador de entrada hacia el repositorio.
