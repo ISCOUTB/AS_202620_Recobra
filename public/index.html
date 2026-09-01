@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Recobra — Demo del corte vertical</title>
+<style>
+  :root {
+    --tinta: #1f2318;
+    --papel: #f6f3ea;
+    --papel-borde: #ddd6c2;
+    --encontrado: #2f6b4f;
+    --perdido: #a15c2f;
+    --linea: #c9c2ab;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: "Iowan Old Style", "Georgia", serif;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 2.5rem 1.5rem 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--linea);
+  }
+
+  header h1 {
+    margin: 0 0 0.35rem;
+    font-size: 2.1rem;
+    letter-spacing: 0.01em;
+  }
+
+  header p {
+    margin: 0;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.95rem;
+    color: #55503f;
+  }
+
+  #estado-salud {
+    display: inline-block;
+    margin-top: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.8rem;
+    border: 1px solid var(--linea);
+  }
+
+  #estado-salud.ok { border-color: var(--encontrado); color: var(--encontrado); }
+  #estado-salud.error { border-color: var(--perdido); color: var(--perdido); }
+
+  main {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  section h2 {
+    font-size: 1.15rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--linea);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-weight: 600;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  label {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.82rem;
+    color: #55503f;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  input, select {
+    font: inherit;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    padding: 0.55rem 0.6rem;
+    border: 1px solid var(--linea);
+    border-radius: 4px;
+    background: #fffdf7;
+    color: var(--tinta);
+  }
+
+  button {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.65rem 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--tinta);
+    background: var(--tinta);
+    color: var(--papel);
+    cursor: pointer;
+  }
+
+  button:hover { opacity: 0.88; }
+
+  button.secundario {
+    background: transparent;
+    color: var(--tinta);
+  }
+
+  #mensaje-crear {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.85rem;
+    min-height: 1.2em;
+  }
+
+  #mensaje-crear.error { color: var(--perdido); }
+  #mensaje-crear.ok { color: var(--encontrado); }
+
+  .tarjeta {
+    border: 1px solid var(--linea);
+    border-radius: 6px;
+    padding: 0.9rem 1rem;
+    background: #fffdf7;
+    margin-bottom: 0.7rem;
+  }
+
+  .tarjeta .foto-tarjeta {
+    display: block;
+    width: 100%;
+    max-height: 160px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin: 0.4rem 0;
+  }
+
+  .tarjeta .fila-superior {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .etiqueta-tipo {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .etiqueta-tipo.perdido { background: #f3e3d3; color: var(--perdido); }
+  .etiqueta-tipo.encontrado { background: #dcecdf; color: var(--encontrado); }
+
+  .tarjeta .descripcion { font-size: 1rem; }
+
+  .tarjeta .meta {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.78rem;
+    color: #756f5a;
+    margin-top: 0.35rem;
+  }
+
+  .tarjeta .id {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    color: #8b8468;
+    word-break: break-all;
+  }
+
+  #lista-publicaciones:empty::after {
+    content: "Todavía no has creado ninguna publicación en esta sesión.";
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.85rem;
+    color: #8b8468;
+  }
+  .zona-foto {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem 1rem;
+    border: 1px dashed var(--linea);
+    border-radius: 6px;
+    background: #fffdf7;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  .zona-foto:hover { border-color: var(--tinta); }
+
+  #texto-zona-foto {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.82rem;
+    color: #756f5a;
+  }
+
+  #vista-previa-foto {
+    max-width: 100%;
+    max-height: 140px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Recobra</h1>
+  <span id="estado-salud">verificando backend…</span>
+</header>
+
+<main>
+  <section aria-labelledby="titulo-crear">
+    <h2 id="titulo-crear">Publicar un objeto</h2>
+    <form id="form-crear">
+      <label>Tipo
+        <select name="tipo" required>
+          <option value="perdido">Perdido</option>
+          <option value="encontrado">Encontrado</option>
+        </select>
+      </label>
+      <label>Descripción
+        <input type="text" name="descripcion" placeholder="Mochila azul con laptop" required />
+      </label>
+      <label>Categoría
+        <select name="categoria" required>
+          <option value="">Selecciona una categoría</option>
+          <option value="electronica">Electrónica</option>
+          <option value="mochilas">Mochilas y bolsos</option>
+          <option value="documentos">Documentos e identificación</option>
+          <option value="llaves">Llaves</option>
+          <option value="ropa">Ropa y accesorios</option>
+          <option value="utiles">Útiles y libros</option>
+          <option value="otros">Otros</option>
+        </select>
+      </label>
+      <label>Ubicación
+        <input type="text" name="ubicacion" placeholder="Bloque 5, UTB" required />
+      </label>
+      <label>Foto (opcional)
+        <div class="zona-foto" id="zona-foto">
+          <img id="vista-previa-foto" alt="Vista previa" hidden />
+          <span id="texto-zona-foto">Click para elegir una foto del objeto</span>
+        </div>
+        <input type="file" id="input-foto" accept="image/*" hidden />
+      </label>
+      <button type="submit">Publicar</button>
+      <p id="mensaje-crear"></p>
+    </form>
+
+    <h2 style="margin-top: 2rem;">Publicaciones creadas en esta sesión</h2>
+    <div id="lista-publicaciones"></div>
+  </section>
+</main>
+
+<script>
+  const estadoSalud = document.getElementById('estado-salud');
+  const formCrear = document.getElementById('form-crear');
+  const mensajeCrear = document.getElementById('mensaje-crear');
+  const listaPublicaciones = document.getElementById('lista-publicaciones');
+  const zonaFoto = document.getElementById('zona-foto');
+  const inputFoto = document.getElementById('input-foto');
+  const vistaPreviaFoto = document.getElementById('vista-previa-foto');
+  const textoZonaFoto = document.getElementById('texto-zona-foto');
+
+  zonaFoto.addEventListener('click', () => inputFoto.click());
+
+  inputFoto.addEventListener('change', () => {
+    const archivo = inputFoto.files[0];
+    if (!archivo) return;
+    textoZonaFoto.textContent = archivo.name;
+    const lector = new FileReader();
+    lector.onload = () => {
+      vistaPreviaFoto.src = lector.result;
+      vistaPreviaFoto.hidden = false;
+    };
+    lector.readAsDataURL(archivo);
+  });
+
+  async function verificarSalud() {
+    try {
+      const respuesta = await fetch('/health');
+      if (!respuesta.ok) throw new Error();
+      estadoSalud.textContent = 'backend en línea';
+      estadoSalud.className = 'ok';
+    } catch {
+      estadoSalud.textContent = 'no se pudo contactar al backend';
+      estadoSalud.className = 'error';
+    }
+  }
+
+  function tarjetaPublicacion(pub, fotoDataUrl) {
+    const div = document.createElement('div');
+    div.className = 'tarjeta';
+    div.innerHTML = `
+      <div class="fila-superior">
+        <span class="etiqueta-tipo ${pub.tipo}">${pub.tipo}</span>
+        <span class="meta">${pub.estado}</span>
+      </div>
+      ${fotoDataUrl ? `<img class="foto-tarjeta" src="${fotoDataUrl}" alt="Foto del objeto" />` : ''}
+      <div class="descripcion">${pub.descripcion}</div>
+      <div class="meta">${pub.categoria} · ${pub.ubicacion}</div>
+      <div class="id">${pub.id}</div>
+    `;
+    return div;
+  }
+
+  formCrear.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    mensajeCrear.textContent = '';
+    mensajeCrear.className = '';
+
+    const datos = Object.fromEntries(new FormData(formCrear).entries());
+
+    try {
+      const respuesta = await fetch('/publicaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos),
+      });
+      const cuerpo = await respuesta.json();
+
+      if (!respuesta.ok) {
+        mensajeCrear.textContent = `${respuesta.status}: ${cuerpo.error}`;
+        mensajeCrear.className = 'error';
+        return;
+      }
+
+      mensajeCrear.textContent = `Creada con estado 201 — id ${cuerpo.id}`;
+      mensajeCrear.className = 'ok';
+      listaPublicaciones.prepend(tarjetaPublicacion(cuerpo, vistaPreviaFoto.hidden ? null : vistaPreviaFoto.src));
+      formCrear.reset();
+      inputFoto.value = '';
+      vistaPreviaFoto.hidden = true;
+      vistaPreviaFoto.src = '';
+      textoZonaFoto.textContent = 'Click para elegir una foto del objeto';
+    } catch {
+      mensajeCrear.textContent = 'No se pudo contactar al backend.';
+      mensajeCrear.className = 'error';
+    }
+  });
+
+  verificarSalud();
+</script>
+
+</body>
+</html>

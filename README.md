@@ -26,13 +26,18 @@ npm install && npm start
 El servidor queda escuchando en `http://localhost:3000` y expone `GET /health`
 para confirmar que el esqueleto arrancó correctamente.
 
+Abriendo `http://localhost:3000` en el navegador se ve una página de
+demostración (`public/index.html`) para publicar y consultar objetos sin
+depender de Postman/Thunder Client — pensada para mostrar el corte vertical
+en clase. No es parte del corte vertical en sí, es solo la vitrina.
+
 ## Cómo correr las pruebas
 
 ```bash
 npm test
 ```
 
-Debe quedar en verde: `# pass 7`, `# fail 0`.
+Debe quedar en verde: `# pass 9`, `# fail 0`.
 
 ## Corte vertical: crear y consultar una publicación
 

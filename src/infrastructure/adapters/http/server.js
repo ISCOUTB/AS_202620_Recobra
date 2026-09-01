@@ -1,3 +1,4 @@
+const path = require('node:path');
 const express = require('express');
 const { CrearPublicacion } = require('../../../application/use-cases/crear-publicacion');
 const { ConsultarPublicacion } = require('../../../application/use-cases/consultar-publicacion');
@@ -6,6 +7,10 @@ const { PublicacionInvalidaError } = require('../../../domain/entities/publicaci
 function createApp({ publicacionRepository }) {
   const app = express();
   app.use(express.json());
+  // Página de demostración del corte vertical (public/index.html), pensada
+  // para mostrar la funcionalidad en clase sin depender de Postman/Thunder
+  // Client. No forma parte del corte vertical en sí: es solo la vitrina.
+  app.use(express.static(path.join(__dirname, '../../../../public')));
 
   const crearPublicacion = new CrearPublicacion(publicacionRepository);
   const consultarPublicacion = new ConsultarPublicacion(publicacionRepository);
