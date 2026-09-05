@@ -1,0 +1,23 @@
+# GitHub Linguist: el stack del proyecto es NestJS (TypeScript) + Flutter (Dart).
+# El resto son plantillas de plataforma, demos o scripts auxiliares.
+
+# Documentación
+docs/** linguist-documentation
+*.md linguist-documentation
+
+# Plantillas que genera Flutter (no son código de aplicación del equipo)
+mobile/ios/** linguist-vendored
+mobile/android/** linguist-vendored
+mobile/web/** linguist-vendored
+mobile/linux/** linguist-vendored
+mobile/macos/** linguist-vendored
+mobile/windows/** linguist-vendored
+
+# Cliente Flutter: solo cuenta el Dart de lib/ y test/
+mobile/lib/** linguist-detectable
+mobile/test/** linguist-detectable
+
+# Demo HTML de clase y scripts auxiliares (medición, PDF)
+public/** linguist-vendored
+scripts/** linguist-vendored
+*.pdf linguist-documentation
