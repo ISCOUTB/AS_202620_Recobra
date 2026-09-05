@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 
 import 'api/recobra_api.dart';
 
-/// En emulador Android el host de la máquina es 10.0.2.2; en web/desktop, localhost.
+/// En web/desktop: localhost. En Android: 127.0.0.1 tras `adb reverse tcp:3000 tcp:3000`
+/// (evita cleartext a 10.0.2.2, que Sonar marca como vulnerabilidad).
 String defaultApiBaseUrl() {
   if (kIsWeb) return 'http://localhost:3000';
   switch (defaultTargetPlatform) {
     case TargetPlatform.android:
-      return 'http://10.0.2.2:3000';
+      return 'http://127.0.0.1:3000';
     default:
       return 'http://localhost:3000';
   }
