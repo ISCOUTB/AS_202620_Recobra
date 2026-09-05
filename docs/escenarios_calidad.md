@@ -1,6 +1,12 @@
 # Escenarios de calidad — Recobra
 
-Este es el conjunto de escenarios que usamos como referencia para todo el proyecto: S1 a S7, cada uno con fuente, estímulo, artefacto, entorno, respuesta y una medida que se puede comprobar.
+Este es el conjunto de escenarios de referencia del proyecto. Para el **corte 1**
+el equipo prioriza **S5** (ancla del reto de stack), **S4/S4a** (disponibilidad /
+aislamiento) y **S2** (seguridad de reclamación, decisión documentada).
+S1, S3, S6 y S7 siguen vigentes para cortes posteriores; no se borran para no
+perder trazabilidad.
+
+Cada escenario tiene fuente, estímulo, artefacto, entorno, respuesta y medida.
 
 ## Escenario S1 — Rendimiento de búsqueda
 
@@ -19,7 +25,7 @@ Este es el conjunto de escenarios que usamos como referencia para todo el proyec
 - **Artefacto:** Módulo de reclamaciones.
 - **Entorno:** Sistema funcionando normalmente.
 - **Respuesta:** El sistema solicita y valida la información necesaria para comprobar la posible propiedad del objeto antes de permitir que la reclamación avance.
-- **Medida:** El sistema registra usuario, fecha y hora de cada intento de reclamación; ninguna reclamación pasa al estado "reclamado" sin completar antes el mecanismo de verificación definido.
+- **Medida:** El 100 % de los intentos de reclamación quedan registrados con usuario, fecha y hora; el 0 % de las reclamaciones llega al estado "reclamado" sin completar antes el mecanismo de verificación definido (código estudiantil o correo institucional).
 - **Prioridad:** Muy alta.
 
 ## Escenario S3 — Notificación de coincidencia

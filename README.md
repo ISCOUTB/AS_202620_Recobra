@@ -2,12 +2,12 @@
 
 Plataforma para publicar y encontrar objetos perdidos dentro de un espacio delimitado (campus universitario, empresa, edificio de apartamentos, etc.), conectando a quien pierde algo con quien lo encuentra.
 
-### Problema:
+### Problema
 No existe un canal centralizado, buscable y con notificaciones que conecte de forma eficiente a quien pierde un objeto con quien lo encuentra, lo que genera:
-Objetos que nunca son reclamados por falta de visibilidad.
-Tiempo perdido preguntando en múltiples canales no oficiales.
-Falta de trazabilidad sobre quién encontró qué y cuándo.
-Riesgo de fraude o falsas reclamaciones sin ningún mecanismo de verificación.
+- Objetos que nunca son reclamados por falta de visibilidad.
+- Tiempo perdido preguntando en múltiples canales no oficiales.
+- Falta de trazabilidad sobre quién encontró qué y cuándo.
+- Riesgo de fraude o falsas reclamaciones sin ningún mecanismo de verificación.
 
 ### Objetivos del proyecto
 1. Centralizar publicaciones de objetos perdidos y encontrados en un solo lugar buscable.
@@ -15,55 +15,77 @@ Riesgo de fraude o falsas reclamaciones sin ningún mecanismo de verificación.
 3. Notificar a los usuarios cuando exista una coincidencia probable con su publicación.
 4. Dar trazabilidad al ciclo de vida de un objeto (publicado → en contacto → reclamado/cerrado).
 
-## Cómo levantar el esqueleto
+## Stack
+
+Backend **NestJS** (TypeScript) + frontend **Flutter**, según
+[ADR-0002](docs/adr/0002-arquitectura-y-stack.md) y el reto de corte 1
+[ADR-0003](docs/adr/0003-reto-corte1-stack-obligatorio.md). La arquitectura
+interna del backend es hexagonal (puertos y adaptadores).
+
+## Cómo levantar el backend
 
 Requisitos: Node.js 18 o superior.
 
 ```bash
-npm install && npm start
+npm install
+npm run start
 ```
 
-El servidor queda escuchando en `http://localhost:3000` y expone `GET /health`
-para confirmar que el esqueleto arrancó correctamente.
+El servidor queda en `http://localhost:3000` y expone `GET /health`.
 
-Abriendo `http://localhost:3000` en el navegador se ve una página de
-demostración (`public/index.html`) para publicar y consultar objetos sin
-depender de Postman/Thunder Client — pensada para mostrar el corte vertical
-en clase. No es parte del corte vertical en sí, es solo la vitrina.
+Vitrina de clase (no es el corte vertical): `http://localhost:3000/` → `public/index.html`.
+
+Desarrollo con recarga: `npm run start:dev`.
+
+## Cómo levantar el cliente Flutter
+
+Requisitos: Flutter estable.
+
+```bash
+cd mobile
+flutter pub get
+flutter run -d chrome          # web contra localhost:3000
+# o emulador Android (usa http://10.0.2.2:3000 por defecto)
+flutter run
+```
+
+El backend debe estar corriendo. La app permite crear y consultar publicaciones.
 
 ## Cómo correr las pruebas
 
 ```bash
-npm test
+npm test           # unitarias (dominio y casos de uso)
+npm run test:e2e   # extremo a extremo NestJS
+cd mobile && flutter test
 ```
 
-Debe quedar en verde: `# pass 9`, `# fail 0`.
+CI: `.github/workflows/ci.yml` ejecuta backend + Flutter en cada push/PR.
+
+## Medición del corte 1
+
+Con el servidor levantado:
+
+```bash
+npm run measure:post
+```
+
+Procedimiento, línea base y contraste con S5:
+[`docs/medicion-corte1.md`](docs/medicion-corte1.md).
 
 ## Corte vertical: crear y consultar una publicación
 
-Este es el primer corte vertical de negocio del proyecto: atraviesa las tres
-capas de la arquitectura hexagonal (HTTP → caso de uso → dominio) y persiste
-a través del puerto `PublicacionRepository`, tal como lo exige ADR-0001.
+Atraviesa HTTP → caso de uso → dominio → puerto `PublicacionRepository`.
 
-- `domain/entities/publicacion.js` — entidad `Publicacion` y sus reglas de
-  validación (tipo, descripción, categoría, ubicación obligatorios).
-- `domain/ports/publicacion-repository.js` — puerto de persistencia.
-- `application/use-cases/crear-publicacion.js` — caso de uso que orquesta la
-  entidad y el puerto, sin conocer HTTP ni el motor de persistencia.
-- `application/use-cases/consultar-publicacion.js` — caso de uso simétrico al
-  anterior: el adaptador HTTP tampoco llama directo al repositorio, sino que
-  pasa siempre por `application/`, como exige ADR-0001.
-- `infrastructure/adapters/persistence/memoria-publicacion-repository.js` —
-  adaptador que implementa el puerto en memoria. Es el adaptador real de este
-  corte (no un mock): se reemplazará por un adaptador de PostgreSQL sin tocar
-  `domain/` ni `application/`, como está previsto en
-  `docs/arc42/04-estrategia-solucion.md`.
-- `infrastructure/adapters/http/server.js` — adaptador de entrada que expone
-  los endpoints y traduce errores de dominio a códigos HTTP.
+- `domain/entities/publicacion.ts` — entidad y validación
+- `domain/ports/publicacion-repository.ts` — puerto (clase abstracta = token DI)
+- `application/use-cases/crear-publicacion.ts` y `consultar-publicacion.ts`
+- `infrastructure/persistence/memoria-publicacion.repository.ts` — adaptador actual
+- `publicaciones/` — adaptador HTTP Nest + filtro de errores de dominio
+- `mobile/` — cliente Flutter del mismo corte
 
 ### Endpoints
 
-**Crear una publicación**
+**Crear**
 
 ```bash
 curl -X POST http://localhost:3000/publicaciones \
@@ -76,58 +98,35 @@ curl -X POST http://localhost:3000/publicaciones \
   }'
 ```
 
-Respuesta `201 Created`:
+`201 Created` con la publicación. Datos inválidos → `400` con `{ "error": "..." }`.
 
-```json
-{
-  "id": "a47fdd1b-9977-4494-88ed-17aba2419647",
-  "tipo": "perdido",
-  "descripcion": "Cargador de laptop",
-  "categoria": "electronica",
-  "ubicacion": "Bloque 3",
-  "estado": "publicado",
-  "creadoEn": "2026-08-30T20:51:17.628Z"
-}
-```
-
-Si `tipo` no es `perdido` ni `encontrado`, o falta algún campo obligatorio,
-responde `400 Bad Request` con `{ "error": "<motivo>" }`.
-
-**Consultar una publicación por id**
+**Consultar**
 
 ```bash
 curl http://localhost:3000/publicaciones/<id>
 ```
 
-Responde `200 OK` con la publicación, o `404 Not Found` si el id no existe.
+`200` o `404`.
 
-## Estructura del proyecto (estilo hexagonal, ver ADR-0001)
+## Documentación clave
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`docs/aspectos.md`](docs/aspectos.md) | Tabla de 8 columnas (trazabilidad) |
+| [`docs/adr/`](docs/adr/) | ADR-0001 (reemplazada), 0002 (stack), 0003 (reto corte 1) |
+| [`docs/c4/README.md`](docs/c4/README.md) | Contexto y contenedores |
+| [`docs/arc42.md`](docs/arc42.md) | arc42 (bloques, ejecución, decisiones) |
+| [`docs/ia.md`](docs/ia.md) | Registro de uso de IA |
+| [`docs/medicion-corte1.md`](docs/medicion-corte1.md) | Línea base y resultado del reto |
+
+## Estructura
 
 ```
-src/
-  domain/                      # entidades y puertos (contratos), sin dependencias externas
-    entities/
-      publicacion.js            # entidad Publicacion + validación
-    ports/
-      publicacion-repository.js # puerto de persistencia
-  application/                 # casos de uso: orquestan el dominio
-    use-cases/
-      crear-publicacion.js
-      consultar-publicacion.js
-  infrastructure/               # adaptadores concretos (entran o salen del sistema)
-    adapters/
-      http/                     # adaptador de entrada (API REST)
-        server.js
-      persistence/              # adaptador de salida (acceso a datos)
-        memoria-publicacion-repository.js
-  server.js                     # punto de entrada único (composition root)
-tests/
-  health.test.js                 # prueba automatizada base
-  crear-publicacion.test.js      # prueba del caso de uso crear, contra el puerto en memoria
-  consultar-publicacion.test.js  # prueba del caso de uso consultar, contra el puerto en memoria
-  publicaciones-http.test.js     # prueba de extremo a extremo del corte vertical
+src/                 # backend NestJS hexagonal
+mobile/              # cliente Flutter
+test/                # e2e backend
+docs/                # arquitectura y evidencias
+.github/workflows/   # CI
+public/              # vitrina HTML de clase
+scripts/             # medición de latencia
 ```
-
-Con este ajuste, el corte vertical queda simétrico: tanto crear como
-consultar atraviesan las mismas tres capas (HTTP → aplicación → dominio/
-puerto), sin atajos desde el adaptador de entrada hacia el repositorio.

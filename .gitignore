@@ -1,0 +1,33 @@
+# dependencias
+node_modules/
+
+# build backend
+dist/
+coverage/
+
+# entorno
+.env
+.env.local
+
+# editor/OS
+.DS_Store
+*.log
+*.swp
+.idea/
+.vscode/
+
+# Flutter / Dart
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/.pub-cache/
+mobile/.pub/
+mobile/coverage/
+**/*.iml
+**/DocFileList.txt
+
+# miscelánea
+*.tmp
+.nyc_output/

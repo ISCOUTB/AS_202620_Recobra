@@ -8,4 +8,7 @@
 | **Matching / Coincidencia** | Proceso automático que compara publicaciones de "perdido" y "encontrado" para encontrar las posibles coincidencias. |
 | **Trazabilidad** | Capacidad de seguir el ciclo de vida de una publicación (creada, en contacto, reclamada, cerrada). |
 | **Puertos y Adaptadores (Hexagonal)** | Patrón de arquitectura que aísla la lógica de negocio de los detalles externos (API, BD, etc.). |
-| **Corte vertical** | Funcionalidad mínima ejecutable que demuestra el flujo completo desde la interfaz hasta la persistencia (en este caso, el endpoint `/health`). |
+| **Corte vertical** | Funcionalidad mínima ejecutable que demuestra el flujo completo desde la interfaz hasta la persistencia: crear y consultar una publicación (`POST/GET /publicaciones`) a través de HTTP → caso de uso → dominio → puerto de persistencia. `/health` solo confirma que el proceso arrancó. |
+| **NestJS** | Framework TypeScript del backend elegido (ADR-0002), con módulos e inyección de dependencias. |
+| **Flutter** | Framework del cliente móvil/web elegido (ADR-0002) para publicar y consultar objetos. |
+

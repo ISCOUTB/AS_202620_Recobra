@@ -5,7 +5,8 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 
 | Fecha | Integrante | Herramienta | Qué se le pidió | Qué se usó del resultado / qué se descartó |
 |---|---|---|---|---|
-| 2026-08-23 | Equipo | Claude / ChatGPT  | Ej: comparar arquitectura en capas, hexagonal y monolito modular para el backend de Recobra | Ej: se usó la matriz comparativa como base y se ajustaron los pesos según nuestras restricciones reales; se descartó la recomendación de microservicios por sobredimensionada |
+| 2026-08-23 | Equipo | Claude / ChatGPT | Comparar arquitectura en capas, hexagonal y monolito modular para el backend de Recobra | Se usó la matriz comparativa como base y se ajustaron los pesos según restricciones reales; se descartó la recomendación de microservicios por sobredimensionada |
+| 2026-09-05 | Equipo | Cursor / Claude | Replantear ADR y migrar a NestJS + Flutter ante el stack obligatorio del curso; alinear feedback del algoritmo (aspectos 8 columnas, CI, medición corte 1) | **Aceptado:** ADR-0002/0003, tabla de aspectos con 8 columnas, CI, cliente Flutter del corte, script de medición, C4 alineado a NestJS. **Corregido:** no tratar el feedback automático como nota final; la “restricción asignada” del algoritmo no existía aparte del stack. **Rechazado:** reescribir el dominio en Python/FastAPI y pasar el cliente a NextJS (mayor riesgo de aprendizaje sin beneficio para S5). |
 
 
 ## Criterio del equipo sobre el uso de IA

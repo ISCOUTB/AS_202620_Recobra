@@ -1,119 +1,104 @@
-# arc42 — Secciones 1 a 3 — Recobra
+# arc42 — Recobra
 
-## Sección 1 — Introducción y objetivos
+## 1. Introducción y objetivos
 
 **Propósito:** centralizar la gestión de objetos perdidos y encontrados dentro de un espacio delimitado.
 
-**Lo que buscamos:**
+**Objetivos:**
 
 - Centralizar publicaciones.
 - Facilitar búsquedas y coincidencias.
 - Notificar coincidencias probables.
-- Mantener trazabilidad.
+- Mantener trazabilidad del ciclo de vida.
 - Reducir reclamaciones fraudulentas.
 
-**Interesados principales:** usuarios que pierden objetos, usuarios que encuentran objetos, administradores, la organización que usa Recobra, el equipo de desarrollo y los responsables de seguridad. El desarollo completo está en `ficha-problema.md`.
+**Interesados principales:** usuarios que pierden/encuentran objetos, administradores, la organización anfitriona, el equipo de desarrollo y responsables de seguridad.
 
-Los seis atributos de calidad y sus escenarios medibles están en `aspectos.md` y `escenarios_calidad.md`, y se conectan con las decisiones de arquitectura en la sección 10 de este mismo archivo.
+Los atributos de calidad y escenarios medibles están en
+[`docs/escenarios_calidad.md`](escenarios_calidad.md) y se enlazan con decisiones
+en la [sección 10](#10-requisitos-de-calidad) y en [`docs/aspectos.md`](aspectos.md).
 
-## Sección 2 — Restricciones
+## 2. Restricciones
 
-Las restricciones principales son:
+Además de las restricciones propias del proyecto
+([`Restricciones_justificadas.md`](Restricciones_justificadas.md)), el curso fija:
 
-- El sistema debe funcionar dentro del alcance definido para el proyecto académico.
-- Las acciones importantes deben estar asociadas a usuarios identificados.
-- La información debe almacenarse de forma persistente.
-- Los datos personales deben manejarse conforme a las obligaciones de privacidad aplicables.
-- La solución debe poder ser mantenida por el equipo.
-- El sistema debe permitir crecimiento progresivo (ver S7 en `escenarios_calidad.md`).
+- Backend en **NestJS** o **FastAPI**.
+- Frontend en **Flutter** o **NextJS**.
 
-El detalle completo, con la justificación de cada restricción y el escenario que la verifica, está en `Restricciones_justificadas.md`.
+La respuesta a esa restricción está en
+[ADR-0002](adr/0002-arquitectura-y-stack.md) y
+[ADR-0003](adr/0003-reto-corte1-stack-obligatorio.md).
 
-## Sección 3 — Contexto
+## 3. Contexto
 
-Recobra se ubica entre los usuarios y los servicios que permiten gestionar las publicaciones.
+Recobra se ubica entre los usuarios del campus y los servicios que permiten
+gestionar publicaciones, coincidencias y (a futuro) notificaciones e identidad
+institucional.
 
-**Relaciones principales:**
+El diagrama de contexto (C4 nivel 1) está en [`docs/c4/README.md`](c4/README.md).
 
-- El usuario que perdió un objeto registra la publicación y consulta coincidencias.
-- El usuario que encontró un objeto registra la información correspondiente.
-- Recobra procesa las publicaciones y determina posibles coincidencias.
-- Recobra notifica a los usuarios cuando encuentra una coincidencia.
-- Los administradores supervisan las publicaciones y las acciones del sistema.
+## 4. Estrategia de solución
 
-El diagrama de contexto de nivel 1 (C4), con personas, sistema y sistemas externos, está en `C4.md`. El contexto del problema y la tabla completa de interesados están en `ficha-problema.md`.
+Ver el detalle completo en
+[`docs/arc42/04-estrategia-solucion.md`](arc42/04-estrategia-solucion.md).
 
-# Sección 4 — Estrategia de solución
+Resumen: arquitectura **hexagonal** implementada con **NestJS** (backend) y
+**Flutter** (cliente).
 
-## Estrategia general
+## 5. Bloques de construcción
 
-Recobra adopta una arquitectura inspirada en **Hexagonal (Ports & Adapters)** organizada como un **monolito modular**.
+Vista estática del backend del corte 1:
 
-La lógica del dominio permanece aislada de la base de datos, la interfaz y los servicios externos, permitiendo modificar la infraestructura sin afectar las reglas del negocio.
+| Bloque | Responsabilidad | Ubicación |
+|--------|-----------------|-----------|
+| Dominio | Entidad `Publicacion` y reglas de validación | `src/domain/entities/` |
+| Puertos | Contrato `PublicacionRepository` | `src/domain/ports/` |
+| Aplicación | Casos de uso crear/consultar | `src/application/use-cases/` |
+| Adaptador de persistencia | Memoria (reemplazable por PostgreSQL) | `src/infrastructure/persistence/` |
+| Adaptador HTTP | Controladores Nest + filtro de errores de dominio | `src/publicaciones/`, `src/salud/` |
+| Composition root | Cableado de módulos Nest | `src/app.module.ts`, `src/main.ts` |
+| Cliente | UI Flutter del corte | `mobile/` |
 
-## Capas
+Relación con C4 nivel 2: el contenedor API agrupa dominio + aplicación +
+adaptadores; el contenedor Flutter es `mobile/`.
 
-### Dominio
-Contiene las entidades y reglas de negocio relacionadas con objetos perdidos, reclamaciones y trazabilidad.
+## 6. Vista de ejecución
 
-### Aplicación
-Implementa los casos de uso, coordinando las operaciones entre el dominio y los puertos.
+Flujo del corte vertical **crear publicación**:
 
-### Infraestructura
-Incluye adaptadores para persistencia, autenticación y notificaciones.
+1. El usuario envía el formulario desde Flutter (`mobile/`) o desde la vitrina
+   `public/index.html`.
+2. `PublicacionesController` recibe `POST /publicaciones`.
+3. `CrearPublicacion` valida vía la entidad `Publicacion` y llama al puerto
+   `PublicacionRepository`.
+4. `MemoriaPublicacionRepository` persiste en memoria y devuelve la entidad.
+5. La API responde `201` con el JSON de la publicación.
 
-### Interfaces
-Expone la aplicación mediante API REST o interfaz web.
+Flujo **consultar**: `GET /publicaciones/:id` → `ConsultarPublicacion` → puerto →
+`200` o `404`.
 
-## Beneficios
+Si la entidad lanza `PublicacionInvalidaError`, el filtro Nest responde `400`
+sin filtrar la regla de negocio hacia el controlador.
 
-- Bajo acoplamiento.
-- Mayor mantenibilidad.
-- Facilita pruebas automatizadas.
-- Permite reemplazar servicios externos sin modificar el dominio.
-  
-## Sección 5 — Requisitos de calidad
+## 9. Decisiones de arquitectura
 
-Los requisitos de calidad prioritarios para Recobra se definen en el árbol de utilidad y se verifican mediante escenarios medibles (ver `escenarios_calidad.md`). Los atributos clave son:
+| ADR | Tema | Estado |
+|-----|------|--------|
+| [ADR-0001](adr/0001-estilo-arquitectonico.md) | Estilo hexagonal (Express histórico) | Reemplazada por ADR-0002 |
+| [ADR-0002](adr/0002-arquitectura-y-stack.md) | Hexagonal + NestJS + Flutter | Aceptada |
+| [ADR-0003](adr/0003-reto-corte1-stack-obligatorio.md) | Reto corte 1 / stack obligatorio | Aceptada |
 
-- **Rendimiento (S1)**: Las búsquedas y coincidencias deben ser rápidas para una experiencia de usuario fluida.
-- **Seguridad (S2)**: La autenticación y verificación de reclamaciones deben proteger los datos y prevenir fraudes.
-- **Disponibilidad (S4)**: El sistema debe estar operativo en horarios definidos, con tolerancia a fallos de componentes no críticos.
-- **Mantenibilidad (S5)**: La arquitectura hexagonal facilita la evolución y el mantenimiento del código.
-- **Trazabilidad (S6)**: Cada publicación debe tener un historial claro de estados (publicado → en contacto → reclamado/cerrado).
-- **Escalabilidad (S7)**: El sistema debe permitir crecimiento progresivo en usuarios y publicaciones.
+## 10. Requisitos de calidad
 
-Estos atributos se priorizaron con los interesados y guían las decisiones técnicas documentadas en la Sección 10 y en los ADR.
+Los escenarios de [`escenarios_calidad.md`](escenarios_calidad.md) guían las
+decisiones:
 
-## Sección 6 — Construcción y despliegue
-
-### Construcción
-El proyecto se construye con Node.js y npm. Los pasos para construir y ejecutar el sistema son:
-
-1. Clonar el repositorio.
-2. Ejecutar `npm install` para instalar dependencias.
-3. Ejecutar `npm start` para levantar el servidor.
-4. Ejecutar `npm test` para correr las pruebas automatizadas.
-
-El sistema utiliza variables de entorno (ver `.env.example`) para configuración sensible.
-
-### Despliegue
-El despliegue inicial está pensado para un entorno de desarrollo local. Para un entorno de producción, se consideran:
-- Contenedorización con Docker (futuro).
-- Despliegue en un servidor con Node.js y PM2 o similar.
-- Uso de variables de entorno para configurar puerto, base de datos y claves.
-
-El diagrama de despliegue se detalla en la Sección 10 y en la documentación C4.
-## Sección 10 — Relación entre escenarios y decisiones de arquitectura
-
-Los escenarios de `escenarios_calidad.md` son la referencia que usamos para tomar decisiones durante el desarrollo. No elegimos tecnologías porque estén de moda, sino porque ayudan a cumplir los escenarios prioritarios definidos en `arbol_utilidad.md`.
-
-- **S1 Rendimiento:** orienta las decisiones de indexación y almacenamiento para la búsqueda.
-- **S2 Seguridad:** orienta autenticación, autorización y verificación de reclamaciones.
-- **S3 Notificaciones:** orienta la comunicación entre el módulo de matching y el de notificaciones.
-- **S4 / S4a / S4b Disponibilidad:** define los objetivos de operación, tolerancia a fallos de componentes secundarios y tiempo de recuperación.
-- **S5 Mantenibilidad:** ayuda a evaluar si la estructura del código facilita los cambios.
-- **S6 Trazabilidad:** orienta el diseño del historial de estados por publicación.
-- **S7 Escalabilidad:** orienta las decisiones de escalado horizontal o vertical y particionamiento de datos.
-
-Los escenarios funcionan, entonces, como evidencia para justificar de cierta manera las decisiones de arquitectura, y más adelante pueden relacionarse con ADR y pruebas justamente mucho mas concretas.
+- **S1 Rendimiento:** indexación/almacenamiento de búsqueda (futuro).
+- **S2 Seguridad:** verificación de reclamaciones (futuro; aspecto A3).
+- **S3 Notificaciones:** matching + push (futuro).
+- **S4 / S4a / S4b Disponibilidad:** aislar fallos de infraestructura del
+  dominio (aspecto A1; hexagonal).
+- **S5 Mantenibilidad:** ancla del reto de corte 1 (aspecto A2; ADR-0003).
+- **S6 Trazabilidad:** historial de estados (futuro).
+- **S7 Escalabilidad:** crecimiento de usuarios/publicaciones (futuro).

@@ -6,7 +6,9 @@ Las restricciones son condiciones que limitan cómo construimos el sistema, no f
  
 | Restricción | Por qué | Escenario que la verifica |
 |---|---|---|
-| Usar las tecnologías definidas por el equipo, con una arquitectura lo bastante simple para implementarse, probarse y mantenerse durante el semestre | El equipo tiene tiempo y capacidad limitados | S5 — Mantenibilidad |
+| El backend debe construirse en NestJS o FastAPI, y el frontend en Flutter o NextJS (restricción de stack del curso) | Espacio tecnológico cerrado por la asignatura; fuera de él la entrega no es válida | S5 — Mantenibilidad; ver ADR-0002 y ADR-0003 |
+| Usar las tecnologías elegidas dentro de ese espacio, con una arquitectura lo bastante simple para implementarse, probarse y mantenerse durante el semestre | El equipo tiene tiempo y capacidad limitados | S5 — Mantenibilidad |
+
 | El acceso a publicaciones y reclamaciones debe estar asociado a usuarios identificados | Sin esto no hay forma de mantener trazabilidad sobre lo que pasa | S2 — Seguridad en una reclamación, S6 — Trazabilidad |
 | Las publicaciones y sus cambios deben guardarse de forma persistente, no solo en el cliente | Sin persistencia no hay búsqueda confiable ni continuidad del servicio | S1 — Búsqueda, S4 — Disponibilidad |
 | La solución debe permitir crecer en usuarios y publicaciones sin reconstruir el sistema | Evita decisiones que después bloqueen el crecimiento | S7 — Escalabilidad |
