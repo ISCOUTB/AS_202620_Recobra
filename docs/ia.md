@@ -7,6 +7,7 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 |---|---|---|---|---|
 | 2026-08-23 | Equipo | Claude / ChatGPT | Comparar arquitectura en capas, hexagonal y monolito modular para el backend de Recobra | Se usó la matriz comparativa como base y se ajustaron los pesos según restricciones reales; se descartó la recomendación de microservicios por sobredimensionada |
 | 2026-09-05 | Equipo | Cursor / Claude | Replantear ADR y migrar a NestJS + Flutter ante el stack obligatorio del curso; alinear feedback del algoritmo (aspectos 8 columnas, CI, medición corte 1) | **Aceptado:** ADR-0002/0003, tabla de aspectos con 8 columnas, CI, cliente Flutter del corte, script de medición, C4 alineado a NestJS. **Corregido:** no tratar el feedback automático como nota final; la “restricción asignada” del algoritmo no existía aparte del stack. **Rechazado:** reescribir el dominio en Python/FastAPI y pasar el cliente a NextJS (mayor riesgo de aprendizaje sin beneficio para S5). |
+| 2026-09-05 | Equipo | Cursor / Composer | Explicar fallo de GitHub Actions / SonarCloud Quality Gate (Reliability C, Security C) tras el push del corte; corregir hallazgos y redactar el PDF de 2 páginas para Moodle | **Aceptado:** `lang="es"` en `mobile/web/index.html`; endurecer `.github/workflows/ci.yml` (SHA fijos de actions, `npm ci --ignore-scripts`, `flutter pub get --enforce-lockfile`); `allowBackup=false` y cleartext solo en debug; minify/obfuscation en release Android; `gradle/verification-metadata.xml`; PDF en `docs/entrega-corte1-moodle.pdf` generado con script revisado por el equipo. **Corregido:** el job rojo no era el de tests Nest/Flutter sino el Quality Gate de Sonar de la organización. **Rechazado:** desactivar Sonar o excluir `mobile/` del análisis para “pasar en verde” sin corregir las causas. |
 
 
 ## Criterio del equipo sobre el uso de IA
@@ -50,9 +51,11 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 * *Diseño y arquitectura:* Consultas sobre la aplicación práctica del estilo hexagonal (puertos y adaptadores) en casos de uso concretos del proyecto.
 * *Generación de código base:* Apoyo en la escritura de entidades, casos de uso, adaptadores y pruebas automatizadas siguiendo la estructura ya definida en el repositorio.
 * *Documentación técnica:* Ayuda para mantener actualizados el README y la documentación de arquitectura (ADR, arc42) conforme avanza el desarrollo.
+* *Corte 1 / stack obligatorio:* Apoyo con Cursor para migrar a NestJS + Flutter, completar ADR-0002/0003, medición, CI y el PDF de Moodle.
+* *Quality Gate SonarCloud:* Diagnóstico del fallo post-push y correcciones de seguridad/confiabilidad en CI y Android/web.
 
 ### 3. Declaración de Autonomía
-
+* Todo el código y la documentación generados con apoyo de IA fueron revisados, ejecutados (pruebas automatizadas) y validados antes de integrarlos al repositorio.
 ## Registro de Uso de IA - [Verónica Ubarne]
 
 ### 1. Nivel de Uso
