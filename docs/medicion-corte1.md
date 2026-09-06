@@ -24,13 +24,32 @@ Estado de referencia: backend Express hexagonal previo a la migración NestJS
 | Pruebas del dominio y del corte | `node --test` / suite Express del vertical slice | Verde sobre Express |
 | Framework del contenedor API | Inspección de `package.json` + `src/server.js` | Express (fuera del stack permitido) |
 | Cliente móvil | Árbol del repo | Ausente (solo C4 lo nombraba) |
-| Latencia `POST /publicaciones` (p95, N=50, local) | Script cronometrando HTTP contra Express en localhost | ~8–15 ms en máquina de desarrollo del equipo (orden de magnitud; sin carga concurrente) |
+| Latencia `POST /publicaciones` (p95, N=50, local) | `node src/server.js` en el commit `905f546` (Express, pre-migración), reproducido en un worktree aislado con `measure-post.js` copiado del corte 1; ver salida cruda abajo | **p95 = 0.54–1.00 ms** (p50 ≈ 0.28–0.32 ms) en 2 corridas estables tras el arranque en frío |
 
 Procedimiento de latencia (reproducible):
 
-1. Levantar el backend en `http://localhost:3000`.
+1. Levantar el backend en `http://localhost:3000` (commit `905f546`: `node src/server.js`; commit actual: `npm run start`).
 2. Ejecutar `npm run measure:post` (50 iteraciones de `POST /publicaciones`).
 3. Reportar p50 y p95 en milisegundos.
+
+Salida cruda (línea base, commit `905f546`, 2026-09-05, reproducida en worktree local):
+
+```jsonc
+// Corrida 1 (arranque en frío, primer request paga JIT/carga de módulos — se excluye del p95 reportado)
+{ "n": 50, "avgMs": 3.11, "p50Ms": 0.32, "p95Ms": 1,    "minMs": 0.24, "maxMs": 135.31 }
+// Corrida 2 (estable)
+{ "n": 50, "avgMs": 0.43, "p50Ms": 0.28, "p95Ms": 0.65, "minMs": 0.23, "maxMs": 4.73 }
+// Corrida 3 (estable)
+{ "n": 50, "avgMs": 0.41, "p50Ms": 0.29, "p95Ms": 0.54, "minMs": 0.23, "maxMs": 4.7 }
+```
+
+La cifra "~8–15 ms" de una versión anterior de este documento era una estimación sin
+corrida registrada; se reemplaza por la medición reproducible de arriba. La línea
+base de Express resulta más rápida que la implementación NestJS de abajo (esperable:
+menos capas de framework en memoria, sin overhead de Nest/reflection), pero ambas
+cumplen ampliamente el umbral del escenario S5 (no romper pruebas, no reescribir el
+dominio) y el objetivo local de 100 ms — la comparación de latencia es informativa,
+no el criterio de aceptación de este reto.
 
 ## Cambio aplicado
 
