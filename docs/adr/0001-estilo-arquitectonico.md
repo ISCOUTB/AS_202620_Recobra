@@ -4,6 +4,8 @@
 
 Reemplazada por ADR-0002 - 2026-09-05.
 Aceptada - 2026-08-23.
+Commit que implementa esta decisión: [`cb5c579`](https://github.com/ISCOUTB/AS_202620_Recobra/commit/cb5c57956e2b712a965b624364831ecf2fed93ac)
+(esqueleto hexagonal sobre Express, histórico — reemplazado por la migración de ADR-0002).
 
 ## Contexto
 

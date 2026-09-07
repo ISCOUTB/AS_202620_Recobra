@@ -6,6 +6,8 @@ Aceptada - 2026-09-05.
 Reemplaza a ADR-0001.
 Complementada por [ADR-0003](0003-reto-corte1-stack-obligatorio.md) (marco
 formal del reto de corte 1 y su medición).
+Commit que implementa esta decisión: [`3a82ca6`](https://github.com/ISCOUTB/AS_202620_Recobra/commit/3a82ca6cfae51f6b56271e13e2844196a2527d9a)
+(migración del composition root y adaptador HTTP a NestJS, cliente Flutter en `mobile/`).
 
 ## Contexto
 
