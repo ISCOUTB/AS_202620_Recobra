@@ -2,18 +2,16 @@
 
 Plataforma para publicar y encontrar objetos perdidos dentro de un espacio delimitado (campus universitario, empresa, edificio de apartamentos, etc.), conectando a quien pierde algo con quien lo encuentra.
 
-### Problema
-No existe un canal centralizado, buscable y con notificaciones que conecte de forma eficiente a quien pierde un objeto con quien lo encuentra, lo que genera:
-- Objetos que nunca son reclamados por falta de visibilidad.
-- Tiempo perdido preguntando en múltiples canales no oficiales.
-- Falta de trazabilidad sobre quién encontró qué y cuándo.
-- Riesgo de fraude o falsas reclamaciones sin ningún mecanismo de verificación.
+## Descripción
 
-### Objetivos del proyecto
-1. Centralizar publicaciones de objetos perdidos y encontrados en un solo lugar buscable.
-2. Facilitar el emparejamiento (matching) entre publicaciones de "perdido" y "encontrado" mediante descripción, categoría, ubicación y fecha.
-3. Notificar a los usuarios cuando exista una coincidencia probable con su publicación.
-4. Dar trazabilidad al ciclo de vida de un objeto (publicado → en contacto → reclamado/cerrado).
+No existe hoy un canal centralizado, buscable y con notificaciones que
+conecte de forma eficiente a quien pierde un objeto con quien lo encuentra.
+Recobra centraliza esas publicaciones, las hace buscables y (en su alcance
+objetivo) las empareja y notifica automáticamente, dando trazabilidad al
+ciclo de vida del objeto hasta su reclamación o cierre.
+
+Problema, usuarios objetivo, propuesta de solución y tensiones de calidad
+completas en [`docs/ficha_problema.md`](docs/ficha_problema.md).
 
 ## Stack
 
@@ -27,8 +25,7 @@ interna del backend es hexagonal (puertos y adaptadores).
 Requisitos: Node.js 18 o superior.
 
 ```bash
-npm install
-npm run start
+npm install && npm run start
 ```
 
 El servidor queda en `http://localhost:3000` y expone `GET /health`.
@@ -108,16 +105,22 @@ curl http://localhost:3000/publicaciones/<id>
 
 `200` o `404`.
 
-## Documentación clave
+## Documentación
 
-| Documento | Contenido |
-|-----------|-----------|
-| [`docs/aspectos.md`](docs/aspectos.md) | Tabla de 8 columnas (trazabilidad) |
-| [`docs/adr/`](docs/adr/) | ADR-0001 (reemplazada), 0002 (stack), 0003 (reto corte 1) |
-| [`docs/c4/README.md`](docs/c4/README.md) | Contexto y contenedores |
-| [`docs/arc42.md`](docs/arc42.md) | arc42 (bloques, ejecución, decisiones) |
-| [`docs/ia.md`](docs/ia.md) | Registro de uso de IA |
-| [`docs/medicion-corte1.md`](docs/medicion-corte1.md) | Línea base y resultado del reto |
+La documentación del proyecto se encuentra en la carpeta `docs/`.
+
+- [`docs/ficha_problema.md`](docs/ficha_problema.md) — descripción del problema, propuesta de solución y tensiones de calidad.
+- [`docs/aspectos.md`](docs/aspectos.md) — aspectos arquitectónicos y trazabilidad (tabla de 8 columnas).
+- [`docs/ia.md`](docs/ia.md) — registro del uso de inteligencia artificial.
+- [`docs/arc42/`](docs/arc42/) — documentación de arquitectura mediante arc42.
+- [`docs/c4/`](docs/c4/) — diagramas de arquitectura C4 (contexto, contenedores, componentes).
+- [`docs/calidad/`](docs/calidad/) — atributos y escenarios de calidad, árbol de utilidad y restricciones justificadas.
+- [`docs/adr/`](docs/adr/) — decisiones arquitectónicas (ADR-0001 reemplazada, 0002 stack, 0003 reto corte 1).
+- [`docs/context-map.md`](docs/context-map.md) — mapa de contextos delimitados.
+- [`docs/modulo-datos.md`](docs/modulo-datos.md) — módulo → datos, con dueño único.
+- [`docs/medicion-corte1.md`](docs/medicion-corte1.md) — línea base y resultado del reto de corte 1.
+- [`docs/no-conformidades.md`](docs/no-conformidades.md) — no conformidades detectadas y su plan de corrección.
+- [`correcciones.md`](correcciones.md) — trazabilidad de hallazgos S1-S5 con su corrección.
 
 ## Estructura
 
