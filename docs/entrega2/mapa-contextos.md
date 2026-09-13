@@ -11,4 +11,39 @@ El sistema está compuesto por los siguientes módulos, cada uno con una respons
 | **SaludModule** | Verifica el estado del servicio (health check). |  |
 
 ## Diagrama de contextos
+[Cliente (Flutter Web/Android)]
+↕ (HTTP + CORS)
+[API REST - NestJS]
+↕
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ AppModule │
+│ ┌─────────────────────────┐ ┌──────────────────┐ ┌────────────────────┐ │
+│ │ PublicacionesModule │ │ SaludModule │ │ ServeStaticModule │ │
+│ │ │ │ │ │ (demo pública) │ │
+│ │ ┌───────────────────┐ │ │ GET /health │ │ /public/index.html│ │
+│ │ │ PublicacionesCtrl │ │ └──────────────────┘ └────────────────────┘ │
+│ │ │ POST /publicaciones│ │ │
+│ │ │ GET /:id │ │ │
+│ │ └─────────┬─────────┘ │ │
+│ │ ↓ │ │
+│ │ ┌───────────────────┐ │ │
+│ │ │ Casos de uso: │ │ │
+│ │ │ - CrearPublicacion│ │ │
+│ │ │ - ConsultarPublic.│ │ │
+│ │ └─────────┬─────────┘ │ │
+│ │ ↓ │ │
+│ │ ┌───────────────────┐ │ │
+│ │ │ Puerto: │ │ │
+│ │ │ PublicacionRepo │ │ │
+│ │ └─────────┬─────────┘ │ │
+│ │ ↓ │ │
+│ │ ┌───────────────────┐ │ │
+│ │ │ Adaptador: │ │ │
+│ │ │ MemoriaPublicacion│ │ │
+│ │ │ Repository (Map) │ │ │
+│ │ └───────────────────┘ │ │
+│ └─────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+↕
+[Almacenamiento en memoria (Map) - volátil]
 
