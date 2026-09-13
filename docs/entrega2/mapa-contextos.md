@@ -1,6 +1,6 @@
 # Mapa de contextos - Recobra
 
-## Nivel de módulos (contextos delimitados)
+## Nivel de módulos
 
 El sistema está compuesto por los siguientes módulos, cada uno con una responsabilidad clara:
 
