@@ -2,7 +2,7 @@
 
 ## Nivel de módulos
 
-El sistema está compuesto por los siguientes módulos, cada uno con una responsabilidad clara:
+El sistema está compuesto por los siguientes módulos, cada uno con una responsabilidad:
 
 | Módulo | Responsabilidad | Dependencias |
 |--------|-----------------|--------------|
