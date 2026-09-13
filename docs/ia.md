@@ -56,19 +56,27 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 
 ### 3. Declaración de Autonomía
 * Todo el código y la documentación generados con apoyo de IA fueron revisados, ejecutados (pruebas automatizadas) y validados antes de integrarlos al repositorio.
+* 
 ## Registro de Uso de IA - [Verónica Ubarne]
 
 ### 1. Nivel de Uso
-* *Frecuencia:* Uso moderado como asistente para la documentación y revisión del proyecto.
+* *Frecuencia:* Uso moderado como asistente para la documentación, revisión de código y análisis arquitectónico.
 * *Herramientas empleadas:* Claude (frecuencia media de uso).
 
 ### 2. Casos de Uso Específicos
 * *Revisión del repositorio:* Análisis de la estructura del proyecto, archivos clave (package.json, server.js, adaptadores HTTP) y verificación del estado del corte vertical.
 * *Completar documentación arc42:* Apoyo para redactar las secciones 5 (Requisitos de calidad) y 6 (Construcción y despliegue) que faltaban en el archivo `arc42.md`.
 * *Estructuración de la tabla de aspectos:* Transformación del texto plano sobre seguridad en una tabla con el formato solicitado (Aspecto, Decisión, Justificación, Pruebas).
-* *Verificación de entregables:* Revisión de la lista de chequeo de la entrega incremental (arc42, C4, corte vertical, tabla de aspectos) para confirmar que todo estuviera completo.
+* *Análisis de arquitectura modular (entrega 2):* Revisión de `app.module.ts`, `publicaciones.module.ts` y `main.ts` para identificar los módulos del sistema y sus relaciones.
+* *Identificación de dueños de datos (entrega 2):* Análisis de la entidad `Publicacion`, el puerto `PublicacionRepository` y el adaptador `MemoriaPublicacionRepository` para determinar qué módulo es dueño único de cada conjunto de datos.
+* *Detección de violaciones arquitectónicas (entrega 2):* Revisión del código real (controlador, casos de uso, DTO, entidad, módulo) para identificar violaciones como la falta de autenticación, la persistencia volátil en memoria, la falta de trazabilidad de estados, la ausencia de pruebas e2e y la falta de validación en el DTO.
+* *Redacción del plan de corrección (entrega 2):* Apoyo en la propuesta de acciones concretas, prioridades y plazos para resolver cada violación detectada.
+* *Verificación de entregables:* Revisión de la lista de chequeo de las entregas incrementales (arc42, C4, corte vertical, tabla de aspectos, tabla de dueños, violaciones) para confirmar que todo estuviera completo.
 * *Organización del trabajo:* Guía sobre el flujo de trabajo con Git y la estructura de carpetas para la documentación.
 
+### 3. Declaración de Autonomía
+* Toda la documentación generada con apoyo de IA fue revisada, ajustada y validada por mí antes de integrarse al repositorio. El contenido final refleja el entendimiento del proyecto y sus requisitos.
+* Todo el código y la documentación generados con apoyo de IA fueron revisados, ejecutados (pruebas automatizadas y pruebas manuales) y comprendidos por mí antes de integrarlos al repositorio.
 ### 3. Declaración de Autonomía
 * Toda la documentación generada con apoyo de IA fue revisada, ajustada y validada por mí antes de integrarse al repositorio. El contenido final refleja el entendimiento del proyecto y sus requisitos.
 * Todo el código y la documentación generados con apoyo de IA fueron revisados, ejecutados (pruebas automatizadas y pruebas manuales) y comprendidos por mí antes de integrarlos al repositorio.
