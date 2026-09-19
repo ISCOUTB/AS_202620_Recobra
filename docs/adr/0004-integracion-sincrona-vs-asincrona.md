@@ -104,7 +104,10 @@ Se adopta el estilo **híbrido (alternativa C)**:
   transitividad a Notificaciones.
 - La prueba de contrato (`test/contract.e2e-spec.ts`) puede fallar de forma
   determinista ante un cambio incompatible del contrato REST, sin depender de
-  infraestructura de mensajería que todavía no existe.
+  infraestructura de mensajería que todavía no existe. Verificado en vivo:
+  el commit `8f227e3` rompió el contrato a propósito y el run de Actions
+  salió en rojo ([run 35411238008](https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/35411238008));
+  el siguiente commit lo revirtió y el run volvió a verde.
 - Es consistente con la prueba de degradación controlada ya implementada en
   corte 1: un fallo en un componente de soporte (notificación) no debe poder
   tumbar ni bloquear la operación núcleo (publicar).
