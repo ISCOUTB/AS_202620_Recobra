@@ -74,6 +74,18 @@ modelo de datos.
   reclamante) traducen la respuesta de Identidad a su propio modelo interno de
   "usuario" en vez de propagar el modelo externo hacia el dominio.
 
+## Diferencia con los límites del corte 1
+
+Los límites de contexto **no cambiaron** desde el corte 1 (etiqueta `corte-1`,
+commit `f7c1a6c`): el único contexto con código real sigue siendo
+**Publicaciones** (`src/domain/`, `src/application/`, `src/publicaciones/`).
+Este mapa documenta el diseño objetivo de los demás contextos
+(Reclamaciones, Emparejamiento, Notificaciones, Identidad) para decidir sus
+fronteras de datos antes de escribir código, no un cambio ya implementado.
+Por eso no aplica un diff de C4 nivel 3 ni un ADR nuevo de límites en esta
+semana: no hay una frontera que se haya movido, solo una que se documentó
+con anticipación.
+
 ## Relación con la arquitectura hexagonal (ADR-0002)
 
 Cada contexto delimitado, cuando se implemente, sigue la misma regla que ya

@@ -61,6 +61,27 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Etiqueta `corte-1` fijada casi 10 horas después del cierre | **No corregible retroactivamente** sin reescribir historial (riesgo mayor al problema). Plan de proceso para futuros cortes en [`docs/no-conformidades.md`](docs/no-conformidades.md#6-disciplina-de-etiquetado-git) | — |
 | Un integrante (Fernando Isacc Conde Herrera) con una sola contribución en el semestre | **Pendiente de reparto de trabajo real**, no es una no conformidad de código. Plan en [`docs/no-conformidades.md`](docs/no-conformidades.md#7-participación-desigual-del-equipo) | — |
 
+## Semana 6 · S6
+
+| Hallazgo | Corrección | Evidencia |
+|---|---|---|
+| Diff contra hash de corte 1, C4 nivel 3 y ADR si cambiaron los límites | Aclarado explícitamente que los límites **no cambiaron**: el mapa de contextos documenta diseño objetivo, no una migración ya hecha | [`docs/context-map.md`](docs/context-map.md#diferencia-con-los-límites-del-corte-1) |
+| arc42 sección 8 (lenguaje ubicuo y mapa de contextos) | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
+| Auditoría de no conformidades de propiedad de datos (recorrido de escrituras) | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
+| SonarCloud con run exitoso y URL pública del Quality Gate | **Pendiente** — requiere el secreto `SONAR_TOKEN` en GitHub (acción de quien administra el repo) | Ver [`docs/no-conformidades.md`](docs/no-conformidades.md#4-ci-sin-análisis-estático-de-sonarcloud) |
+| Token de Coveralls expuesto, sin confirmar rotación | **Sigue abierta** — acción externa en la cuenta de Coveralls | [`docs/no-conformidades.md`](docs/no-conformidades.md#1-token-de-coveralls-expuesto-en-el-historial-de-git) |
+
+## Semana 7 · S7
+
+| Hallazgo | Corrección | Evidencia |
+|---|---|---|
+| Sin contrato de API en formato ejecutable versionado | Contrato OpenAPI 3.0.3 (versión `1.0.0`) con rutas y esquemas de datos | [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) |
+| Sin prueba de contrato ni invocación en el pipeline | Prueba con `jest-openapi` (`test/contract.e2e-spec.ts`), paso «Contract tests» en el workflow | [`test/contract.e2e-spec.ts`](test/contract.e2e-spec.ts), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| Sin evidencia de que la prueba falle ante un cambio incompatible | Se forzó un campo requerido (`matchScore`) que la API no devuelve y se registró la salida real de la prueba fallando, luego revertido | [`docs/contracts/evidencia-fallo-2026-09-19.txt`](docs/contracts/evidencia-fallo-2026-09-19.txt) |
+| Sin ADR de estrategia de integración síncrona/asíncrona | ADR-0004: REST síncrono para el corte vertical, eventos asíncronos para Publicaciones→Emparejamiento→Notificaciones, contra S3/S4a/S5 | [`docs/adr/0004-integracion-sincrona-vs-asincrona.md`](docs/adr/0004-integracion-sincrona-vs-asincrona.md) |
+| C4 nivel 2 sin protocolo/formato en cada flecha | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
+| arc42 secciones 6 (flujos de interacción), 7, 11 y 12 incompletas | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
+
 ## Reorganización de archivos (posterior al corte 1)
 
 | Cambio | Corrección | Evidencia |
