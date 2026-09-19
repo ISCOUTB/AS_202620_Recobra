@@ -165,6 +165,18 @@ Flujo **consultar**: `GET /publicaciones/:id` → `ConsultarPublicacion` → pue
 Si la entidad lanza `PublicacionInvalidaError`, el filtro Nest responde `400`
 sin filtrar la regla de negocio hacia el controlador.
 
+   El contrato ejecutable de estas tres rutas (`/health`, `POST /publicaciones`,
+   `GET /publicaciones/:id`) está versionado en
+   [`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) (ver ADR-0004). El
+   cliente Flutter (`mobile/lib/api/recobra_api.dart`) consume esas mismas rutas
+   tal como las declara el contrato.
+
+   ## 7. Vista de despliegue
+
+   Hoy: ejecución local. Backend con `npm run start` (puerto 3000), cliente
+   Flutter con `flutter run`. No hay despliegue en la nube todavía — se define
+   en la semana 8 (ver «Guía de despliegue y costos»).
+   
 ## 9. Decisiones de arquitectura
 
 | ADR | Tema | Estado |
@@ -173,6 +185,7 @@ sin filtrar la regla de negocio hacia el controlador.
 | [ADR-0002](../adr/0002-arquitectura-y-stack.md) | Hexagonal + NestJS + Flutter | Aceptada |
 | [ADR-0003](../adr/0003-reto-corte1-stack-obligatorio.md) | Reto corte 1 / stack obligatorio | Aceptada |
 | [ADR-0004](../adr/0004-integracion-sincrona-vs-asincrona.md) | Integración síncrona (corte vertical) / asíncrona (entre contextos) | Aceptada |
+
 
 ## 10. Requisitos de calidad
 
