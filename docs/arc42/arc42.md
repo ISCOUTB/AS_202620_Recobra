@@ -165,30 +165,29 @@ Flujo **consultar**: `GET /publicaciones/:id` → `ConsultarPublicacion` → pue
 Si la entidad lanza `PublicacionInvalidaError`, el filtro Nest responde `400`
 sin filtrar la regla de negocio hacia el controlador.
 
-   El contrato ejecutable de estas tres rutas (`/health`, `POST /publicaciones`,
-   `GET /publicaciones/:id`) está versionado en
-   [`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) (ver ADR-0004). El
-   cliente Flutter (`mobile/lib/api/recobra_api.dart`) consume esas mismas rutas
-   tal como las declara el contrato.
+El contrato ejecutable de estas tres rutas (`/health`, `POST /publicaciones`,
+`GET /publicaciones/:id`) está versionado en
+[`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) (ver ADR-0004). El
+cliente Flutter (`mobile/lib/api/recobra_api.dart`) consume esas mismas rutas
+tal como las declara el contrato.
 
-   ## 7. Vista de despliegue
+## 7. Vista de despliegue
 
-   Hoy: ejecución local. Backend con `npm run start` (puerto 3000), cliente
-   Flutter con `flutter run`. No hay despliegue en la nube todavía — se define
-   en la semana 8 (ver «Guía de despliegue y costos»).
-  
+Hoy: ejecución local. Backend con `npm run start` (puerto 3000), cliente
+Flutter con `flutter run`. No hay despliegue en la nube todavía — se define
+en la semana 8 (ver «Guía de despliegue y costos»).
 
-   ## 8. Conceptos transversales
+## 8. Conceptos transversales
 
-   ### Lenguaje ubicuo
+### Lenguaje ubicuo
 
-   - **Publicación**: registro de un objeto perdido o encontrado.
-   - **Reclamación**: solicitud de un usuario para recuperar un objeto publicado.
-   - **Coincidencia**: relación detectada entre una publicación "perdido" y una "encontrado".
-   - **Emparejamiento**: proceso que detecta coincidencias entre publicaciones.
+- **Publicación**: registro de un objeto perdido o encontrado.
+- **Reclamación**: solicitud de un usuario para recuperar un objeto publicado.
+- **Coincidencia**: relación detectada entre una publicación "perdido" y una "encontrado".
+- **Emparejamiento**: proceso que detecta coincidencias entre publicaciones.
 
-   Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
-   
+Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
+
 ## 9. Decisiones de arquitectura
 
 | ADR | Tema | Estado |
@@ -216,10 +215,14 @@ decisiones:
 
 ## 11. Riesgos y deuda técnica
 
-   - Persistencia en memoria (no PostgreSQL): se pierde todo al reiniciar el proceso.
-   - Emparejamiento, Notificaciones, Reclamaciones e Identidad son solo diseño, sin código todavía.
-   - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
-  
+- Persistencia en memoria (no PostgreSQL): se pierde todo al reiniciar el proceso.
+- Emparejamiento, Notificaciones, Reclamaciones e Identidad son solo diseño, sin código todavía.
+- Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
+
+## 12. Glosario
+
+Ver [`docs/glosarios.md`](../glosarios.md) para el glosario completo de términos del dominio (Publicación, Coincidencia, Reclamación, Notificación, Contexto Delimitado, Puerto, Adaptador, etc.).
+
 ## Documentos relacionados
 
 - [`docs/aspectos.md`](../aspectos.md) — trazabilidad de 8 columnas.
@@ -227,7 +230,3 @@ decisiones:
 - [`docs/context-map.md`](../context-map.md) — contextos delimitados.
 - [`docs/modulo-datos.md`](../modulo-datos.md) — propiedad de datos por módulo.
 - [`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).
-
-## 12. Glosario
-
-Ver [`docs/glosarios.md`](../glosarios.md) para el glosario completo de términos del dominio (Publicación, Coincidencia, Reclamación, Notificación, Contexto Delimitado, Puerto, Adaptador, etc.).
