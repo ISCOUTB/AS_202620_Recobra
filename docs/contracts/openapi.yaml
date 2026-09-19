@@ -1,0 +1,143 @@
+openapi: 3.0.3
+info:
+  title: Recobra API
+  description: >
+    Contrato de la API principal de Recobra (corte vertical de publicaciones).
+    Fuente única de verdad para el equipo de backend (NestJS) y el cliente
+    Flutter (`mobile/lib/api/recobra_api.dart`). Ver ADR-0004 para la
+    justificación de por qué esta interacción es síncrona sobre REST.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:3000
+    description: Backend local (npm run start)
+paths:
+  /health:
+    get:
+      operationId: consultarSalud
+      summary: Verificación de proceso vivo
+      tags: [Salud]
+      responses:
+        "200":
+          description: El servicio está arriba
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Salud"
+  /publicaciones:
+    post:
+      operationId: crearPublicacion
+      summary: Crear una publicación (objeto perdido o encontrado)
+      tags: [Publicaciones]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearPublicacionRequest"
+      responses:
+        "201":
+          description: Publicación creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publicacion"
+        "400":
+          description: Datos de la publicación inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDominio"
+        "500":
+          description: Error interno controlado (p. ej. falla el adaptador de persistencia)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInterno"
+  /publicaciones/{id}:
+    get:
+      operationId: consultarPublicacion
+      summary: Consultar una publicación por id
+      tags: [Publicaciones]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Publicación encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publicacion"
+        "404":
+          description: No existe una publicación con ese id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInterno"
+components:
+  schemas:
+    Salud:
+      type: object
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: recobra-backend
+    TipoPublicacion:
+      type: string
+      enum: [perdido, encontrado]
+    CrearPublicacionRequest:
+      type: object
+      required: [tipo, descripcion, categoria, ubicacion]
+      properties:
+        tipo:
+          $ref: "#/components/schemas/TipoPublicacion"
+        descripcion:
+          type: string
+          minLength: 1
+        categoria:
+          type: string
+          minLength: 1
+        ubicacion:
+          type: string
+          minLength: 1
+    Publicacion:
+      type: object
+      required: [id, tipo, descripcion, categoria, ubicacion, estado, creadoEn]
+      properties:
+        id:
+          type: string
+        tipo:
+          $ref: "#/components/schemas/TipoPublicacion"
+        descripcion:
+          type: string
+        categoria:
+          type: string
+        ubicacion:
+          type: string
+        estado:
+          type: string
+          example: publicado
+        creadoEn:
+          type: string
+          format: date-time
+    ErrorDominio:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    ErrorInterno:
+      type: object
+      required: [statusCode, message]
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string

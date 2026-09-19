@@ -172,6 +172,7 @@ sin filtrar la regla de negocio hacia el controlador.
 | [ADR-0001](../adr/0001-estilo-arquitectonico.md) | Estilo hexagonal (Express histórico) | Reemplazada por ADR-0002 |
 | [ADR-0002](../adr/0002-arquitectura-y-stack.md) | Hexagonal + NestJS + Flutter | Aceptada |
 | [ADR-0003](../adr/0003-reto-corte1-stack-obligatorio.md) | Reto corte 1 / stack obligatorio | Aceptada |
+| [ADR-0004](../adr/0004-integracion-sincrona-vs-asincrona.md) | Integración síncrona (corte vertical) / asíncrona (entre contextos) | Aceptada |
 
 ## 10. Requisitos de calidad
 
@@ -193,3 +194,4 @@ decisiones:
 - [`docs/c4/`](../c4/) — diagramas C4 (C4-C1 contexto, C4-C2 contenedores, C4-C3 componentes).
 - [`docs/context-map.md`](../context-map.md) — contextos delimitados.
 - [`docs/modulo-datos.md`](../modulo-datos.md) — propiedad de datos por módulo.
+- [`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).

@@ -19,6 +19,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Unit tests
         run: npm test
+      - name: Contract tests (OpenAPI, docs/contracts/openapi.yaml)
+        run: npm run test:contract
       - name: E2E tests
         run: npm run test:e2e
       - name: Build

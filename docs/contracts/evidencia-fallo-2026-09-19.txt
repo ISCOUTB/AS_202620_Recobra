@@ -1,0 +1,95 @@
+
+> recobra-backend@0.2.0 test:contract
+> jest --config ./test/jest-e2e.json --testPathPattern=contract
+
+FAIL test/contract.e2e-spec.ts
+  Contrato de la API (e2e)
+    √ GET /health cumple el esquema Salud del contrato (18 ms)
+    × POST /publicaciones (201) cumple el esquema Publicacion del contrato (19 ms)
+    √ POST /publicaciones con tipo inválido (400) cumple el esquema ErrorDominio del contrato (7 ms)
+    × GET /publicaciones/:id (200) cumple el esquema Publicacion del contrato (9 ms)
+    √ GET /publicaciones/:id inexistente (404) cumple el esquema ErrorInterno del contrato (7 ms)
+
+  ● Contrato de la API (e2e) › POST /publicaciones (201) cumple el esquema Publicacion del contrato
+
+    expect(received).toSatisfyApiSpec() // Matches 'received' to a response defined in your API spec, then validates 'received' against it
+
+    expected received to satisfy the '201' response defined for endpoint 'POST /publicaciones' in your API spec
+
+    received did not satisfy it because: response must have required property 'matchScore'
+
+    received contained: {
+      body: {
+        id: 'f01bf3ee-ed6c-4fa6-9ede-9cfbf70e78e9',
+        tipo: 'perdido',
+        descripcion: 'Cargador de laptop',
+        categoria: 'electronica',
+        ubicacion: 'Bloque 3',
+        estado: 'publicado',
+        creadoEn: '2026-09-19T00:30:05.527Z'
+      }
+    }
+
+    The '201' response defined for endpoint 'POST /publicaciones' in API spec: {
+      '201': {
+        description: 'Publicación creada',
+        content: {
+          'application/json': { schema: { '$ref': '#/components/schemas/Publicacion' } }
+        }
+      }
+    }
+
+    [0m [90m 47 |[39m
+     [90m 48 |[39m     expect(respuesta[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 49 |[39m     expect(respuesta)[33m.[39mtoSatisfyApiSpec()[33m;[39m
+     [90m    |[39m                       [31m[1m^[22m[39m
+     [90m 50 |[39m   })[33m;[39m
+     [90m 51 |[39m
+     [90m 52 |[39m   it([32m'POST /publicaciones con tipo inválido (400) cumple el esquema ErrorDominio del contrato'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (contract.e2e-spec.ts:49:23)
+
+  ● Contrato de la API (e2e) › GET /publicaciones/:id (200) cumple el esquema Publicacion del contrato
+
+    expect(received).toSatisfyApiSpec() // Matches 'received' to a response defined in your API spec, then validates 'received' against it
+
+    expected received to satisfy the '200' response defined for endpoint 'GET /publicaciones/{id}' in your API spec
+
+    received did not satisfy it because: response must have required property 'matchScore'
+
+    received contained: {
+      body: {
+        id: 'e7d50b92-5498-43a8-8b5f-054bf22c4ee7',
+        tipo: 'encontrado',
+        descripcion: 'Llavero',
+        categoria: 'llaves',
+        ubicacion: 'Biblioteca',
+        estado: 'publicado',
+        creadoEn: '2026-09-19T00:30:05.547Z'
+      }
+    }
+
+    The '200' response defined for endpoint 'GET /publicaciones/{id}' in API spec: {
+      '200': {
+        description: 'Publicación encontrada',
+        content: {
+          'application/json': { schema: { '$ref': '#/components/schemas/Publicacion' } }
+        }
+      }
+    }
+
+    [0m [90m 73 |[39m
+     [90m 74 |[39m     expect(respuesta[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 75 |[39m     expect(respuesta)[33m.[39mtoSatisfyApiSpec()[33m;[39m
+     [90m    |[39m                       [31m[1m^[22m[39m
+     [90m 76 |[39m   })[33m;[39m
+     [90m 77 |[39m
+     [90m 78 |[39m   it([32m'GET /publicaciones/:id inexistente (404) cumple el esquema ErrorInterno del contrato'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (contract.e2e-spec.ts:75:23)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 3 passed, 5 total
+Snapshots:   0 total
+Time:        2.201 s, estimated 3 s
+Ran all test suites matching /contract/i.

@@ -10,6 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:contract": "jest --config ./test/jest-e2e.json --testPathPattern=contract",
     "measure:post": "node scripts/measure-post.js"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "@types/node": "^22.10.2",
     "@types/supertest": "^6.0.2",
     "jest": "^29.7.0",
+    "jest-openapi": "^0.14.2",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
     "ts-loader": "^9.5.1",
