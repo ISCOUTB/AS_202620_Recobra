@@ -195,3 +195,7 @@ decisiones:
 - [`docs/context-map.md`](../context-map.md) — contextos delimitados.
 - [`docs/modulo-datos.md`](../modulo-datos.md) — propiedad de datos por módulo.
 - [`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).
+
+## 12. Glosario
+
+Ver [`docs/glosarios.md`](../glosarios.md) para el glosario completo de términos del dominio (Publicación, Coincidencia, Reclamación, Notificación, Contexto Delimitado, Puerto, Adaptador, etc.).
