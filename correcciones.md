@@ -57,7 +57,7 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Falta `correcciones.md` en la raíz | Este mismo archivo | [`correcciones.md`](correcciones.md) |
 | PDF de Moodle con cifra de latencia "8-15 ms" desactualizada, sin corrida registrada | `docs/medicion-corte1.md` ya reemplazó la estimación por la medición reproducible (p95 = 0.54-1.00 ms); `scripts/generar-pdf-corte1.py` corregido con la misma cifra — pendiente regenerar el binario (ver [`docs/no-conformidades.md`](docs/no-conformidades.md)) | [`docs/medicion-corte1.md`](docs/medicion-corte1.md), [`scripts/generar-pdf-corte1.py`](scripts/generar-pdf-corte1.py) |
 | CI sin análisis estático de SonarCloud pese a tener `sonar-project.properties` | Job de SonarCloud agregado al workflow de backend (condicionado a que exista el secreto `SONAR_TOKEN`) | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
-| Token de Coveralls expuesto en el historial (`905f546:node_modules/debug/.coveralls.yml`), sin confirmar rotación | **Pendiente** — requiere una acción del equipo en la cuenta de Coveralls, fuera del alcance de una corrección local de código. Ver plan detallado en [`docs/no-conformidades.md`](docs/no-conformidades.md#1-token-de-coveralls-expuesto-en-el-historial-de-git) | — |
+| Token de Coveralls expuesto en el historial (`905f546:node_modules/debug/.coveralls.yml`), sin confirmar rotación | **Resuelta** — investigado a fondo: es un artefacto público del paquete npm `debug@2.6.9` (config de CI de sus propios mantenedores incluida por error en el paquete publicado), no una cuenta de Coveralls de Recobra. No hay token propio que rotar; la causa raíz (versionar `node_modules/`) ya estaba corregida. Detalle en [`docs/no-conformidades.md`](docs/no-conformidades.md#1-token-de-coveralls-expuesto-en-el-historial-de-git) | — |
 | Etiqueta `corte-1` fijada casi 10 horas después del cierre | **No corregible retroactivamente** sin reescribir historial (riesgo mayor al problema). Plan de proceso para futuros cortes en [`docs/no-conformidades.md`](docs/no-conformidades.md#6-disciplina-de-etiquetado-git) | — |
 | Un integrante (Fernando Isacc Conde Herrera) con una sola contribución en el semestre | **Pendiente de reparto de trabajo real**, no es una no conformidad de código. Plan en [`docs/no-conformidades.md`](docs/no-conformidades.md#7-participación-desigual-del-equipo) | — |
 
@@ -69,7 +69,7 @@ Fuente de los hallazgos: retroalimentación publicada en
 | arc42 sección 8 (lenguaje ubicuo y mapa de contextos) | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
 | Auditoría de no conformidades de propiedad de datos (recorrido de escrituras) | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
 | SonarCloud con run exitoso y URL pública del Quality Gate | **Pendiente** — requiere el secreto `SONAR_TOKEN` en GitHub (acción de quien administra el repo) | Ver [`docs/no-conformidades.md`](docs/no-conformidades.md#4-ci-sin-análisis-estático-de-sonarcloud) |
-| Token de Coveralls expuesto, sin confirmar rotación | **Sigue abierta** — acción externa en la cuenta de Coveralls | [`docs/no-conformidades.md`](docs/no-conformidades.md#1-token-de-coveralls-expuesto-en-el-historial-de-git) |
+| Token de Coveralls expuesto, sin confirmar rotación | **Resuelta** — no es un token de Recobra, ver hallazgo completo | [`docs/no-conformidades.md`](docs/no-conformidades.md#1-token-de-coveralls-expuesto-en-el-historial-de-git) |
 
 ## Semana 7 · S7
 

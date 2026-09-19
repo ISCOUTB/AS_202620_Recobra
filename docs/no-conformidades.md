@@ -7,29 +7,37 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
 
 ## 1. Token de Coveralls expuesto en el historial de git
 
-- **Severidad:** crítica (seguridad).
+- **Severidad:** reclasificada de crítica a informativa tras investigar el
+  origen exacto del archivo (ver "Hallazgo" abajo).
 - **Evidencia:** el archivo `node_modules/debug/.coveralls.yml`, versionado
   por error hasta el commit `cb5c579` y retirado del índice en `3a82ca6`,
-  contiene un `repo_token` de Coveralls. El archivo ya no existe en `HEAD`,
-  pero el blob sigue siendo recuperable desde el historial (`git show
+  contiene un `repo_token`. El archivo ya no existe en `HEAD`, pero el blob
+  sigue siendo recuperable desde el historial (`git show
   905f546:node_modules/debug/.coveralls.yml`).
-- **Por qué sigue abierta:** eliminar el archivo del working tree no invalida
-  un secreto ya expuesto; cualquiera con acceso de lectura al repositorio
-  público puede recuperarlo del historial.
+- **Hallazgo (por qué no es una no conformidad de Recobra):** ese archivo no
+  pertenece a Recobra ni a ninguna cuenta del equipo. Es un artefacto del
+  propio paquete de npm `debug@2.6.9`: junto al `.coveralls.yml` vienen
+  `.travis.yml`, `.eslintrc`, `karma.conf.js` — configuración de CI de los
+  mantenedores de `debug`, incluida por error en el paquete que publicaron a
+  npm. El mismo archivo, con el mismo token, existe hoy en miles de
+  repositorios públicos de cualquier proyecto que haya instalado esa versión
+  de `debug`. No es una cuenta de Coveralls del equipo, y el equipo no tiene
+  ni puede tener acceso para "rotarlo" — no es su token.
+- **Por qué se cerró como no conformidad de Recobra:** el problema real nunca
+  fue el token en sí, sino haber versionado `node_modules/` completo, lo cual
+  arrastra a cualquier archivo de configuración de cualquier dependencia,
+  propio o ajeno. Esa causa raíz ya está corregida (`node_modules/` fuera del
+  índice desde `3a82ca6`, cubierto por `.gitignore`).
 - **Plan de corrección:**
-  1. El equipo debe entrar a la cuenta de Coveralls del proyecto y **rotar
-     (regenerar) el token** — esta acción solo la puede hacer quien tiene
-     acceso a esa cuenta; no es una operación de este repositorio ni de git.
-  2. Confirmar la rotación por escrito en la sustentación (captura de pantalla
-     o fecha del cambio).
-  3. Evaluar, **solo si el docente lo exige explícitamente**, reescribir el
-     historial con `git filter-repo --path node_modules --invert-paths` para
-     eliminar el blob por completo. Esto cambia todos los hashes posteriores
-     al commit afectado (incluido el hash ya calificado `f7c1a6c`) y exige
-     `push --force` coordinado con todo el equipo — no se ejecuta en esta
-     entrega para no invalidar commits ya evaluados por el docente.
-- **Estado:** abierta — depende de una acción externa (cuenta de Coveralls)
-  que no puede resolverse solo con cambios en el código.
+  1. ~~Rotar el token en la cuenta de Coveralls del proyecto~~ — no aplica: no
+     existe tal cuenta del proyecto: es un token público de un tercero.
+  2. Documentar este hallazgo (este mismo texto) para que quede trazable si
+     una revisión futura vuelve a señalarlo.
+  3. Reescribir el historial con `git filter-repo` sigue **sin recomendarse**:
+     cambiaría todos los hashes posteriores (incluido el ya calificado
+     `f7c1a6c`) por un archivo que no representa ningún riesgo real.
+- **Estado:** resuelta — no es una no conformidad de Recobra; la causa raíz
+  (versionar `node_modules/`) ya estaba corregida.
 
 ## 2. `correcciones.md` ausente en la raíz
 
@@ -129,7 +137,7 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
 
 | # | No conformidad | Estado |
 |---|---|---|
-| 1 | Token de Coveralls expuesto | Abierta — requiere acción externa (rotar en Coveralls) |
+| 1 | Token de Coveralls expuesto | Resuelta — es un artefacto público de `debug@2.6.9`, no de Recobra; no hay nada que rotar |
 | 2 | `correcciones.md` ausente | Resuelta en esta entrega |
 | 3 | arc42 fragmentado | Resuelta en esta entrega |
 | 4 | CI sin SonarCloud | Configuración corregida; falta secreto `SONAR_TOKEN` en GitHub |
