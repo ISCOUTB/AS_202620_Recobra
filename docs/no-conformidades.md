@@ -63,20 +63,31 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
 
 ## 4. CI sin análisis estático de SonarCloud
 
-- **Severidad:** media (`sonar-project.properties` existía pero no se
-  ejecutaba en ningún workflow).
-- **Plan de corrección:** se agregó un paso `SonarCloud Scan` al job
-  `backend` de [`.github/workflows/ci.yml`](../.github/workflows/ci.yml),
-  condicionado a que exista el secreto `SONAR_TOKEN`, y se agregó
-  `sonar.javascript.lcov.reportPaths` a `sonar-project.properties` para que
-  el análisis pueda leer la cobertura generada por `npm test -- --coverage`.
-- **Pendiente fuera del alcance de este repositorio local:** alguien con
-  permisos de administración del repo en GitHub debe crear el secreto
-  `SONAR_TOKEN` (Settings → Secrets and variables → Actions). Sin ese
-  secreto el paso se omite automáticamente (no rompe el pipeline) pero el
-  análisis no corre.
-- **Estado:** corregida la configuración local; pendiente la configuración
-  del secreto en GitHub (acción remota que el equipo debe hacer).
+- **Corrección de un hallazgo anterior de este mismo documento:** una versión
+  previa de esta entrada decía que se había agregado un paso `SonarCloud
+  Scan` a `.github/workflows/ci.yml`. Se verificó el archivo real y **ese
+  paso no existe ni existió** en el workflow. El análisis corre por un
+  mecanismo distinto (ver abajo), así que la entrada anterior era incorrecta;
+  se corrige aquí en vez de dejarla.
+- **Cómo corre realmente el análisis:** SonarCloud está conectado como
+  GitHub App al repositorio (no como paso de `ci.yml`); publica un *check*
+  llamado "SonarCloud Code Analysis" directamente sobre cada commit,
+  independiente del workflow de Actions.
+- **Evidencia verificada (2026-09-19), con la API pública de SonarCloud, sin
+  necesidad de sesión iniciada:**
+  ```bash
+  curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=ISCOUTB_AS_202620_Recobra"
+  # {"projectStatus":{"status":"OK", ...}}
+  curl -s "https://sonarcloud.io/api/components/show?component=ISCOUTB_AS_202620_Recobra"
+  # {"component":{...,"visibility":"public","analysisDate":"2026-09-19T18:34:05+0000"}}
+  ```
+  Quality Gate: **OK** (aprobado). Visibilidad del proyecto: **pública**.
+  Confirmado también vía la API de GitHub (`check-runs` del commit `667d66f`):
+  `"name":"SonarCloud Code Analysis","conclusion":"success"`, con
+  `details_url: https://sonarcloud.io/dashboard?id=ISCOUTB_AS_202620_Recobra&branch=master`.
+- **Estado:** resuelta — corre en cada push, Quality Gate en verde, URL
+  pública verificable. No se necesita crear ningún secreto `SONAR_TOKEN`
+  porque el análisis no depende del workflow de Actions.
 
 ## 5. PDF de Moodle con cifra de latencia desactualizada
 
@@ -140,7 +151,7 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
 | 1 | Token de Coveralls expuesto | Resuelta — es un artefacto público de `debug@2.6.9`, no de Recobra; no hay nada que rotar |
 | 2 | `correcciones.md` ausente | Resuelta en esta entrega |
 | 3 | arc42 fragmentado | Resuelta en esta entrega |
-| 4 | CI sin SonarCloud | Configuración corregida; falta secreto `SONAR_TOKEN` en GitHub |
+| 4 | CI sin SonarCloud | Resuelta — corre por GitHub App, Quality Gate OK, verificado por API pública |
 | 5 | PDF con latencia desactualizada | Texto corregido; falta regenerar el binario |
 | 6 | Etiqueta `corte-1` tardía | No corregible en retrospectiva; plan de proceso para futuros cortes |
 | 7 | Participación desigual | Abierta; depende del equipo |

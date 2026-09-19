@@ -68,7 +68,7 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Diff contra hash de corte 1, C4 nivel 3 y ADR si cambiaron los límites | Aclarado explícitamente que los límites **no cambiaron**: el mapa de contextos documenta diseño objetivo, no una migración ya hecha | [`docs/context-map.md`](docs/context-map.md#diferencia-con-los-límites-del-corte-1) |
 | arc42 sección 8 (lenguaje ubicuo y mapa de contextos) | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
 | Auditoría de no conformidades de propiedad de datos (recorrido de escrituras) | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
-| SonarCloud con run exitoso y URL pública del Quality Gate | **Pendiente** — requiere el secreto `SONAR_TOKEN` en GitHub (acción de quien administra el repo) | Ver [`docs/no-conformidades.md`](docs/no-conformidades.md#4-ci-sin-análisis-estático-de-sonarcloud) |
+| SonarCloud con run exitoso y URL pública del Quality Gate | **Resuelta** — corre como GitHub App (no como paso de `ci.yml`); Quality Gate `OK` verificado por la API pública el 2026-09-19 | [`https://sonarcloud.io/dashboard?id=ISCOUTB_AS_202620_Recobra&branch=master`](https://sonarcloud.io/dashboard?id=ISCOUTB_AS_202620_Recobra&branch=master), detalle en [`docs/no-conformidades.md`](docs/no-conformidades.md#4-ci-sin-análisis-estático-de-sonarcloud) |
 | Token de Coveralls expuesto, sin confirmar rotación | **Resuelta** — no es un token de Recobra, ver hallazgo completo | [`docs/no-conformidades.md`](docs/no-conformidades.md#1-token-de-coveralls-expuesto-en-el-historial-de-git) |
 
 ## Semana 7 · S7
