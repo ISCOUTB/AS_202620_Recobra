@@ -109,7 +109,7 @@ components:
           minLength: 1
     Publicacion:
       type: object
-      required: [id, tipo, descripcion, categoria, ubicacion, estado, creadoEn]
+      required: [id, tipo, descripcion, categoria, ubicacion, estado, creadoEn, matchScore]
       properties:
         id:
           type: string
