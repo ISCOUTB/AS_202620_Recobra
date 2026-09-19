@@ -176,6 +176,18 @@ sin filtrar la regla de negocio hacia el controlador.
    Hoy: ejecución local. Backend con `npm run start` (puerto 3000), cliente
    Flutter con `flutter run`. No hay despliegue en la nube todavía — se define
    en la semana 8 (ver «Guía de despliegue y costos»).
+  
+
+   ## 8. Conceptos transversales
+
+   ### Lenguaje ubicuo
+
+   - **Publicación**: registro de un objeto perdido o encontrado.
+   - **Reclamación**: solicitud de un usuario para recuperar un objeto publicado.
+   - **Coincidencia**: relación detectada entre una publicación "perdido" y una "encontrado".
+   - **Emparejamiento**: proceso que detecta coincidencias entre publicaciones.
+
+   Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
    
 ## 9. Decisiones de arquitectura
 
@@ -200,7 +212,14 @@ decisiones:
 - **S5 Mantenibilidad:** ancla del reto de corte 1 (aspecto A2; ADR-0003).
 - **S6 Trazabilidad:** historial de estados (futuro).
 - **S7 Escalabilidad:** crecimiento de usuarios/publicaciones (futuro).
+ 
 
+## 11. Riesgos y deuda técnica
+
+   - Persistencia en memoria (no PostgreSQL): se pierde todo al reiniciar el proceso.
+   - Emparejamiento, Notificaciones, Reclamaciones e Identidad son solo diseño, sin código todavía.
+   - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
+  
 ## Documentos relacionados
 
 - [`docs/aspectos.md`](../aspectos.md) — trazabilidad de 8 columnas.
