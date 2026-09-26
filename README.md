@@ -78,8 +78,11 @@ detecta `render.yaml` automáticamente → Apply. No hay secretos que
 configurar manualmente: `PORT` lo asigna Render, y el resto de la app no usa
 variables de entorno todavía.
 
-**URL desplegada:** `<URL-PENDIENTE-TRAS-DEPLOY>` — health check en
-`<URL>/health`, métrica ligada al escenario S5 en `<URL>/metrics`.
+**URL desplegada:** https://recobra-backend.onrender.com — health check en
+[`/health`](https://recobra-backend.onrender.com/health), métrica ligada al
+escenario S5 en [`/metrics`](https://recobra-backend.onrender.com/metrics).
+Verificación externa completa (hora, código de respuesta, prueba de extremo
+a extremo) en [`docs/arc42/arc42.md`](docs/arc42/arc42.md#7-vista-de-despliegue).
 
 **Observabilidad:**
 - Logs estructurados en JSON (`src/observabilidad/json-logger.service.ts`), un objeto por línea con `timestamp`, `level`, `context`, `message`.

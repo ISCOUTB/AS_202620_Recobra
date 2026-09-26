@@ -193,9 +193,21 @@ de plataforma):
 | Cliente Flutter | Dispositivo/emulador del usuario (no es un servicio desplegado) | `cd mobile && flutter run` |
 | Persistencia | En memoria, dentro del mismo proceso de la API (no es una pieza separada todavía; objetivo: PostgreSQL, ver [`docs/modulo-datos.md`](../modulo-datos.md)) | Se reinicia con cada redeploy del backend |
 
-**URL pública:** `<URL-PENDIENTE-TRAS-DEPLOY>` — se completa aquí en cuanto
-el equipo apruebe el Blueprint en Render (paso manual, requiere cuenta;
-ver `docs/despliegue/`). Health check: `GET <URL>/health`.
+**URL pública:** https://recobra-backend.onrender.com — desplegada
+2026-09-26 vía Blueprint de Render sobre el commit `c81d7b8`. Verificado
+desde fuera de la red de la universidad el 2026-09-26 20:03 UTC:
+
+| Ruta | Código | Tiempo |
+|---|---|---|
+| `/` | 200 | 0.55 s |
+| `/health` | 200 | 0.22 s |
+| `/metrics` | 200 | 0.28 s |
+| `POST /publicaciones` (extremo a extremo) | 201 | — |
+
+`POST /publicaciones` se probó de verdad (no solo el health check): creó
+una publicación real y `/metrics` reflejó la latencia registrada (p95 =
+2.07 ms), confirmando que el corte vertical completo funciona en
+producción, no solo el proceso arriba.
 
 Estimación de costo y su punto de ruptura:
 [`docs/despliegue/costo-mensual.md`](../despliegue/costo-mensual.md).

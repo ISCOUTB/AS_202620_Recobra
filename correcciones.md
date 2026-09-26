@@ -93,7 +93,7 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Sección 2 de arc42 sin límite de costo ni condición de tarjeta | Restricciones de despliegue agregadas (sin tarjeta, $0/mes) | [`docs/arc42/arc42.md`](docs/arc42/arc42.md#2-restricciones) |
 | Sin ADR de plataforma de despliegue | ADR-0005: Render vs Fly.io (descartada por tarjeta) vs función serverless (descartada por estado en memoria y arranque en frío) | [`docs/adr/0005-plataforma-despliegue-backend.md`](docs/adr/0005-plataforma-despliegue-backend.md) |
 | Sin estimación de costo mensual | Estimación desde el volumen del escenario S1 (200 usuarios concurrentes), con punto de ruptura de la capa gratuita | [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md) |
-| URL pública del sistema desplegado | **Pendiente** — requiere que el equipo apruebe el Blueprint en Render (acción manual, no puede hacerse sin una cuenta del equipo) | Ver `README.md#despliegue-evidencia-s8` |
+| URL pública del sistema desplegado | **Resuelta** — https://recobra-backend.onrender.com, desplegado 2026-09-26, verificado desde fuera de la red universitaria (200 en `/`, `/health`, `/metrics`; `POST /publicaciones` probado de extremo a extremo con `201`) | [`docs/arc42/arc42.md`](docs/arc42/arc42.md#7-vista-de-despliegue) |
 
 ## Reorganización de archivos (posterior al corte 1)
 
