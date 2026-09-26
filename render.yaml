@@ -1,0 +1,14 @@
+# Infraestructura como código (evidencia S8) — Render Blueprint.
+# Render inyecta la variable de entorno PORT automáticamente; src/main.ts ya
+# la lee (`process.env.PORT || 3000`), así que no se declara aquí como
+# secreto ni como valor fijo (ver ADR de plataforma de despliegue).
+services:
+  - type: web
+    name: recobra-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    autoDeployTrigger: commit

@@ -58,6 +58,33 @@ cd mobile && flutter test
 
 CI: `.github/workflows/ci.yml` ejecuta backend + Flutter en cada push/PR.
 
+## Despliegue (evidencia S8)
+
+Infraestructura como código versionada en la raíz: [`Dockerfile`](Dockerfile)
+(imagen del backend) + [`render.yaml`](render.yaml) (Render Blueprint).
+Decisión de plataforma en [ADR-0005](docs/adr/0005-plataforma-despliegue-backend.md),
+costo estimado en [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md).
+
+**Recrear el entorno:**
+
+```bash
+docker build -t recobra-backend .
+docker run -p 3000:3000 -e PORT=3000 recobra-backend
+```
+
+**Desplegar en Render:** con sesión iniciada en render.com (cuenta sin
+tarjeta, plan Free) → New → Blueprint → seleccionar este repositorio → Render
+detecta `render.yaml` automáticamente → Apply. No hay secretos que
+configurar manualmente: `PORT` lo asigna Render, y el resto de la app no usa
+variables de entorno todavía.
+
+**URL desplegada:** `<URL-PENDIENTE-TRAS-DEPLOY>` — health check en
+`<URL>/health`, métrica ligada al escenario S5 en `<URL>/metrics`.
+
+**Observabilidad:**
+- Logs estructurados en JSON (`src/observabilidad/json-logger.service.ts`), un objeto por línea con `timestamp`, `level`, `context`, `message`.
+- Métrica consultable: `GET /metrics` — latencia de `POST /publicaciones` (p50/p95), ligada al escenario S5 (ver [`docs/medicion-corte1.md`](docs/medicion-corte1.md)).
+
 ## Medición del corte 1
 
 Con el servidor levantado:
@@ -120,6 +147,8 @@ La documentación del proyecto se encuentra en la carpeta `docs/`.
 - [`docs/modulo-datos.md`](docs/modulo-datos.md) — módulo → datos, con dueño único.
 - [`docs/medicion-corte1.md`](docs/medicion-corte1.md) — línea base y resultado del reto de corte 1.
 - [`docs/no-conformidades.md`](docs/no-conformidades.md) — no conformidades detectadas y su plan de corrección.
+- [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).
+- [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md) — estimación de costo del despliegue (ADR-0005).
 - [`correcciones.md`](correcciones.md) — trazabilidad de hallazgos S1-S5 con su corrección.
 
 ## Estructura

@@ -1,7 +1,17 @@
-import { Body, Controller, Get, HttpCode, NotFoundException, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  NotFoundException,
+  Param,
+  Post,
+  UseInterceptors,
+} from '@nestjs/common';
 import { CrearPublicacion } from '../application/use-cases/crear-publicacion';
 import { ConsultarPublicacion } from '../application/use-cases/consultar-publicacion';
 import { CrearPublicacionDto } from './dto/crear-publicacion.dto';
+import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
 
 @Controller('publicaciones')
 export class PublicacionesController {
@@ -12,6 +22,7 @@ export class PublicacionesController {
 
   @Post()
   @HttpCode(201)
+  @UseInterceptors(LatenciaPublicacionesInterceptor)
   async crear(@Body() body: CrearPublicacionDto) {
     // Si `body` trae un tipo inválido o campos vacíos, el caso de uso lanza
     // PublicacionInvalidaError; el filtro global (ver

@@ -25,6 +25,8 @@ jobs:
         run: npm run test:e2e
       - name: Build
         run: npm run build
+      - name: Docker build (valida Dockerfile, evidencia S8)
+        run: docker build -t recobra-backend-ci .
 
   mobile:
     name: Flutter client

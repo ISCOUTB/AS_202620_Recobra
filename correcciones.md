@@ -79,8 +79,21 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Sin prueba de contrato ni invocación en el pipeline | Prueba con `jest-openapi` (`test/contract.e2e-spec.ts`), paso «Contract tests» en el workflow | [`test/contract.e2e-spec.ts`](test/contract.e2e-spec.ts), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | Sin evidencia de que la prueba falle ante un cambio incompatible | Se forzó un campo requerido (`matchScore`) que la API no devuelve y se registró la salida real de la prueba fallando, luego revertido | [`docs/contracts/evidencia-fallo-2026-09-19.txt`](docs/contracts/evidencia-fallo-2026-09-19.txt) |
 | Sin ADR de estrategia de integración síncrona/asíncrona | ADR-0004: REST síncrono para el corte vertical, eventos asíncronos para Publicaciones→Emparejamiento→Notificaciones, contra S3/S4a/S5 | [`docs/adr/0004-integracion-sincrona-vs-asincrona.md`](docs/adr/0004-integracion-sincrona-vs-asincrona.md) |
-| C4 nivel 2 sin protocolo/formato en cada flecha | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
-| arc42 secciones 6 (flujos de interacción), 7, 11 y 12 incompletas | **Pendiente** — asignado como tarea individual de esta semana | Ver reparto de tareas de la semana en `docs/ia.md` |
+| C4 nivel 2 sin protocolo/formato en cada flecha | **Resuelta** — las 5 flechas etiquetadas con protocolo y formato | [`docs/c4/C4-C2.md`](docs/c4/C4-C2.md) |
+| arc42 secciones 6 (flujos de interacción), 7, 11 y 12 incompletas | **Resuelta** — las 4 secciones agregadas por el equipo | [`docs/arc42/arc42.md`](docs/arc42/arc42.md) |
+
+## Semana 8 · S8
+
+| Hallazgo | Corrección | Evidencia |
+|---|---|---|
+| Sin despliegue en la nube; arc42 sección 7 describía solo ejecución local | Contenedor Docker + Render Blueprint; sección 7 reescrita con una caja por pieza | [`Dockerfile`](Dockerfile), [`render.yaml`](render.yaml), [`docs/arc42/arc42.md`](docs/arc42/arc42.md#7-vista-de-despliegue) |
+| Sin infraestructura como código versionada | `Dockerfile` + `render.yaml`, validados por el paso «Docker build» del CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| Sin logs estructurados | Logger JSON por línea (`timestamp`, `level`, `context`, `message`) | [`src/observabilidad/json-logger.service.ts`](src/observabilidad/json-logger.service.ts) |
+| Sin métrica consultable ligada a un escenario | `GET /metrics`: p50/p95 de `POST /publicaciones`, ligada a S5 | [`src/observabilidad/metricas.service.ts`](src/observabilidad/metricas.service.ts) |
+| Sección 2 de arc42 sin límite de costo ni condición de tarjeta | Restricciones de despliegue agregadas (sin tarjeta, $0/mes) | [`docs/arc42/arc42.md`](docs/arc42/arc42.md#2-restricciones) |
+| Sin ADR de plataforma de despliegue | ADR-0005: Render vs Fly.io (descartada por tarjeta) vs función serverless (descartada por estado en memoria y arranque en frío) | [`docs/adr/0005-plataforma-despliegue-backend.md`](docs/adr/0005-plataforma-despliegue-backend.md) |
+| Sin estimación de costo mensual | Estimación desde el volumen del escenario S1 (200 usuarios concurrentes), con punto de ruptura de la capa gratuita | [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md) |
+| URL pública del sistema desplegado | **Pendiente** — requiere que el equipo apruebe el Blueprint en Render (acción manual, no puede hacerse sin una cuenta del equipo) | Ver `README.md#despliegue-evidencia-s8` |
 
 ## Reorganización de archivos (posterior al corte 1)
 

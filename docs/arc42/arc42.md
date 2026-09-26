@@ -39,6 +39,17 @@ La respuesta a esa restricción está en
 [ADR-0002](../adr/0002-arquitectura-y-stack.md) y
 [ADR-0003](../adr/0003-reto-corte1-stack-obligatorio.md).
 
+### Restricciones de despliegue (S8)
+
+- **Sin tarjeta de crédito/débito disponible** para verificar cuentas de
+  proveedores de nube — descarta cualquier plataforma que la exija para el
+  nivel gratuito (ver [ADR-0005](../adr/0005-plataforma-despliegue-backend.md)).
+- **Límite de costo: $0/mes** mientras el proyecto sea evidencia de curso;
+  cualquier pieza que no quepa en una capa gratuita verificada queda fuera
+  de alcance hasta que el equipo decida pagarla explícitamente.
+- Ver [`docs/despliegue/costo-mensual.md`](../despliegue/costo-mensual.md)
+  para la estimación y el punto de ruptura de la capa gratuita.
+
 ## 3. Contexto
 
 Recobra se ubica entre los usuarios del campus y los servicios que permiten
@@ -173,9 +184,23 @@ tal como las declara el contrato.
 
 ## 7. Vista de despliegue
 
-Hoy: ejecución local. Backend con `npm run start` (puerto 3000), cliente
-Flutter con `flutter run`. No hay despliegue en la nube todavía — se define
-en la semana 8 (ver «Guía de despliegue y costos»).
+Una caja por pieza, con dónde se ejecuta hoy (ver ADR-0005 para la decisión
+de plataforma):
+
+| Pieza | Dónde se ejecuta | Cómo se recrea |
+|---|---|---|
+| API backend NestJS | Contenedor Docker en **Render.com** (plan Free), a partir de [`Dockerfile`](../../Dockerfile) + [`render.yaml`](../../render.yaml) | `docker build -t recobra-backend .` (mismo Dockerfile que valida el CI); en Render, Blueprint desde `render.yaml` |
+| Cliente Flutter | Dispositivo/emulador del usuario (no es un servicio desplegado) | `cd mobile && flutter run` |
+| Persistencia | En memoria, dentro del mismo proceso de la API (no es una pieza separada todavía; objetivo: PostgreSQL, ver [`docs/modulo-datos.md`](../modulo-datos.md)) | Se reinicia con cada redeploy del backend |
+
+**URL pública:** `<URL-PENDIENTE-TRAS-DEPLOY>` — se completa aquí en cuanto
+el equipo apruebe el Blueprint en Render (paso manual, requiere cuenta;
+ver `docs/despliegue/`). Health check: `GET <URL>/health`.
+
+Estimación de costo y su punto de ruptura:
+[`docs/despliegue/costo-mensual.md`](../despliegue/costo-mensual.md).
+Observabilidad (logs estructurados y métrica ligada a S5):
+`src/observabilidad/` — logs en JSON por línea, métrica en `GET /metrics`.
 
 ## 8. Conceptos transversales
 
@@ -196,6 +221,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0002](../adr/0002-arquitectura-y-stack.md) | Hexagonal + NestJS + Flutter | Aceptada |
 | [ADR-0003](../adr/0003-reto-corte1-stack-obligatorio.md) | Reto corte 1 / stack obligatorio | Aceptada |
 | [ADR-0004](../adr/0004-integracion-sincrona-vs-asincrona.md) | Integración síncrona (corte vertical) / asíncrona (entre contextos) | Aceptada |
+| [ADR-0005](../adr/0005-plataforma-despliegue-backend.md) | Plataforma de despliegue del backend (Render.com) | Aceptada |
 
 
 ## 10. Requisitos de calidad

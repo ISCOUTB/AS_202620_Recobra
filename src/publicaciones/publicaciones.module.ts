@@ -6,8 +6,11 @@ import { ConsultarPublicacion } from '../application/use-cases/consultar-publica
 import { PublicacionRepository } from '../domain/ports/publicacion-repository';
 import { MemoriaPublicacionRepository } from '../infrastructure/persistence/memoria-publicacion.repository';
 import { PublicacionInvalidaFilter } from './publicacion-invalida.filter';
+import { ObservabilidadModule } from '../observabilidad/observabilidad.module';
+import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
 
 @Module({
+  imports: [ObservabilidadModule],
   controllers: [PublicacionesController],
   providers: [
     CrearPublicacion,
@@ -17,6 +20,7 @@ import { PublicacionInvalidaFilter } from './publicacion-invalida.filter';
     // adelante es reemplazar esta única línea, sin tocar los casos de uso.
     { provide: PublicacionRepository, useClass: MemoriaPublicacionRepository },
     { provide: APP_FILTER, useClass: PublicacionInvalidaFilter },
+    LatenciaPublicacionesInterceptor,
   ],
 })
 export class PublicacionesModule {}

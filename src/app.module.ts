@@ -3,6 +3,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'node:path';
 import { PublicacionesModule } from './publicaciones/publicaciones.module';
 import { SaludModule } from './salud/salud.module';
+import { ObservabilidadModule } from './observabilidad/observabilidad.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SaludModule } from './salud/salud.module';
     }),
     PublicacionesModule,
     SaludModule,
+    ObservabilidadModule,
   ],
 })
 export class AppModule {}
