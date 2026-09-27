@@ -34,6 +34,29 @@ class Publicacion {
   }
 }
 
+class Coincidencia {
+  Coincidencia({
+    required this.id,
+    required this.publicacionOrigenId,
+    required this.publicacionCoincidenteId,
+    required this.score,
+  });
+
+  final String id;
+  final String publicacionOrigenId;
+  final String publicacionCoincidenteId;
+  final double score;
+
+  factory Coincidencia.fromJson(Map<String, dynamic> json) {
+    return Coincidencia(
+      id: json['id'] as String,
+      publicacionOrigenId: json['publicacionOrigenId'] as String,
+      publicacionCoincidenteId: json['publicacionCoincidenteId'] as String,
+      score: (json['score'] as num).toDouble(),
+    );
+  }
+}
+
 class RecobraApiException implements Exception {
   RecobraApiException(this.message, {this.statusCode});
 
@@ -104,6 +127,22 @@ class RecobraApi {
     return Publicacion.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
+  }
+
+  Future<List<Coincidencia>> listarCoincidencias(String publicacionId) async {
+    final response = await _client.get(
+      _uri('/coincidencias').replace(queryParameters: {'publicacionId': publicacionId}),
+    );
+
+    if (response.statusCode != 200) {
+      return const [];
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) return const [];
+    return decoded
+        .map((item) => Coincidencia.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   String? _extractError(String body) {
