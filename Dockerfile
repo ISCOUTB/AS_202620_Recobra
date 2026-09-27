@@ -18,5 +18,10 @@ RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/dist ./dist
 COPY public ./public
 
+# No correr como root (hallazgo SonarCloud docker:S6471): la imagen base
+# node:alpine ya trae el usuario sin privilegios "node" (uid 1000).
+RUN chown -R node:node /app
+USER node
+
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
