@@ -184,14 +184,14 @@ tal como las declara el contrato.
 
 ## 7. Vista de despliegue
 
-Una caja por pieza, con dónde se ejecuta hoy (ver ADR-0005 para la decisión
-de plataforma):
+Una caja por pieza, con dónde se ejecuta hoy (ver ADR-0005 y ADR-0006 para
+las decisiones de plataforma):
 
 | Pieza | Dónde se ejecuta | Cómo se recrea |
 |---|---|---|
 | API backend NestJS | Contenedor Docker en **Render.com** (plan Free), a partir de [`Dockerfile`](../../Dockerfile) + [`render.yaml`](../../render.yaml) | `docker build -t recobra-backend .` (mismo Dockerfile que valida el CI); en Render, Blueprint desde `render.yaml` |
 | Cliente Flutter | Dispositivo/emulador del usuario (no es un servicio desplegado) | `cd mobile && flutter run` |
-| Persistencia | En memoria, dentro del mismo proceso de la API (no es una pieza separada todavía; objetivo: PostgreSQL, ver [`docs/modulo-datos.md`](../modulo-datos.md)) | Se reinicia con cada redeploy del backend |
+| Persistencia (`Publicacion`) | **PostgreSQL en Neon** (plan Free) si `DATABASE_URL` está definida; adaptador en memoria si no ([ADR-0006](../adr/0006-plataforma-persistencia-postgresql.md)) | `PostgresPublicacionRepository` crea su propia tabla al iniciar (`onModuleInit`); sin `DATABASE_URL`, cae a memoria automáticamente |
 
 **URL pública:** https://recobra-backend.onrender.com — desplegada
 2026-09-26 vía Blueprint de Render sobre el commit `c81d7b8`. Verificado
@@ -234,6 +234,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0003](../adr/0003-reto-corte1-stack-obligatorio.md) | Reto corte 1 / stack obligatorio | Aceptada |
 | [ADR-0004](../adr/0004-integracion-sincrona-vs-asincrona.md) | Integración síncrona (corte vertical) / asíncrona (entre contextos) | Aceptada |
 | [ADR-0005](../adr/0005-plataforma-despliegue-backend.md) | Plataforma de despliegue del backend (Render.com) | Aceptada |
+| [ADR-0006](../adr/0006-plataforma-persistencia-postgresql.md) | Plataforma de persistencia (Neon PostgreSQL) | Aceptada |
 
 
 ## 10. Requisitos de calidad

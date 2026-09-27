@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PublicacionRepository } from '../src/domain/ports/publicacion-repository';
-import { Publicacion } from '../src/domain/entities/publicacion';
+import { Publicacion, TipoPublicacion } from '../src/domain/entities/publicacion';
 
 /**
  * Condición adversa pertinente al reto de corte 1: el reto migró el
@@ -20,6 +20,10 @@ class RepositorioQueFalla extends PublicacionRepository {
   }
 
   async buscarPorId(_id: string): Promise<Publicacion | null> {
+    throw new Error('conexión con el almacenamiento perdida');
+  }
+
+  async listarPorTipo(_tipo: TipoPublicacion): Promise<Publicacion[]> {
     throw new Error('conexión con el almacenamiento perdida');
   }
 }

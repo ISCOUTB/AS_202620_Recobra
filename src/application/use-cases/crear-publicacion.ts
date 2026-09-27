@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
+import { PUBLICACION_CREADA } from '../events/publicacion-creada.event';
 
 export interface DatosCrearPublicacion {
   tipo: TipoPublicacion;
@@ -19,7 +21,10 @@ export interface DatosCrearPublicacion {
  */
 @Injectable()
 export class CrearPublicacion {
-  constructor(private readonly publicacionRepository: PublicacionRepository) {}
+  constructor(
+    private readonly publicacionRepository: PublicacionRepository,
+    private readonly eventos: EventEmitter2,
+  ) {}
 
   async ejecutar({ tipo, descripcion, categoria, ubicacion }: DatosCrearPublicacion): Promise<Publicacion> {
     const publicacion = new Publicacion({
@@ -32,6 +37,10 @@ export class CrearPublicacion {
     });
 
     await this.publicacionRepository.guardar(publicacion);
+
+    // Disparo asíncrono, sin esperar (ADR-0004): a Emparejamiento le llega
+    // el evento, pero quien crea la publicación no espera su resultado.
+    this.eventos.emit(PUBLICACION_CREADA, publicacion);
 
     return publicacion;
   }

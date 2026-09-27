@@ -1,4 +1,4 @@
-import { Publicacion } from '../entities/publicacion';
+import { Publicacion, TipoPublicacion } from '../entities/publicacion';
 
 /**
  * Puerto de persistencia para publicaciones.
@@ -13,4 +13,9 @@ import { Publicacion } from '../entities/publicacion';
 export abstract class PublicacionRepository {
   abstract guardar(publicacion: Publicacion): Promise<Publicacion>;
   abstract buscarPorId(id: string): Promise<Publicacion | null>;
+  /**
+   * Usado por Emparejamiento (contexto de soporte) para buscar candidatos de
+   * coincidencia — lectura, nunca escritura, ver docs/context-map.md.
+   */
+  abstract listarPorTipo(tipo: TipoPublicacion): Promise<Publicacion[]>;
 }

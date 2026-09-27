@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Publicacion } from '../../domain/entities/publicacion';
+import { Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 
 @Injectable()
@@ -13,5 +13,9 @@ export class MemoriaPublicacionRepository extends PublicacionRepository {
 
   async buscarPorId(id: string): Promise<Publicacion | null> {
     return this.publicaciones.get(id) ?? null;
+  }
+
+  async listarPorTipo(tipo: TipoPublicacion): Promise<Publicacion[]> {
+    return [...this.publicaciones.values()].filter((p) => p.tipo === tipo);
   }
 }

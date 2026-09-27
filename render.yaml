@@ -12,3 +12,11 @@ services:
     region: oregon
     healthCheckPath: /health
     autoDeployTrigger: commit
+    envVars:
+      # Sin valor aquí a propósito (sync: false): se define a mano en el
+      # panel de Render, nunca en el repositorio (ver ADR-0006 y
+      # docs/despliegue/costo-mensual.md). Sin esta variable, el backend
+      # sigue funcionando con el adaptador en memoria (ver
+      # src/publicaciones/publicaciones.module.ts).
+      - key: DATABASE_URL
+        sync: false

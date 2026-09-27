@@ -1,8 +1,9 @@
-# Estimación de costo mensual — backend en Render.com
+# Estimación de costo mensual — backend en Render.com + base de datos en Neon
 
-Ver [ADR-0005](../adr/0005-plataforma-despliegue-backend.md) para la
-decisión de plataforma. Esta estimación sale del volumen del escenario de
-Recobra, no del catálogo genérico del proveedor.
+Ver [ADR-0005](../adr/0005-plataforma-despliegue-backend.md) (backend) y
+[ADR-0006](../adr/0006-plataforma-persistencia-postgresql.md) (base de
+datos) para las decisiones de plataforma. Esta estimación sale del volumen
+del escenario de Recobra, no del catálogo genérico del proveedor.
 
 ## Supuestos de volumen (del escenario de calidad, no inventados)
 
@@ -27,7 +28,14 @@ Recobra, no del catálogo genérico del proveedor.
 | Ancho de banda saliente | 100 GB/mes | Tráfico JSON de publicaciones es de bytes, no de archivos — muy por debajo incluso a 1000 usuarios concurrentes (escenario S7) |
 | Tarjeta requerida | No | Verificado en esta entrega |
 
-**Costo actual: $0/mes.**
+## Capa gratuita de Neon (base de datos, plan Free)
+
+| Recurso | Límite Free | Uso estimado de Recobra |
+|---|---|---|
+| Almacenamiento | 0.5 GB | Cada publicación son unos pocos cientos de bytes; a 1000 usuarios concurrentes (escenario S7) esto tardaría años en llenarse |
+| Tarjeta requerida | No | — |
+
+**Costo actual: $0/mes** (backend + base de datos).
 
 ## Punto en que se rompe la capa gratuita
 
@@ -35,17 +43,21 @@ No es el volumen de peticiones (JSON pequeño, lejos del límite de ancho de
 banda) — son dos disparadores distintos:
 
 1. **Horas de cómputo compartidas agotadas:** si se agrega un segundo
-   servicio Free (p. ej. cuando Emparejamiento o Notificaciones se
-   implementen como servicios separados, ver
-   [`docs/context-map.md`](../context-map.md)) y la suma de horas de ambos
-   supera 750 h/mes. Con el uso estimado de arriba (~300-370 h/mes de uno
-   solo), hay margen para un segundo servicio de tamaño similar antes de
-   romper el límite.
+   servicio Free (p. ej. cuando Notificaciones se implemente como sistema
+   externo real, ver [`docs/context-map.md`](../context-map.md) —
+   Emparejamiento ya corre dentro del mismo proceso de la API, no suma un
+   servicio aparte) y la suma de horas supera 750 h/mes. Con el uso
+   estimado de arriba (~300-370 h/mes de uno solo), hay margen para un
+   segundo servicio de tamaño similar antes de romper el límite.
 2. **Necesidad de "siempre despierto":** el plan Free duerme el servicio
    tras 15 min sin tráfico sin importar cuántas horas queden disponibles. Si
    el escenario de disponibilidad exige cero arranques en frío (p. ej. un
    SLA formal), hay que migrar al plan **Starter de Render, USD 7/mes por
    servicio**, independientemente del volumen de peticiones.
+3. **Almacenamiento de Neon agotado:** a 0.5 GB, con filas de unos pocos
+   cientos de bytes, se necesitarían millones de publicaciones — no es un
+   riesgo real en el horizonte de este curso, pero si se llega ahí, el
+   siguiente escalón de Neon es de pago por uso, no un salto a un plan fijo.
 
 ## Procedimiento de reversión
 

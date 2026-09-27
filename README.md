@@ -135,6 +135,16 @@ curl http://localhost:3000/publicaciones/<id>
 
 `200` o `404`.
 
+**Consultar coincidencias** (contexto Emparejamiento, ver
+[`docs/context-map.md`](docs/context-map.md); se calculan de forma
+asíncrona tras crear una publicación, ver [ADR-0004](docs/adr/0004-integracion-sincrona-vs-asincrona.md))
+
+```bash
+curl "http://localhost:3000/coincidencias?publicacionId=<id>"
+```
+
+`200` con un arreglo (vacío si aún no hay coincidencias o no se envía `publicacionId`).
+
 ## Documentación
 
 La documentación del proyecto se encuentra en la carpeta `docs/`.

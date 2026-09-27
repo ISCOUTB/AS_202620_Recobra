@@ -81,4 +81,13 @@ describe('Contrato de la API (e2e)', () => {
     expect(respuesta.status).toBe(404);
     expect(respuesta).toSatisfyApiSpec();
   });
+
+  it('GET /coincidencias (200) cumple el esquema Coincidencia del contrato', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .get('/coincidencias')
+      .query({ publicacionId: 'lo-que-sea' });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta).toSatisfyApiSpec();
+  });
 });

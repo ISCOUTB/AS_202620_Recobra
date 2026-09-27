@@ -11,8 +11,8 @@ de la misma tabla, que es la no conformidad más común en un mapa de contextos.
 
 | Módulo (contexto) | Dato del que es dueño único | Otros módulos que lo consultan | Cómo lo consultan (sin duplicar) |
 |---|---|---|---|
-| **Publicaciones** (`src/domain/entities/publicacion.ts`, `src/publicaciones/`) | `Publicacion` — id, tipo (perdido/encontrado), descripción, categoría, ubicación, estado, creadoEn | Emparejamiento, Reclamaciones | Puerto `PublicacionRepository.buscarPorId(id)` (ya implementado); a futuro, evento `PublicacionCreada` |
-| **Emparejamiento** (planeado) | `Coincidencia` — publicación "perdido" referenciada, publicación "encontrado" referenciada, score, estado de la coincidencia | Notificaciones | Evento `CoincidenciaDetectada` publicado por Emparejamiento; Notificaciones no lee la tabla de coincidencias directamente |
+| **Publicaciones** (`src/domain/entities/publicacion.ts`, `src/publicaciones/`) | `Publicacion` — id, tipo (perdido/encontrado), descripción, categoría, ubicación, estado, creadoEn | Emparejamiento, Reclamaciones | Puerto `PublicacionRepository.buscarPorId(id)` / `.listarPorTipo(tipo)` (ya implementado); evento `publicacion.creada` (ya implementado, `src/application/events/`) |
+| **Emparejamiento** (implementado — `src/emparejamiento/`) | `Coincidencia` — id, publicación origen referenciada, publicación coincidente referenciada, score, estado, creadoEn | Notificaciones (a futuro) | Puerto `CoincidenciaRepository`; endpoint de solo lectura `GET /coincidencias?publicacionId=` (ver `docs/contracts/openapi.yaml`); evento `CoincidenciaDetectada` hacia Notificaciones sigue planeado |
 | **Notificaciones** (planeado, sistema externo) | `Notificacion` — destinatario, canal (correo/push), contenido, estado de envío | — (hoja del grafo de dependencias; nadie más necesita este dato) | No aplica |
 | **Identidad / Autenticación** (planeado, sistema externo) | `Usuario` — id, credenciales, rol | Publicaciones (autor), Reclamaciones (reclamante) | Ambos guardan solo el `usuarioId` devuelto por Identidad, nunca las credenciales ni el resto del perfil |
 | **Reclamaciones** (planeado) | `Reclamacion` — publicación referenciada, usuario reclamante, evidencia de verificación, estado, fecha | — | Expondría un puerto de solo lectura si otro contexto futuro necesitara el estado de una reclamación |
@@ -40,10 +40,11 @@ de la misma tabla, que es la no conformidad más común en un mapa de contextos.
 
 ## Estado actual vs. objetivo
 
-Hoy, en el corte 1, el único dato realmente materializado en código es
-`Publicacion`, en el adaptador de memoria
-[`src/infrastructure/persistence/memoria-publicacion.repository.ts`](../src/infrastructure/persistence/memoria-publicacion.repository.ts).
-Las filas de `Coincidencia`, `Notificacion`, `Usuario` y `Reclamacion` son el
+A la fecha, `Publicacion` y `Coincidencia` están materializadas en código:
+[`memoria-publicacion.repository.ts`](../src/infrastructure/persistence/memoria-publicacion.repository.ts)
+(o su adaptador PostgreSQL, ver ADR-0006) y
+[`memoria-coincidencia.repository.ts`](../src/infrastructure/persistence/memoria-coincidencia.repository.ts).
+Las filas de `Notificacion`, `Usuario` y `Reclamacion` siguen siendo el
 diseño de propiedad de datos que guiará su implementación en los próximos
 cortes, evitando que se decidan de forma improvisada cuando ya haya código
 escrito.

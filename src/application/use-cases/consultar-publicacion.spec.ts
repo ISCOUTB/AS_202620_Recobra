@@ -1,3 +1,4 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CrearPublicacion } from './crear-publicacion';
 import { ConsultarPublicacion } from './consultar-publicacion';
 import { MemoriaPublicacionRepository } from '../../infrastructure/persistence/memoria-publicacion.repository';
@@ -5,7 +6,7 @@ import { MemoriaPublicacionRepository } from '../../infrastructure/persistence/m
 describe('ConsultarPublicacion', () => {
   it('consulta una publicación existente por id', async () => {
     const repositorio = new MemoriaPublicacionRepository();
-    const crearPublicacion = new CrearPublicacion(repositorio);
+    const crearPublicacion = new CrearPublicacion(repositorio, new EventEmitter2());
     const consultarPublicacion = new ConsultarPublicacion(repositorio);
 
     const creada = await crearPublicacion.ejecutar({

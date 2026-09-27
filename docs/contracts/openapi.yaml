@@ -2,11 +2,14 @@ openapi: 3.0.3
 info:
   title: Recobra API
   description: >
-    Contrato de la API principal de Recobra (corte vertical de publicaciones).
-    Fuente única de verdad para el equipo de backend (NestJS) y el cliente
-    Flutter (`mobile/lib/api/recobra_api.dart`). Ver ADR-0004 para la
-    justificación de por qué esta interacción es síncrona sobre REST.
-  version: "1.0.0"
+    Contrato de la API principal de Recobra (corte vertical de publicaciones
+    y consulta de coincidencias). Fuente única de verdad para el equipo de
+    backend (NestJS) y el cliente Flutter (`mobile/lib/api/recobra_api.dart`).
+    Ver ADR-0004 para la justificación de por qué crear/consultar
+    publicaciones es síncrono sobre REST, y por qué Emparejamiento se
+    dispara de forma asíncrona (evento en proceso) sin exponerse como una
+    ruta de escritura.
+  version: "1.1.0"
 servers:
   - url: http://localhost:3000
     description: Backend local (npm run start)
@@ -77,6 +80,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInterno"
+  /coincidencias:
+    get:
+      operationId: listarCoincidencias
+      summary: Consultar coincidencias detectadas para una publicación
+      tags: [Emparejamiento]
+      parameters:
+        - name: publicacionId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista de coincidencias (vacía si no hay o si no se envía publicacionId)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Coincidencia"
 components:
   schemas:
     Salud:
@@ -141,3 +164,23 @@ components:
           type: integer
         message:
           type: string
+    Coincidencia:
+      type: object
+      required: [id, publicacionOrigenId, publicacionCoincidenteId, score, estado, creadoEn]
+      properties:
+        id:
+          type: string
+        publicacionOrigenId:
+          type: string
+        publicacionCoincidenteId:
+          type: string
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+        estado:
+          type: string
+          enum: [detectada]
+        creadoEn:
+          type: string
+          format: date-time

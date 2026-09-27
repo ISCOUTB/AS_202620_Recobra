@@ -1,0 +1,108 @@
+const queryMock = jest.fn();
+
+jest.mock('pg', () => ({
+  Pool: jest.fn().mockImplementation(() => ({ query: queryMock })),
+}));
+
+import { PostgresPublicacionRepository } from './postgres-publicacion.repository';
+import { Publicacion } from '../../domain/entities/publicacion';
+
+describe('PostgresPublicacionRepository', () => {
+  beforeEach(() => {
+    queryMock.mockReset();
+    process.env.DATABASE_URL = 'postgres://prueba';
+  });
+
+  it('onModuleInit crea la tabla si no existe', async () => {
+    queryMock.mockResolvedValueOnce({});
+    const repo = new PostgresPublicacionRepository();
+
+    await repo.onModuleInit();
+
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS publicaciones'));
+  });
+
+  it('guardar inserta con ON CONFLICT DO NOTHING', async () => {
+    queryMock.mockResolvedValueOnce({});
+    const repo = new PostgresPublicacionRepository();
+    const publicacion = new Publicacion({
+      id: '1',
+      tipo: 'perdido',
+      descripcion: 'x',
+      categoria: 'y',
+      ubicacion: 'z',
+      creadoEn: new Date().toISOString(),
+    });
+
+    await repo.guardar(publicacion);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO publicaciones'),
+      expect.arrayContaining(['1', 'perdido', 'x', 'y', 'z', 'publicado']),
+    );
+  });
+
+  it('buscarPorId devuelve null si no hay filas', async () => {
+    queryMock.mockResolvedValueOnce({ rowCount: 0, rows: [] });
+    const repo = new PostgresPublicacionRepository();
+
+    const resultado = await repo.buscarPorId('no-existe');
+
+    expect(resultado).toBeNull();
+  });
+
+  it('buscarPorId reconstruye la entidad desde la fila', async () => {
+    queryMock.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [
+        {
+          id: '1',
+          tipo: 'perdido',
+          descripcion: 'x',
+          categoria: 'y',
+          ubicacion: 'z',
+          estado: 'publicado',
+          creado_en: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    const repo = new PostgresPublicacionRepository();
+
+    const resultado = await repo.buscarPorId('1');
+
+    expect(resultado?.id).toBe('1');
+    expect(resultado?.descripcion).toBe('x');
+  });
+
+  it('listarPorTipo mapea todas las filas', async () => {
+    queryMock.mockResolvedValueOnce({
+      rowCount: 2,
+      rows: [
+        {
+          id: '1',
+          tipo: 'perdido',
+          descripcion: 'a',
+          categoria: 'c',
+          ubicacion: 'u',
+          estado: 'publicado',
+          creado_en: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          id: '2',
+          tipo: 'perdido',
+          descripcion: 'b',
+          categoria: 'c',
+          ubicacion: 'u',
+          estado: 'publicado',
+          creado_en: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    const repo = new PostgresPublicacionRepository();
+
+    const resultado = await repo.listarPorTipo('perdido');
+
+    expect(resultado).toHaveLength(2);
+    expect(resultado.map((p) => p.id)).toEqual(['1', '2']);
+  });
+});

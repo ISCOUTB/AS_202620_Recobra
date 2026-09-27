@@ -17,7 +17,7 @@ flowchart TB
     end
 
     subgraph soporte["Dominio de soporte"]
-        MATCH["Emparejamiento<br/><i>planeado</i><br/>coincidencias perdido/encontrado"]
+        MATCH["Emparejamiento<br/><i>implementado (heurística simple)</i><br/>coincidencias perdido/encontrado"]
     end
 
     subgraph generico["Dominio genérico / externo"]
@@ -51,20 +51,21 @@ modelo de datos.
 |---|---|---|---|
 | **Publicaciones** | Núcleo | Registrar y consultar objetos perdidos/encontrados; dueño del ciclo de vida `publicado → en contacto → reclamado/cerrado` | Implementado (`src/domain`, `src/application`, `src/publicaciones`) |
 | **Reclamaciones** | Núcleo | Verificar que quien reclama un objeto tiene derecho a hacerlo (aspecto A3, escenario S2) | Planeado |
-| **Emparejamiento (Matching)** | Soporte | Comparar publicaciones de "perdido" y "encontrado" y producir coincidencias (escenario S3) | Planeado |
+| **Emparejamiento (Matching)** | Soporte | Comparar publicaciones de "perdido" y "encontrado" y producir coincidencias (escenario S3) | Implementado (heurística por categoría + ubicación; ver `src/emparejamiento/` y `src/application/use-cases/buscar-coincidencias.ts`) |
 | **Notificaciones** | Genérico / externo | Enviar avisos de coincidencia por correo o push | Planeado, sistema externo (C4 nivel 1) |
 | **Identidad / Autenticación** | Genérico / externo | Autenticar usuarios y exponer su identidad verificada | Planeado, sistema externo (C4 nivel 1) |
 
 ## Patrones de relación entre contextos
 
-- **Publicaciones → Emparejamiento (Cliente/Proveedor):** Emparejamiento
-  consume publicaciones a través del puerto `PublicacionRepository` (o de un
-  evento derivado de él); nunca escribe directamente sobre los datos de
-  Publicaciones.
-- **Emparejamiento → Notificaciones (Cliente/Proveedor):** una coincidencia
-  detectada dispara un evento que Notificaciones consume; Notificaciones no
-  conoce el modelo interno de `Publicacion` ni de `Coincidencia`, solo el
-  evento publicado.
+- **Publicaciones → Emparejamiento (Cliente/Proveedor):** implementado.
+  `CrearPublicacion` emite el evento `publicacion.creada` (en proceso, ver
+  ADR-0004) sin esperar su resultado; `PublicacionCreadaListener` lo consume
+  y llama a `BuscarCoincidencias`, que lee publicaciones vía el puerto
+  `PublicacionRepository` (nunca escribe sobre sus datos) y guarda sus
+  propios resultados en `CoincidenciaRepository`.
+- **Emparejamiento → Notificaciones (Cliente/Proveedor):** todavía planeado.
+  Cuando Notificaciones exista, consumirá un evento `CoincidenciaDetectada`
+  sin conocer el modelo interno de `Publicacion`.
 - **Reclamaciones → Publicaciones (Conformista):** Reclamaciones referencia
   una publicación por su `id` y no copia ni reinterpreta sus campos; si
   Publicaciones cambia su modelo, Reclamaciones se ajusta, no al revés.

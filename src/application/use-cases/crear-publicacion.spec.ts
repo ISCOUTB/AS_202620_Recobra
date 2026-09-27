@@ -1,3 +1,4 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CrearPublicacion } from './crear-publicacion';
 import { MemoriaPublicacionRepository } from '../../infrastructure/persistence/memoria-publicacion.repository';
 import { PublicacionInvalidaError } from '../../domain/entities/publicacion';
@@ -5,7 +6,7 @@ import { PublicacionInvalidaError } from '../../domain/entities/publicacion';
 describe('CrearPublicacion', () => {
   it('crea una publicación válida y la persiste', async () => {
     const repositorio = new MemoriaPublicacionRepository();
-    const crearPublicacion = new CrearPublicacion(repositorio);
+    const crearPublicacion = new CrearPublicacion(repositorio, new EventEmitter2());
 
     const publicacion = await crearPublicacion.ejecutar({
       tipo: 'perdido',
@@ -24,7 +25,7 @@ describe('CrearPublicacion', () => {
 
   it('rechaza un tipo inválido con PublicacionInvalidaError', async () => {
     const repositorio = new MemoriaPublicacionRepository();
-    const crearPublicacion = new CrearPublicacion(repositorio);
+    const crearPublicacion = new CrearPublicacion(repositorio, new EventEmitter2());
 
     await expect(
       crearPublicacion.ejecutar({
@@ -39,7 +40,7 @@ describe('CrearPublicacion', () => {
 
   it('rechaza una descripción vacía', async () => {
     const repositorio = new MemoriaPublicacionRepository();
-    const crearPublicacion = new CrearPublicacion(repositorio);
+    const crearPublicacion = new CrearPublicacion(repositorio, new EventEmitter2());
 
     await expect(
       crearPublicacion.ejecutar({
