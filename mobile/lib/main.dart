@@ -3,9 +3,16 @@ import 'package:flutter/material.dart';
 
 import 'api/recobra_api.dart';
 
+/// Se puede sobrescribir en tiempo de compilación con
+/// `--dart-define=API_BASE_URL=https://recobra-backend.onrender.com` para
+/// apuntar al backend desplegado en vez de local (ver README, sección
+/// Despliegue). Sin ese flag, usa localhost (desarrollo).
+const String _apiBaseUrlOverride = String.fromEnvironment('API_BASE_URL');
+
 /// En web/desktop: localhost. En Android: 127.0.0.1 tras `adb reverse tcp:3000 tcp:3000`
 /// (evita cleartext a 10.0.2.2, que Sonar marca como vulnerabilidad).
 String defaultApiBaseUrl() {
+  if (_apiBaseUrlOverride.isNotEmpty) return _apiBaseUrlOverride;
   if (kIsWeb) return 'http://localhost:3000';
   switch (defaultTargetPlatform) {
     case TargetPlatform.android:

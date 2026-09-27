@@ -48,6 +48,13 @@ flutter run
 
 El backend debe estar corriendo. La app permite crear y consultar publicaciones.
 
+Para apuntar la app al backend **desplegado** en vez de local (útil para
+demos sin correr nada local):
+
+```bash
+flutter run -d chrome --dart-define=API_BASE_URL=https://recobra-backend.onrender.com
+```
+
 ## Cómo correr las pruebas
 
 ```bash
