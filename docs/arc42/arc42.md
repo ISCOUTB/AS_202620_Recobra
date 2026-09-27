@@ -191,7 +191,7 @@ las decisiones de plataforma):
 |---|---|---|
 | API backend NestJS | Contenedor Docker en **Render.com** (plan Free), a partir de [`Dockerfile`](../../Dockerfile) + [`render.yaml`](../../render.yaml) | `docker build -t recobra-backend .` (mismo Dockerfile que valida el CI); en Render, Blueprint desde `render.yaml` |
 | Cliente Flutter | Dispositivo/emulador del usuario (no es un servicio desplegado) | `cd mobile && flutter run` |
-| Persistencia (`Publicacion`) | **PostgreSQL en Neon** (plan Free) si `DATABASE_URL` está definida; adaptador en memoria si no ([ADR-0006](../adr/0006-plataforma-persistencia-postgresql.md)) | `PostgresPublicacionRepository` crea su propia tabla al iniciar (`onModuleInit`); sin `DATABASE_URL`, cae a memoria automáticamente |
+| Persistencia (`Publicacion`) | **PostgreSQL en Neon** (plan Free), activo en producción desde 2026-09-27 — verificado: los datos sobreviven a un reinicio del servicio ([ADR-0006](../adr/0006-plataforma-persistencia-postgresql.md)) | `PostgresPublicacionRepository` crea su propia tabla al iniciar (`onModuleInit`); sin `DATABASE_URL` (pruebas locales), cae a memoria automáticamente |
 
 **URL pública:** https://recobra-backend.onrender.com — desplegada
 2026-09-26 vía Blueprint de Render sobre el commit `c81d7b8`. Verificado

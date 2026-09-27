@@ -94,6 +94,15 @@ código para correr las pruebas.
   ya aísla el adaptador; migrar de Neon a otro Postgres gestionado es
   cambiar `DATABASE_URL`, no código.
 
+## Verificación
+
+Confirmado en producción el 2026-09-27: se creó la publicación
+`25b663ef-d129-459c-a49c-8ceedcd810b5` contra
+`https://recobra-backend.onrender.com`, se reinició el servicio en Render
+(Manual Deploy → Deploy latest commit, mismo mecanismo que un redeploy
+normal) y la publicación siguió existiendo después del reinicio — prueba
+de que los datos ya no dependen del proceso en memoria.
+
 ## Referencias
 
 - [ADR-0002](0002-arquitectura-y-stack.md), [ADR-0005](0005-plataforma-despliegue-backend.md)

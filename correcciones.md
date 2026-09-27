@@ -101,6 +101,14 @@ Fuente de los hallazgos: retroalimentación publicada en
 |---|---|---|
 | Nombres y estructura de `docs/` no seguían la misma convención que otros proyectos del curso | Reorganizado para usar los mismos nombres: `docs/ficha_problema.md`, `docs/arc42/arc42.md`, `docs/c4/C4-C1.md`/`C4-C2.md`/`C4-C3.md`, `docs/calidad/` (agrupa `escenarios_calidad.md`, `arbol_utilidad.md`, `restricciones_justificadas.md`) | [`docs/ficha_problema.md`](docs/ficha_problema.md), [`docs/arc42/arc42.md`](docs/arc42/arc42.md), [`docs/c4/`](docs/c4/), [`docs/calidad/`](docs/calidad/) |
 
+## Avance posterior a S8 (2026-09-27)
+
+| Hallazgo | Corrección | Evidencia |
+|---|---|---|
+| Emparejamiento solo existía como diseño (`docs/context-map.md`), sin código | Implementado: entidad `Coincidencia`, puerto, caso de uso `BuscarCoincidencias`, evento en proceso (ADR-0004), endpoint `GET /coincidencias`, verificado en producción con una coincidencia real detectada sola | [`src/emparejamiento/`](src/emparejamiento/), [`docs/aspectos.md`](docs/aspectos.md) (fila A5) |
+| Persistencia solo en memoria, se perdía en cada redeploy | `PostgresPublicacionRepository` (Neon, sin tarjeta, ADR-0006) activo en producción; verificado que los datos sobreviven a un reinicio real del servicio | [`docs/adr/0006-plataforma-persistencia-postgresql.md`](docs/adr/0006-plataforma-persistencia-postgresql.md#verificación) |
+| Interfaz mínima, sin mostrar el emparejamiento, sin adaptar a navegador | Sección "Coincidencias" visible en la app; layout centrado con ancho máximo para navegador de escritorio; chips de color por tipo | [`mobile/lib/main.dart`](mobile/lib/main.dart) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en
