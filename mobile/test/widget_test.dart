@@ -90,8 +90,17 @@ void main() {
     await tester.pumpWidget(RecobraApp(api: api));
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Descripción'), 'Cargador');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Categoría'), 'electronica');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Ubicación'), 'Bloque 3');
+
+    await tester.tap(find.widgetWithText(DropdownButtonFormField<String>, 'Categoría'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('electronica').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(DropdownButtonFormField<String>, 'Ubicación'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bloque A1').last);
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Crear publicación'));
     await tester.pumpAndSettle();
 

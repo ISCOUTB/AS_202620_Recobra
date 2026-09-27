@@ -80,6 +80,86 @@ class _ChipTipo extends StatelessWidget {
   }
 }
 
+/// Desplegable con opciones frecuentes del campus + "Otro" para texto
+/// libre. `controller` sigue siendo la fuente de verdad para el envío del
+/// formulario (igual que antes, cuando era un TextFormField simple):
+/// seleccionar una opción predefinida escribe su valor en el controller;
+/// seleccionar "Otro" revela un campo de texto atado al mismo controller.
+class _CampoConPredefinidos extends StatelessWidget {
+  const _CampoConPredefinidos({
+    required this.label,
+    required this.icon,
+    required this.opciones,
+    required this.seleccionado,
+    required this.controller,
+    required this.enabled,
+    required this.onSeleccionar,
+  });
+
+  final String label;
+  final IconData icon;
+  final List<String> opciones;
+  final String? seleccionado;
+  final TextEditingController controller;
+  final bool enabled;
+  final ValueChanged<String?> onSeleccionar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: seleccionado,
+          decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+          items: [
+            ...opciones.map((o) => DropdownMenuItem(value: o, child: Text(o))),
+            const DropdownMenuItem(value: _otroValor, child: Text('Otro…')),
+          ],
+          onChanged: enabled ? onSeleccionar : null,
+          validator: (v) => v == null ? 'Selecciona una opción' : null,
+        ),
+        if (seleccionado == _otroValor) ...[
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: controller,
+            enabled: enabled,
+            decoration: InputDecoration(labelText: 'Escribe $label'.toLowerCase()),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Obligatoria' : null,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Valor centinela para "otra categoría/ubicación, la escribo yo" en los
+/// desplegables de abajo. No es un valor real de negocio, solo de UI.
+const _otroValor = '__otro__';
+
+/// Categorías y ubicaciones típicas del campus, para que publicar sea más
+/// rápido que escribir todo a mano. Siempre queda la opción "Otro" para no
+/// limitar lo que de verdad se puede perder o encontrar.
+const List<String> _categoriasPredefinidas = [
+  'electronica',
+  'mochilas',
+  'llaves',
+  'documentos',
+  'ropa',
+  'accesorios',
+];
+
+const List<String> _ubicacionesPredefinidas = [
+  'Bloque A1',
+  'Bloque A2',
+  'Bloque A3',
+  'Bloque A4',
+  'Bloque A5',
+  'Entrada principal',
+  'Biblioteca',
+  'Cafetería central',
+];
+
 class PublicacionPage extends StatefulWidget {
   const PublicacionPage({super.key, required this.api});
 
@@ -97,6 +177,8 @@ class _PublicacionPageState extends State<PublicacionPage> {
   final _idCtrl = TextEditingController();
 
   String _tipo = 'perdido';
+  String? _categoriaSeleccionada;
+  String? _ubicacionSeleccionada;
   bool _busy = false;
   bool _cargandoCoincidencias = false;
   String? _mensaje;
@@ -242,26 +324,30 @@ class _PublicacionPageState extends State<PublicacionPage> {
                                 (v == null || v.trim().isEmpty) ? 'Obligatoria' : null,
                           ),
                           const SizedBox(height: 8),
-                          TextFormField(
+                          _CampoConPredefinidos(
+                            label: 'Categoría',
+                            icon: Icons.category_outlined,
+                            opciones: _categoriasPredefinidas,
+                            seleccionado: _categoriaSeleccionada,
                             controller: _categoriaCtrl,
                             enabled: !_busy,
-                            decoration: const InputDecoration(
-                              labelText: 'Categoría',
-                              prefixIcon: Icon(Icons.category_outlined),
-                            ),
-                            validator: (v) =>
-                                (v == null || v.trim().isEmpty) ? 'Obligatoria' : null,
+                            onSeleccionar: (valor) => setState(() {
+                              _categoriaSeleccionada = valor;
+                              if (valor != _otroValor) _categoriaCtrl.text = valor ?? '';
+                            }),
                           ),
                           const SizedBox(height: 8),
-                          TextFormField(
+                          _CampoConPredefinidos(
+                            label: 'Ubicación',
+                            icon: Icons.place_outlined,
+                            opciones: _ubicacionesPredefinidas,
+                            seleccionado: _ubicacionSeleccionada,
                             controller: _ubicacionCtrl,
                             enabled: !_busy,
-                            decoration: const InputDecoration(
-                              labelText: 'Ubicación',
-                              prefixIcon: Icon(Icons.place_outlined),
-                            ),
-                            validator: (v) =>
-                                (v == null || v.trim().isEmpty) ? 'Obligatoria' : null,
+                            onSeleccionar: (valor) => setState(() {
+                              _ubicacionSeleccionada = valor;
+                              if (valor != _otroValor) _ubicacionCtrl.text = valor ?? '';
+                            }),
                           ),
                           const SizedBox(height: 16),
                           FilledButton.icon(

@@ -287,13 +287,27 @@
     lector.readAsDataURL(archivo);
   });
 
-  async function verificarSalud() {
+  /**
+   * El plan Free de Render (ADR-0005) "duerme" el servicio tras
+   * inactividad: la primera petición tras despertar puede tardar decenas
+   * de segundos o fallar de plano en el primer intento. Reintenta antes
+   * de darlo por caído.
+   */
+  async function verificarSalud(intento = 1) {
+    const maxIntentos = 5;
+    estadoSalud.textContent =
+      intento === 1 ? 'verificando backend…' : `despertando el backend… (intento ${intento}/${maxIntentos})`;
+    estadoSalud.className = '';
     try {
       const respuesta = await fetch('/health');
       if (!respuesta.ok) throw new Error();
       estadoSalud.textContent = 'backend en línea';
       estadoSalud.className = 'ok';
     } catch {
+      if (intento < maxIntentos) {
+        setTimeout(() => verificarSalud(intento + 1), 4000);
+        return;
+      }
       estadoSalud.textContent = 'no se pudo contactar al backend';
       estadoSalud.className = 'error';
     }
