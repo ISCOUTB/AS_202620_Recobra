@@ -1,9 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
 import { PublicacionRepository } from '../src/domain/ports/publicacion-repository';
 import { Publicacion, TipoPublicacion } from '../src/domain/entities/publicacion';
+import { crearAppDePrueba } from './support/crear-app-prueba';
 
 /**
  * Condición adversa pertinente al reto de corte 1: el reto migró el
@@ -32,15 +31,9 @@ describe('Degradación controlada ante fallo del adaptador de persistencia (e2e)
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(PublicacionRepository)
-      .useClass(RepositorioQueFalla)
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await crearAppDePrueba((builder) =>
+      builder.overrideProvider(PublicacionRepository).useClass(RepositorioQueFalla),
+    );
   });
 
   afterAll(async () => {

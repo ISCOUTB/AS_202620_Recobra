@@ -5,12 +5,17 @@ import { MemoriaPublicacionRepository } from '../../infrastructure/persistence/m
 import { MemoriaCoincidenciaRepository } from '../../infrastructure/persistence/memoria-coincidencia.repository';
 
 describe('BuscarCoincidencias', () => {
-  it('detecta una coincidencia entre un "perdido" y un "encontrado" de la misma categoría y ubicación', async () => {
+  let crear: CrearPublicacion;
+  let buscar: BuscarCoincidencias;
+
+  beforeEach(() => {
     const publicaciones = new MemoriaPublicacionRepository();
     const coincidencias = new MemoriaCoincidenciaRepository();
-    const crear = new CrearPublicacion(publicaciones, new EventEmitter2());
-    const buscar = new BuscarCoincidencias(publicaciones, coincidencias);
+    crear = new CrearPublicacion(publicaciones, new EventEmitter2());
+    buscar = new BuscarCoincidencias(publicaciones, coincidencias);
+  });
 
+  it('detecta una coincidencia entre un "perdido" y un "encontrado" de la misma categoría y ubicación', async () => {
     const perdido = await crear.ejecutar({
       tipo: 'perdido',
       descripcion: 'Cargador de laptop',
@@ -33,11 +38,6 @@ describe('BuscarCoincidencias', () => {
   });
 
   it('no detecta coincidencia si la categoría es distinta', async () => {
-    const publicaciones = new MemoriaPublicacionRepository();
-    const coincidencias = new MemoriaCoincidenciaRepository();
-    const crear = new CrearPublicacion(publicaciones, new EventEmitter2());
-    const buscar = new BuscarCoincidencias(publicaciones, coincidencias);
-
     await crear.ejecutar({
       tipo: 'perdido',
       descripcion: 'Cargador de laptop',
@@ -58,11 +58,6 @@ describe('BuscarCoincidencias', () => {
   });
 
   it('no compara publicaciones del mismo tipo entre sí', async () => {
-    const publicaciones = new MemoriaPublicacionRepository();
-    const coincidencias = new MemoriaCoincidenciaRepository();
-    const crear = new CrearPublicacion(publicaciones, new EventEmitter2());
-    const buscar = new BuscarCoincidencias(publicaciones, coincidencias);
-
     await crear.ejecutar({
       tipo: 'perdido',
       descripcion: 'Cargador de laptop',
@@ -83,11 +78,6 @@ describe('BuscarCoincidencias', () => {
   });
 
   it('da score parcial (0.3) cuando la ubicación no coincide ni se contiene', async () => {
-    const publicaciones = new MemoriaPublicacionRepository();
-    const coincidencias = new MemoriaCoincidenciaRepository();
-    const crear = new CrearPublicacion(publicaciones, new EventEmitter2());
-    const buscar = new BuscarCoincidencias(publicaciones, coincidencias);
-
     await crear.ejecutar({
       tipo: 'perdido',
       descripcion: 'Cargador de laptop',
