@@ -56,6 +56,22 @@
   #estado-salud.ok { border-color: var(--encontrado); color: var(--encontrado); }
   #estado-salud.error { border-color: var(--perdido); color: var(--perdido); }
 
+  #boton-reintentar[hidden] { display: none; }
+
+  #boton-reintentar {
+    display: inline-block;
+    margin-top: 0.75rem;
+    margin-left: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.8rem;
+    border: 1px solid var(--perdido);
+    color: var(--perdido);
+    background: transparent;
+    cursor: pointer;
+  }
+
   main {
     max-width: 560px;
     margin: 0 auto;
@@ -217,6 +233,7 @@
 <header>
   <h1>Recobra</h1>
   <span id="estado-salud">verificando backend…</span>
+  <button id="boton-reintentar" type="button" hidden>Reintentar</button>
 </header>
 
 <main>
@@ -265,6 +282,7 @@
 
 <script>
   const estadoSalud = document.getElementById('estado-salud');
+  const botonReintentar = document.getElementById('boton-reintentar');
   const formCrear = document.getElementById('form-crear');
   const mensajeCrear = document.getElementById('mensaje-crear');
   const listaPublicaciones = document.getElementById('lista-publicaciones');
@@ -290,16 +308,24 @@
   /**
    * El plan Free de Render (ADR-0005) "duerme" el servicio tras
    * inactividad: la primera petición tras despertar puede tardar decenas
-   * de segundos o fallar de plano en el primer intento. Reintenta antes
-   * de darlo por caído.
+   * de segundos (medido hasta ~22s solo para la primera respuesta, ver
+   * docs/despliegue/) o fallar de plano mientras el proxy de Render
+   * todavía no tiene el contenedor listo. Reintenta durante ~80s antes de
+   * darlo por caído, con timeout corto por intento para no quedarse
+   * colgado esperando uno solo, y deja un botón manual como último
+   * recurso (por si la red del sitio donde se demuestra es más lenta).
    */
   async function verificarSalud(intento = 1) {
-    const maxIntentos = 5;
+    const maxIntentos = 20;
+    botonReintentar.hidden = true;
     estadoSalud.textContent =
       intento === 1 ? 'verificando backend…' : `despertando el backend… (intento ${intento}/${maxIntentos})`;
     estadoSalud.className = '';
     try {
-      const respuesta = await fetch('/health');
+      const controlador = new AbortController();
+      const timeout = setTimeout(() => controlador.abort(), 8000);
+      const respuesta = await fetch('/health', { signal: controlador.signal });
+      clearTimeout(timeout);
       if (!respuesta.ok) throw new Error();
       estadoSalud.textContent = 'backend en línea';
       estadoSalud.className = 'ok';
@@ -310,8 +336,11 @@
       }
       estadoSalud.textContent = 'no se pudo contactar al backend';
       estadoSalud.className = 'error';
+      botonReintentar.hidden = false;
     }
   }
+
+  botonReintentar.addEventListener('click', () => verificarSalud(1));
 
   function tarjetaPublicacion(pub, fotoDataUrl) {
     const div = document.createElement('div');

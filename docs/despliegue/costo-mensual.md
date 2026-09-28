@@ -5,6 +5,23 @@ Ver [ADR-0005](../adr/0005-plataforma-despliegue-backend.md) (backend) y
 datos) para las decisiones de plataforma. Esta estimación sale del volumen
 del escenario de Recobra, no del catálogo genérico del proveedor.
 
+## Los cuatro números (según «Cómo estimar el costo mensual»)
+
+| # | Número | Valor estimado | De dónde sale |
+|---|---|---|---|
+| 1 | Operaciones al mes | ~180.000 (pico sostenido: 400 peticiones/min × 60 × 10h/día × 30 días = 7,2M en el peor caso; con actividad real muy por debajo del pico casi todo el tiempo, ~180.000/mes es la estimación realista) | Escenario S1 (200 usuarios concurrentes) |
+| 2 | Tamaño de datos almacenados | Crece ~200 bytes/publicación → 180.000 operaciones/mes ≈ 36 MB/mes si todas crearan una fila nueva | Estructura de la tabla `publicaciones` (ver ADR-0006) |
+| 3 | Tráfico de salida | JSON pequeño (una publicación ≈ 300 bytes de respuesta) × 180.000/mes ≈ 54 MB/mes | Payloads reales de `POST/GET /publicaciones` |
+| 4 | Horas de ejecución | ~300-370 h/mes (10-12 h/día activo, no 24/7 — Render Free duerme el resto) | Ver tabla de Render abajo |
+
+Con estos cuatro números, el resultado es el esperado por la guía: **$0/mes**, muy lejos de romper cualquier capa gratuita.
+
+## Costo que no es dinero
+
+- **Minutos de CI:** $0 — el repositorio es público, GitHub Actions no consume cuota.
+- **Tiempo de despliegue:** ~0 minutos de trabajo manual — `render.yaml` tiene `autoDeployTrigger: commit`, así que cualquier `git push` a `master` redespliega solo, sin entrar al panel de Render.
+- **Cuánta gente del equipo sabe rehacerlo:** hoy, solo quien tiene acceso a las cuentas de Render y Neon puede crear el servicio desde cero (riesgo real, ver `docs/arc42/arc42.md` sección 11). Una vez creado, cualquiera con acceso de escritura al repositorio puede redesplegar cambios de código sin tocar esas cuentas, porque el despliegue es automático por `git push`.
+
 ## Supuestos de volumen (del escenario de calidad, no inventados)
 
 - Base: escenario S1 de

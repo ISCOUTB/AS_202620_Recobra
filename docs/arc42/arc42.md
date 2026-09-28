@@ -254,9 +254,10 @@ decisiones:
 
 ## 11. Riesgos y deuda técnica
 
-- Persistencia en memoria (no PostgreSQL): se pierde todo al reiniciar el proceso.
-- Emparejamiento, Notificaciones, Reclamaciones e Identidad son solo diseño, sin código todavía.
+- Persistencia en PostgreSQL (Neon) ya implementada y verificada (ADR-0006); el adaptador en memoria queda solo para pruebas locales sin `DATABASE_URL`.
+- Notificaciones, Reclamaciones e Identidad son solo diseño, sin código todavía (Emparejamiento ya se implementó, ver aspecto A5).
 - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
+- **Solo una persona del equipo tiene acceso a las cuentas de Render y Neon** — si esa persona no está disponible, nadie más puede recrear el servicio o la base de datos desde cero. Mitigado parcialmente: los redespliegues de código normales no requieren esas cuentas (`render.yaml` tiene `autoDeployTrigger: commit`, redespliega solo con `git push`); pendiente compartir el acceso a las cuentas con al menos una persona más del equipo.
 
 ## 12. Glosario
 
