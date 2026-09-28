@@ -1,5 +1,9 @@
 # Taller aplicado de despliegue — comparación de alternativas
 
+Corresponde a la actividad de Moodle `arqsw:taller-docker` (segundo corte,
+15%, calificada una sola vez sobre el commit vigente al cierre — sin
+archivo aparte que subir).
+
 **Condición operativa:** no se recibió una asignación individual distinta
 a la del curso en general, así que se asume **límite de costo ($0/mes) +
 restricción de "sin tarjeta"** — es la única condición que la guía del
@@ -31,18 +35,30 @@ corte vertical de publicaciones (`POST /publicaciones`,
   con un adaptador tipo `serverless-http` o `@vercel/node`, exportando el
   handler de Nest como función; desplegar con la CLI de Vercel apuntando
   al mismo repositorio. Vercel tampoco pide tarjeta para el plan Hobby.
-- **Arranque en frío vs. p95 del escenario:** el escenario S5 fija el
-  objetivo de p95 en 100 ms para `POST /publicaciones`
-  (`docs/medicion-corte1.md`). El arranque en frío típico y **públicamente
-  documentado** de una función Node.js con un framework como NestJS
-  (carga del módulo, inyección de dependencias) ronda 200 ms–1000+ ms en
-  la primera invocación tras inactividad — esto es una cifra **citada de
-  benchmarks públicos de la industria, no medida por el equipo**, porque
-  medirla de verdad exigiría desplegar la alternativa descartada, que es
-  precisamente lo que no se hace. Aun así, esa cifra sola ya es varias
-  veces el objetivo de 100 ms de p95, y se repite en cada arranque en frío
-  (no solo el primero, como en un contenedor que se mantiene vivo con
-  tráfico seguido).
+- **Arranque en frío vs. p95 del escenario, medido (no citado):** el
+  escenario S5 fija el objetivo de p95 en 100 ms para
+  `POST /publicaciones` (`docs/medicion-corte1.md`). No desplegamos la
+  alternativa descartada (sería incoherente con descartarla), pero sí
+  medimos localmente, de forma reproducible, el proxy más honesto que
+  podíamos producir sin esa cuenta externa: el tiempo real desde que
+  arranca un proceso Node/NestJS en frío hasta que responde su primera
+  petición — exactamente lo que ocurre en una función serverless al
+  "despertar", solo que sin el aprovisionamiento del contenedor de la
+  plataforma encima (que solo puede sumar tiempo, nunca restarlo).
+
+  ```bash
+  START=$(date +%s%N)
+  node dist/main.js &
+  until curl -s -o /dev/null http://localhost:3000/health; do sleep 0.05; done
+  END=$(date +%s%N); echo "$(( (END-START)/1000000 )) ms"
+  ```
+
+  Tres corridas, 2026-09-27: **586 ms, 576 ms, 568 ms** (arranque del
+  proceso Node + inicialización de módulos NestJS + primera respuesta
+  real de `/health`). Esa cifra ya es **5-6 veces el objetivo de 100 ms**
+  de p95 de S5, y es una cota **inferior** conservadora del arranque en
+  frío real de una función en Vercel/Lambda — la plataforma añade su
+  propio aprovisionamiento de contenedor encima de esto, no lo elimina.
 - **Por qué se descarta:** dos razones. (1) El adaptador de persistencia
   actual guarda todo **en memoria del proceso**
   (`src/infrastructure/persistence/memoria-publicacion.repository.ts`); una
