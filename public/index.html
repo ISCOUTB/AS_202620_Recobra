@@ -374,7 +374,7 @@
       const cuerpo = await respuesta.json();
 
       if (!respuesta.ok) {
-        mensajeCrear.textContent = `${respuesta.status}: ${cuerpo.error}`;
+        mensajeCrear.textContent = `${respuesta.status}: ${cuerpo.message}`;
         mensajeCrear.className = 'error';
         return;
       }

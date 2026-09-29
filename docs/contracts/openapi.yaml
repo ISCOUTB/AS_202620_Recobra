@@ -9,8 +9,17 @@ info:
     publicaciones es síncrono sobre REST, y por qué Emparejamiento se
     dispara de forma asíncrona (evento en proceso) sin exponerse como una
     ruta de escritura.
-  version: "1.1.0"
+
+    Versionado semántico del contrato: 1.0.0 corte vertical; 1.1.0 agrega
+    /coincidencias (compatible); 2.0.0 unifica los errores en un solo esquema
+    `Error` ({ statusCode, message }) — el 400 antes respondía { error }, así
+    que es un cambio incompatible y sube la versión mayor. Los dos
+    consumidores (Flutter y la vitrina public/index.html) se actualizaron en
+    el mismo commit.
+  version: "2.0.0"
 servers:
+  - url: https://recobra-backend.onrender.com
+    description: Producción (Render, ver ADR-0005)
   - url: http://localhost:3000
     description: Backend local (npm run start)
 paths:
@@ -49,13 +58,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorDominio"
+                $ref: "#/components/schemas/Error"
         "500":
           description: Error interno controlado (p. ej. falla el adaptador de persistencia)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorInterno"
+                $ref: "#/components/schemas/Error"
   /publicaciones/{id}:
     get:
       operationId: consultarPublicacion
@@ -79,7 +88,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorInterno"
+                $ref: "#/components/schemas/Error"
   /coincidencias:
     get:
       operationId: listarCoincidencias
@@ -150,13 +159,8 @@ components:
         creadoEn:
           type: string
           format: date-time
-    ErrorDominio:
-      type: object
-      required: [error]
-      properties:
-        error:
-          type: string
-    ErrorInterno:
+    Error:
+      description: Formato único de error para 400, 404 y 500.
       type: object
       required: [statusCode, message]
       properties:
@@ -164,6 +168,7 @@ components:
           type: integer
         message:
           type: string
+          example: "tipo debe ser uno de: perdido, encontrado"
     Coincidencia:
       type: object
       required: [id, publicacionOrigenId, publicacionCoincidenteId, score, estado, creadoEn]

@@ -42,7 +42,7 @@ describe('Publicaciones (e2e)', () => {
     });
 
     expect(respuesta.status).toBe(400);
-    expect(respuesta.body.error).toMatch(/tipo debe ser uno de/);
+    expect(respuesta.body.message).toMatch(/tipo debe ser uno de/);
   });
 
   it('GET /publicaciones/:id devuelve la publicación creada', async () => {

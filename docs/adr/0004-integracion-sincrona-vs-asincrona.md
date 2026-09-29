@@ -11,6 +11,11 @@ Commit que implementa el contrato y la prueba de contrato:
 [`test/contract.e2e-spec.ts`](../../test/contract.e2e-spec.ts) (ver historial
 de `git log` sobre esas rutas para el hash exacto de esta entrega).
 
+**Actualización 2026-09-28:** Emparejamiento ya está implementado (ver
+`src/emparejamiento/`) y el contrato REST va en la versión `2.0.0` (ver
+"Historial del contrato" abajo). La decisión híbrida no cambia; solo se
+actualiza lo que antes era plan y hoy es código.
+
 ## Contexto
 
 El corte vertical implementado (`POST /publicaciones`, `GET /publicaciones/:id`)
@@ -87,13 +92,28 @@ Se adopta el estilo **híbrido (alternativa C)**:
 1. El corte vertical de publicaciones (`POST /publicaciones`,
    `GET /publicaciones/:id`, `GET /health`) es **síncrono, sobre HTTP/JSON**,
    documentado en [`docs/contracts/openapi.yaml`](../contracts/openapi.yaml)
-   (OpenAPI 3.0.3, versión `1.0.0`) y verificado por
+   (OpenAPI 3.0.3, hoy en versión `2.0.0`) y verificado por
    [`test/contract.e2e-spec.ts`](../../test/contract.e2e-spec.ts) en cada
    push (`.github/workflows/ci.yml`, paso *Contract tests*).
-2. La relación Publicaciones → Emparejamiento → Notificaciones será
-   **asíncrona, basada en eventos**, cuando se implemente (fuera del alcance
-   de esta semana; no se exige mensajería hasta la semana 12). Se documentará
-   con un contrato AsyncAPI separado en el corte correspondiente.
+2. La relación Publicaciones → Emparejamiento → Notificaciones es
+   **asíncrona, basada en eventos**. El tramo Publicaciones → Emparejamiento
+   ya está implementado: `CrearPublicacion` emite `publicacion.creada` con
+   `@nestjs/event-emitter` y `PublicacionCreadaListener` lo consume con
+   `async: true`, así que `POST /publicaciones` responde 201 sin esperar el
+   emparejamiento. El resultado se lee por REST (`GET /coincidencias`, solo
+   lectura, también en el contrato OpenAPI). Hoy el evento es **en proceso**
+   (mismo contenedor), no cruza la red, por eso todavía no tiene contrato
+   AsyncAPI propio: se documentará con AsyncAPI cuando pase a un broker de
+   mensajería (semana 12) o cuando se implemente Notificaciones como
+   sistema externo.
+
+### Historial del contrato (versionado semántico)
+
+| Versión | Cambio | Tipo |
+|---|---|---|
+| `1.0.0` | Corte vertical: `/health`, `POST /publicaciones`, `GET /publicaciones/{id}` | Inicial |
+| `1.1.0` | Se agrega `GET /coincidencias` | Compatible (ruta nueva) |
+| `2.0.0` | Un solo esquema `Error` (`{ statusCode, message }`) para 400/404/500; el 400 antes respondía `{ error }`. Se agrega el servidor de producción (Render) | Incompatible para quien leía `error`; los dos consumidores (Flutter y `public/index.html`) se actualizaron en el mismo commit |
 
 ## Consecuencias
 
@@ -114,8 +134,9 @@ Se adopta el estilo **híbrido (alternativa C)**:
 
 **Negativas / riesgos asumidos**
 
-- Cuando se implemente Emparejamiento, el equipo tendrá que mantener y
-  versionar dos contratos (OpenAPI + AsyncAPI) en vez de uno solo.
+- Cuando el evento salga del proceso (broker o Notificaciones externo), el
+  equipo tendrá que mantener y versionar dos contratos (OpenAPI + AsyncAPI)
+  en vez de uno solo.
 - La eventual consistencia entre "publicación creada" y "coincidencia
   notificada" debe comunicarse claramente en la UI de Flutter, para que el
   usuario no espere una notificación instantánea.
@@ -127,9 +148,9 @@ Se adopta el estilo **híbrido (alternativa C)**:
   decir, si S3 cambiara de "eventual" a "inmediato"), la alternativa C dejaría
   de ser válida para esa interacción específica.
 - **Costo de reversión aceptado:** bajo para el contrato REST ya construido
-  (no cambia); medio para la parte asíncrona, porque hoy es solo diseño
-  (`docs/context-map.md`), no código — cambiar de esquema de eventos antes de
-  implementarlo no tiene costo de migración de datos.
+  (no cambia); medio para la parte asíncrona: el evento ya existe en código, pero es
+  en proceso y sin broker, así que cambiar su esquema solo toca al emisor y
+  al listener dentro del mismo repositorio, sin migración de datos.
 
 ## Referencias
 

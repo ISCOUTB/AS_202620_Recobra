@@ -149,7 +149,7 @@ class RecobraApi {
     try {
       final decoded = jsonDecode(body);
       if (decoded is Map<String, dynamic>) {
-        return decoded['error'] as String? ?? decoded['message'] as String?;
+        return decoded['message'] as String?;
       }
     } catch (_) {
       return null;

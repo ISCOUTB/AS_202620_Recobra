@@ -43,7 +43,7 @@ describe('Contrato de la API (e2e)', () => {
     expect(respuesta).toSatisfyApiSpec();
   });
 
-  it('POST /publicaciones con tipo inválido (400) cumple el esquema ErrorDominio del contrato', async () => {
+  it('POST /publicaciones con tipo inválido (400) cumple el esquema Error del contrato', async () => {
     const respuesta = await request(app.getHttpServer()).post('/publicaciones').send({
       tipo: 'robado',
       descripcion: 'x',
@@ -69,19 +69,50 @@ describe('Contrato de la API (e2e)', () => {
     expect(respuesta).toSatisfyApiSpec();
   });
 
-  it('GET /publicaciones/:id inexistente (404) cumple el esquema ErrorInterno del contrato', async () => {
+  it('GET /publicaciones/:id inexistente (404) cumple el esquema Error del contrato', async () => {
     const respuesta = await request(app.getHttpServer()).get('/publicaciones/no-existe');
 
     expect(respuesta.status).toBe(404);
     expect(respuesta).toSatisfyApiSpec();
   });
 
-  it('GET /coincidencias (200) cumple el esquema Coincidencia del contrato', async () => {
+  it('GET /coincidencias sin resultados (200) cumple el contrato con arreglo vacío', async () => {
     const respuesta = await request(app.getHttpServer())
       .get('/coincidencias')
       .query({ publicacionId: 'lo-que-sea' });
 
     expect(respuesta.status).toBe(200);
+    expect(respuesta.body).toEqual([]);
+    expect(respuesta).toSatisfyApiSpec();
+  });
+
+  it('GET /coincidencias con una coincidencia real (200) cumple el esquema Coincidencia del contrato', async () => {
+    await request(app.getHttpServer()).post('/publicaciones').send({
+      tipo: 'perdido',
+      descripcion: 'Audífonos',
+      categoria: 'contrato-coincidencia',
+      ubicacion: 'Cafetería',
+    });
+    const encontrado = await request(app.getHttpServer()).post('/publicaciones').send({
+      tipo: 'encontrado',
+      descripcion: 'Audífonos blancos',
+      categoria: 'contrato-coincidencia',
+      ubicacion: 'Cafetería',
+    });
+
+    // El emparejamiento es asíncrono (ADR-0004): se reintenta hasta que aparezca.
+    let respuesta = await request(app.getHttpServer())
+      .get('/coincidencias')
+      .query({ publicacionId: encontrado.body.id });
+    for (let i = 0; i < 10 && respuesta.body.length === 0; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      respuesta = await request(app.getHttpServer())
+        .get('/coincidencias')
+        .query({ publicacionId: encontrado.body.id });
+    }
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.length).toBeGreaterThan(0);
     expect(respuesta).toSatisfyApiSpec();
   });
 });
