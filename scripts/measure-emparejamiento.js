@@ -69,15 +69,22 @@ function request(method, path, body) {
   }
   const finMs = Number(process.hrtime.bigint() - inicio) / 1e6;
 
+  // Los ids son UUID generados por nuestro propio backend (no texto libre
+  // de un tercero), pero se coacciona explícitamente a String/Number antes
+  // de registrarlos para no propagar el cuerpo crudo de la respuesta HTTP
+  // tal cual hacia la salida (evita inyección en el log, jssecurity:S5145).
+  const coincidencia = coincidencias[0];
   console.log(
     JSON.stringify(
       {
         escenario: 'S3 (umbral 60000 ms)',
         latenciaDeteccionMs: Number(finMs.toFixed(2)),
         cumpleUmbral: finMs < 60000,
-        publicacionPerdidoId: perdido.body.id,
-        publicacionEncontradoId: encontrado.body.id,
-        coincidenciaDetectada: coincidencias[0] ?? null,
+        publicacionPerdidoId: String(perdido.body.id ?? ''),
+        publicacionEncontradoId: String(encontrado.body.id ?? ''),
+        coincidenciaDetectada: coincidencia
+          ? { id: String(coincidencia.id ?? ''), score: Number(coincidencia.score ?? 0) }
+          : null,
       },
       null,
       2,
