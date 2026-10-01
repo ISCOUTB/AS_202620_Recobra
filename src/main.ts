@@ -13,4 +13,4 @@ async function bootstrap() {
   logger.log(`Recobra backend (NestJS) escuchando en http://localhost:${PORT}`, 'Bootstrap');
 }
 
-bootstrap();
+void bootstrap();

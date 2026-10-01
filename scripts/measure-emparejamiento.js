@@ -23,7 +23,15 @@ function request(method, path, body) {
       (res) => {
         let chunks = '';
         res.on('data', (c) => (chunks += c));
-        res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(chunks || '{}') }));
+        res.on('end', () => {
+          let body;
+          try {
+            body = JSON.parse(chunks || '{}');
+          } catch {
+            body = {};
+          }
+          resolve({ status: res.statusCode, body });
+        });
       },
     );
     req.on('error', reject);
