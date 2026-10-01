@@ -1,0 +1,66 @@
+FAIL src/application/use-cases/buscar-coincidencias.spec.ts
+  BuscarCoincidencias
+    × detecta una coincidencia entre un "perdido" y un "encontrado" de la misma categoría y ubicación (2 ms)
+    × no detecta coincidencia si la categoría es distinta
+    √ no compara publicaciones del mismo tipo entre sí (1 ms)
+    × da score parcial (0.3) cuando la ubicación no coincide ni se contiene
+
+  ● BuscarCoincidencias › detecta una coincidencia entre un "perdido" y un "encontrado" de la misma categoría y ubicación
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+    [0m [90m 33 |[39m     [36mconst[39m encontradas [33m=[39m [36mawait[39m buscar[33m.[39mejecutar(encontrado)[33m;[39m
+     [90m 34 |[39m
+    [31m[1m>[22m[39m[90m 35 |[39m     expect(encontradas)[33m.[39mtoHaveLength([35m1[39m)[33m;[39m
+     [90m    |[39m                         [31m[1m^[22m[39m
+     [90m 36 |[39m     expect(encontradas[[35m0[39m][33m.[39mpublicacionCoincidenteId)[33m.[39mtoBe(perdido[33m.[39mid)[33m;[39m
+     [90m 37 |[39m     expect(encontradas[[35m0[39m][33m.[39mscore)[33m.[39mtoBe([35m1[39m)[33m;[39m
+     [90m 38 |[39m   })[33m;[39m[0m
+
+      at Object.<anonymous> (application/use-cases/buscar-coincidencias.spec.ts:35:25)
+
+  ● BuscarCoincidencias › no detecta coincidencia si la categoría es distinta
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 1
+    Received array:  [{"creadoEn": "2026-10-01T17:59:12.140Z", "estado": "detectada", "id": "5ab933dd-53a5-4d27-9379-58f90f69b236", "publicacionCoincidenteId": "fec175d8-ed73-40b5-8c3e-c2cba2ba8fe4", "publicacionOrigenId": "1fb2dba2-d611-494b-ac13-c6bbab9fa424", "score": 1}]
+
+    [0m [90m 55 |[39m     [36mconst[39m encontradas [33m=[39m [36mawait[39m buscar[33m.[39mejecutar(encontrado)[33m;[39m
+     [90m 56 |[39m
+    [31m[1m>[22m[39m[90m 57 |[39m     expect(encontradas)[33m.[39mtoHaveLength([35m0[39m)[33m;[39m
+     [90m    |[39m                         [31m[1m^[22m[39m
+     [90m 58 |[39m   })[33m;[39m
+     [90m 59 |[39m
+     [90m 60 |[39m   it([32m'no compara publicaciones del mismo tipo entre sí'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (application/use-cases/buscar-coincidencias.spec.ts:57:25)
+
+  ● BuscarCoincidencias › da score parcial (0.3) cuando la ubicación no coincide ni se contiene
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+    [0m [90m  95 |[39m     [36mconst[39m encontradas [33m=[39m [36mawait[39m buscar[33m.[39mejecutar(encontrado)[33m;[39m
+     [90m  96 |[39m
+    [31m[1m>[22m[39m[90m  97 |[39m     expect(encontradas)[33m.[39mtoHaveLength([35m1[39m)[33m;[39m
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m  98 |[39m     expect(encontradas[[35m0[39m][33m.[39mscore)[33m.[39mtoBe([35m0.3[39m)[33m;[39m
+     [90m  99 |[39m   })[33m;[39m
+     [90m 100 |[39m })[33m;[39m[0m
+
+      at Object.<anonymous> (application/use-cases/buscar-coincidencias.spec.ts:97:25)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 1 passed, 4 total
+Snapshots:   0 total
+Time:        2.212 s, estimated 8 s
+Ran all test suites matching /buscar-coincidencias/i.

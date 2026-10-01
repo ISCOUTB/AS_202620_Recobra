@@ -1,0 +1,87 @@
+# Auditoría de generación con IA (evidencia S9)
+
+Cubre los tres barridos que pide la ficha de S9 sobre la porción construida
+con IA más reciente: Emparejamiento + persistencia PostgreSQL
+(`src/emparejamiento/`, `src/application/use-cases/buscar-coincidencias.ts`,
+`src/infrastructure/persistence/postgres-publicacion.repository.ts`).
+
+## 1. Auditoría de erosión (límites de contexto y propiedad de datos, S6)
+
+Comando ejecutado sobre `HEAD`, excluyendo `docs/` y `node_modules/`:
+
+```bash
+git grep -nIE '(INSERT INTO|UPDATE |\.save\(|\.create\(|repository\.)' HEAD -- . ':!docs' ':!node_modules'
+```
+
+**Resultado:** un único `INSERT INTO publicaciones`, en
+`src/infrastructure/persistence/postgres-publicacion.repository.ts` — el
+adaptador propio del contexto **Publicaciones**, el dueño único de ese dato
+según [`docs/modulo-datos.md`](modulo-datos.md). Ninguna escritura sobre
+`publicaciones` aparece en `src/emparejamiento/` ni en
+`buscar-coincidencias.ts`.
+
+Revisión manual de `buscar-coincidencias.ts`: importa `Publicacion` (el
+tipo) y `PublicacionRepository` (el puerto), y solo llama a
+`publicacionRepository.listarPorTipo(...)` — una lectura a través del
+puerto, nunca una escritura directa. Coincide exactamente con la regla
+documentada en `docs/context-map.md`: *"Emparejamiento consume
+publicaciones a través del puerto PublicacionRepository [...], nunca
+escribe directamente sobre los datos de Publicaciones."*
+
+**Conclusión: sin erosión.** La generación con IA de este módulo respetó el
+límite de contexto y la regla de dueño único de datos sin que hiciera falta
+corregir nada después — se diseñó la auditoría antes de aceptar el código,
+no después (ver `docs/ia.md`, entrada de la semana de Emparejamiento).
+
+## 2. Dependencias propuestas por el modelo, verificadas
+
+Dependencias añadidas en el período de Emparejamiento/Postgres/contrato
+(`git diff` sobre `package.json` entre el estado de S6 y HEAD):
+
+| Paquete | ¿Existe en el registro? | Mantenedor / repositorio | Descargas último mes | Antigüedad |
+|---|---|---|---|---|
+| `pg` | Sí | `github.com/brianc/node-postgres` (el driver canónico de PostgreSQL para Node) | 221.383.203 | Publicado 2010-12-19 |
+| `@types/pg` | Sí | DefinitelyTyped (registro oficial de tipos de la comunidad TS) | — | — |
+| `@nestjs/event-emitter` | Sí | `github.com/nestjs/events` (organización oficial de NestJS) | 8.995.791 | — |
+| `jest-openapi` | Sí | `github.com/RuntimeTools/OpenAPIValidators` | 438.078 | — |
+
+Verificado con la API pública del registro de npm (sin autenticación):
+
+```bash
+curl -s "https://registry.npmjs.org/pg" | grep -o '"repository":{[^}]*}'
+curl -s "https://api.npmjs.org/downloads/point/last-month/pg"
+```
+
+**Conclusión: las cuatro dependencias son legítimas**, de mantenedores
+reconocibles y con volumen de descargas que descarta un paquete inventado
+por el modelo y registrado después por un tercero (el riesgo que esta
+semana estudia). Ninguna se agregó a ciegas: `pg` y `@types/pg` porque
+ADR-0006 ya había decidido PostgreSQL; `@nestjs/event-emitter` porque
+ADR-0004 ya exigía un bus de eventos en proceso; `jest-openapi` porque ya
+estaba en uso desde S7 para la prueba de contrato.
+
+## 3. Credenciales en código, ejemplos y documentación generada
+
+```bash
+git grep -inE "(api[_-]?key|secret|password|token)\s*[:=]\s*['\"][A-Za-z0-9_\-]{12,}" -- . ':!node_modules' ':!package-lock.json'
+```
+
+**Resultado: sin coincidencias** en código, `docs/`, ni archivos de
+ejemplo. `.env.example` solo declara las claves (`PORT`, `DATABASE_URL`)
+sin valores — ver [`.env.example`](../.env.example). El único secreto que
+alguna vez apareció en el historial (`node_modules/debug/.coveralls.yml`)
+ya está investigado y cerrado como un artefacto ajeno al equipo, no un
+secreto propio (ver [`docs/no-conformidades.md`](no-conformidades.md#1-token-de-coveralls-expuesto-en-el-historial-de-git)).
+
+## 4. Prueba que falla ante el defecto que cubre
+
+Evidencia de mutación real (no solo afirmada): se invirtió a propósito la
+condición de categoría en `buscar-coincidencias.ts` (`!==` → `===`), se
+corrieron las pruebas, 3 de 4 fallaron con el mensaje exacto del defecto
+introducido, y se revirtió. Salida completa capturada en
+[`docs/ia-auditoria-mutacion-emparejamiento.txt`](ia-auditoria-mutacion-emparejamiento.txt).
+
+## 5. Medición del escenario asociado
+
+Ver [`docs/medicion-emparejamiento.md`](medicion-emparejamiento.md) — S3,
+umbral 60.000 ms, resultado medido ~1.6-2.9 ms.

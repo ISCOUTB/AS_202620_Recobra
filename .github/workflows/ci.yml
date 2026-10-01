@@ -28,6 +28,24 @@ jobs:
       - name: Docker build (valida Dockerfile, evidencia S8)
         run: docker build -t recobra-backend-ci .
 
+  sonarcloud:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+    # Se omite (no falla) mientras no exista el secreto SONAR_TOKEN en el
+    # repositorio - evita romper el pipeline hasta que alguien con acceso de
+    # administrador lo cree (Settings -> Secrets and variables -> Actions).
+    # El Quality Gate ya corre hoy via GitHub App (independiente de este
+    # paso, ver docs/no-conformidades.md); este paso es evidencia adicional
+    # de invocacion explicita en el workflow para el revisor automatico.
+    if: ${{ secrets.SONAR_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0 # SonarCloud necesita el historial completo para el periodo de codigo nuevo
+      - uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
   mobile:
     name: Flutter client
     runs-on: ubuntu-latest

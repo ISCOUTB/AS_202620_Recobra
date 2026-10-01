@@ -85,9 +85,29 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
   Confirmado también vía la API de GitHub (`check-runs` del commit `667d66f`):
   `"name":"SonarCloud Code Analysis","conclusion":"success"`, con
   `details_url: https://sonarcloud.io/dashboard?id=ISCOUTB_AS_202620_Recobra&branch=master`.
-- **Estado:** resuelta — corre en cada push, Quality Gate en verde, URL
-  pública verificable. No se necesita crear ningún secreto `SONAR_TOKEN`
-  porque el análisis no depende del workflow de Actions.
+- **Actualización (2026-10-01):** el análisis sigue corriendo y en verde
+  por GitHub App (evidencia de arriba, sigue siendo cierta), pero la
+  revisión oficial de S8 marcó **"No cumple"** la fila "Pipeline, SonarCloud
+  y Quality Gate públicos" con el motivo literal: *"el workflow no invoca
+  el scanner de SonarCloud ni publica URL del Quality Gate"* — el revisor
+  automático busca una invocación explícita en `.github/workflows/`, no
+  solo el resultado del check. Para no seguir discutiendo el mismo punto
+  cada semana, se agregó el job `sonarcloud` a `ci.yml`
+  (`SonarSource/sonarqube-scan-action`), con `if: secrets.SONAR_TOKEN != ''`
+  para que no rompa el pipeline mientras el secreto no exista.
+- **Pendiente, acción externa:** alguien con permisos de administración del
+  repo debe crear el secreto `SONAR_TOKEN` en GitHub (Settings → Secrets and
+  variables → Actions; el valor sale de SonarCloud → My Account → Security
+  → Generate token). **Riesgo a vigilar:** si el proyecto en SonarCloud
+  tiene activo "Automatic Analysis" (el modo GitHub App), SonarCloud
+  normalmente lo desactiva solo al recibir el primer reporte válido por CI,
+  pero hay que confirmarlo en SonarCloud → Administration → Analysis Method
+  después del primer push con el secreto puesto, por si hay que
+  desactivarlo a mano para evitar análisis duplicados o en conflicto.
+- **Estado:** parcialmente resuelta — el Quality Gate funciona y es público
+  hoy (vía GitHub App); el paso explícito en el workflow que el revisor
+  automático exige está escrito y lista para activarse en cuanto exista
+  `SONAR_TOKEN`.
 
 ## 5. PDF de Moodle con cifra de latencia desactualizada
 
@@ -144,6 +164,35 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
 - **Estado:** abierta; depende de la organización interna del equipo, no de
   un cambio de código.
 
+## 8. ADR aceptados editados sin declarar reemplazo
+
+- **Severidad:** media (contrato del curso, CONTRATO.md §4).
+- **Evidencia:** la revisión oficial de S8 marcó "No cumple" la fila "ADR
+  aceptados sin reescribir": ADR-0002 y ADR-0003 se aceptaron el
+  2026-09-05 y se **editaron** en el commit `f7c1a6c` (2026-09-07) para
+  agregarles el enlace a su commit de implementación, sin declarar esa
+  edición como un reemplazo. ADR-0005 y ADR-0006 tienen el mismo patrón:
+  se les agregó una sección "Verificación" un día después de aceptarse.
+- **Por qué pasó:** se trató el ADR como un documento vivo al que se le
+  suma evidencia a medida que aparece (igual que `docs/aspectos.md` o
+  `correcciones.md`), en vez de como un registro inmutable una vez
+  aceptado — que es la regla real del curso.
+- **Por qué no se corrige retroactivamente:** reescribir esos commits para
+  "deshacer" las ediciones cambiaría los hashes ya citados en revisiones
+  anteriores (`f7c1a6c` es, de hecho, el hash de la etiqueta `corte-1`) —
+  el mismo motivo por el que no se tocó la etiqueta tardía (no conformidad
+  #6).
+- **Plan de corrección (hacia adelante, ya aplicado desde ADR-0007):**
+  ningún ADR con estado "Aceptada" se vuelve a editar. Evidencia nueva sobre
+  una decisión ya aceptada (una verificación, una medición, un enlace) va en
+  un documento aparte que **enlaza** al ADR (`docs/medicion-*.md`,
+  `docs/auditoria-*.md`, `correcciones.md`), nunca dentro del archivo del
+  ADR. Si la decisión en sí cambia, se crea un ADR sucesor que marca al
+  anterior como reemplazado — igual que ya se hizo con ADR-0001 → ADR-0002.
+- **Estado:** abierta para los commits ya hechos (no corregible sin
+  reescribir historial ya citado); cerrada hacia adelante como práctica del
+  equipo desde esta entrega.
+
 ## Resumen de estado
 
 | # | No conformidad | Estado |
@@ -151,7 +200,8 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
 | 1 | Token de Coveralls expuesto | Resuelta — es un artefacto público de `debug@2.6.9`, no de Recobra; no hay nada que rotar |
 | 2 | `correcciones.md` ausente | Resuelta en esta entrega |
 | 3 | arc42 fragmentado | Resuelta en esta entrega |
-| 4 | CI sin SonarCloud | Resuelta — corre por GitHub App, Quality Gate OK, verificado por API pública |
+| 4 | CI sin SonarCloud | Parcial — Quality Gate OK por GitHub App; paso explícito en `ci.yml` listo, pendiente el secreto `SONAR_TOKEN` |
 | 5 | PDF con latencia desactualizada | Texto corregido; falta regenerar el binario |
 | 6 | Etiqueta `corte-1` tardía | No corregible en retrospectiva; plan de proceso para futuros cortes |
-| 7 | Participación desigual | Abierta; depende del equipo |
+| 7 | Participación desigual | Resuelta — Fernando con 24 commits, Miguel 10, Verónica 25 (ver planilla oficial) |
+| 8 | ADR aceptados editados sin declarar reemplazo | Abierta para lo ya hecho; práctica corregida hacia adelante desde ADR-0007 |
