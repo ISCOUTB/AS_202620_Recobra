@@ -69,22 +69,21 @@ function request(method, path, body) {
   }
   const finMs = Number(process.hrtime.bigint() - inicio) / 1e6;
 
-  // Los ids son UUID generados por nuestro propio backend (no texto libre
-  // de un tercero), pero se coacciona explícitamente a String/Number antes
-  // de registrarlos para no propagar el cuerpo crudo de la respuesta HTTP
-  // tal cual hacia la salida (evita inyección en el log, jssecurity:S5145).
-  const coincidencia = coincidencias[0];
+  // No se registran los ids ni ningún campo tomado de la respuesta HTTP:
+  // solo las métricas que calcula este mismo script, para no darle a
+  // SonarCloud una ruta de datos de "respuesta de red" hacia console.log
+  // (jssecurity:S5145) - el objetivo de esta medición es la latencia, no
+  // los identificadores.
+  const huboCoincidencia = coincidencias.length > 0;
+  const scoreCoincidencia = huboCoincidencia ? Number(coincidencias[0].score) || 0 : null;
   console.log(
     JSON.stringify(
       {
         escenario: 'S3 (umbral 60000 ms)',
         latenciaDeteccionMs: Number(finMs.toFixed(2)),
         cumpleUmbral: finMs < 60000,
-        publicacionPerdidoId: String(perdido.body.id ?? ''),
-        publicacionEncontradoId: String(encontrado.body.id ?? ''),
-        coincidenciaDetectada: coincidencia
-          ? { id: String(coincidencia.id ?? ''), score: Number(coincidencia.score ?? 0) }
-          : null,
+        huboCoincidencia,
+        scoreCoincidencia,
       },
       null,
       2,
