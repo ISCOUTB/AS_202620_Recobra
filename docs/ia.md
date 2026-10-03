@@ -41,6 +41,8 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 * *Clarificación de requisitos arquitectónicos:* Consultas relativas a los componentes del estándar y los criterios de aceptación para el corte vertical.
 * *Revisión y validación de código:* Análisis de fragmentos de código en JavaScript (Node.js) para entender el flujo de datos entre la interfaz y la lógica del corte vertical.
 * *Estructuración de entregables:* Guía en la organización de la documentación del proyecto y verificación de la lista de chequeo de la entrega.
+* *Verificación de dependencias (S9):* Confirmé manualmente en npmjs.com que `pg`, `@types/pg`, `@nestjs/event-emitter` y `jest-openapi` son paquetes reales, con repositorio público y volumen de descargas alto — ninguno parece inventado por una IA.
+   
 
 ### 3. Declaración de Autonomía
 * El código final y la documentación enviada fueron revisados, comprendidos y validados manualmente antes de su integración al repositorio.
