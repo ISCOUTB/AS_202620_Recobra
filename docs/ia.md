@@ -83,3 +83,15 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 ### 3. Declaración de Autonomía
 * Toda la documentación generada con apoyo de IA fue revisada, ajustada y validada por mí antes de integrarse al repositorio. El contenido final refleja el entendimiento del proyecto y sus requisitos.
 * Todo el código y la documentación generados con apoyo de IA fueron revisados, ejecutados (pruebas automatizadas y pruebas manuales) y comprendidos por mí antes de integrarlos al repositorio.
+## Registro de Uso de IA - [Miguel Alejandro Jacome Yanez]
+
+   ### 1. Nivel de Uso
+   * *Frecuencia:* Uso moderado como apoyo en documentación de arquitectura (C4, arc42) y revisión de código generado.
+   * *Herramientas empleadas:* Claude (frecuencia media de uso).
+
+   ### 2. Casos de Uso Específicos
+   * *Diagramas C4:* Apoyo para etiquetar las flechas del nivel 2 con protocolo y formato (S7), y para los flujos de interacción de la sección 6 de arc42.
+   * *Revisión de la auditoría de erosión (S9):* Revisé `docs/auditoria-generacion-ia.md` y confirmé que el código de Emparejamiento generado con IA solo lee publicaciones a través del puerto `PublicacionRepository` y nunca escribe sobre datos que no son suyos — respeta la regla de dueño único de datos de la semana 6.
+
+   ### 3. Declaración de Autonomía
+   * Todo el código y la documentación generados con apoyo de IA que revisé fueron comprendidos y validados por mí antes de darlos por aceptados.
