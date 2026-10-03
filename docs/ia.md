@@ -79,10 +79,12 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 * *Redacción del plan de corrección (entrega 2):* Apoyo en la propuesta de acciones concretas, prioridades y plazos para resolver cada violación detectada.
 * *Verificación de entregables:* Revisión de la lista de chequeo de las entregas incrementales (arc42, C4, corte vertical, tabla de aspectos, tabla de dueños, violaciones) para confirmar que todo estuviera completo.
 * *Organización del trabajo:* Guía sobre el flujo de trabajo con Git y la estructura de carpetas para la documentación.
+* *Revisión de prueba de mutación y ADR de IA (S9):* Verifiqué que la prueba sobre el emparejamiento falla de verdad al introducir un defecto real (no solo que pasa en verde), revisando la salida capturada en `docs/ia-auditoria-mutacion-emparejamiento.txt`. También revisé el ADR-0007, que justifica por qué el equipo decidió no usar un modelo generativo para mejorar el emparejamiento (costo por operación, latencia, riesgo de alucinación) en vez de incorporarlo sin una decisión explícita.
 
 ### 3. Declaración de Autonomía
 * Toda la documentación generada con apoyo de IA fue revisada, ajustada y validada por mí antes de integrarse al repositorio. El contenido final refleja el entendimiento del proyecto y sus requisitos.
 * Todo el código y la documentación generados con apoyo de IA fueron revisados, ejecutados (pruebas automatizadas y pruebas manuales) y comprendidos por mí antes de integrarlos al repositorio.
+  
 ## Registro de Uso de IA - [Miguel Alejandro Jacome Yanez]
 
    ### 1. Nivel de Uso
