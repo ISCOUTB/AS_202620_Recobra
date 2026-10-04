@@ -364,24 +364,33 @@
    * desde el servidor (GET /publicaciones), así lo publicado no depende de
    * la sesión del navegador.
    */
-  async function verificarSalud(intento = 1) {
+  async function verificarSalud(intento = 1, ultimoMotivo = '') {
     const maxIntentos = 20;
     botonReintentar.hidden = true;
     estadoSalud.textContent =
-      intento === 1 ? 'verificando backend…' : `despertando el backend… (intento ${intento}/${maxIntentos})`;
+      intento === 1
+        ? 'verificando backend…'
+        : `despertando el backend… (intento ${intento}/${maxIntentos}${ultimoMotivo ? ' · ' + ultimoMotivo : ''})`;
     estadoSalud.className = '';
+    let motivo = 'error de red';
     try {
       const controlador = new AbortController();
       const timeout = setTimeout(() => controlador.abort(), 8000);
-      const respuesta = await fetch('/health', { signal: controlador.signal });
+      const respuesta = await fetch('/health', { signal: controlador.signal, cache: 'no-store' });
       clearTimeout(timeout);
-      if (!respuesta.ok) throw new Error();
+      if (!respuesta.ok) {
+        motivo = `HTTP ${respuesta.status}`;
+        throw new Error(motivo);
+      }
       estadoSalud.textContent = 'backend en línea';
       estadoSalud.className = 'ok';
       buscar();
-    } catch {
+    } catch (error) {
+      if (error.name === 'AbortError') motivo = 'sin respuesta en 8 s';
+      estadoSalud.title = `Último intento: ${motivo}`;
+      console.warn(`Recobra: /health falló (${motivo}), intento ${intento}/${maxIntentos}`);
       if (intento < maxIntentos) {
-        setTimeout(() => verificarSalud(intento + 1), 4000);
+        setTimeout(() => verificarSalud(intento + 1, motivo), 4000);
         return;
       }
       estadoSalud.textContent = 'no se pudo contactar al backend';
