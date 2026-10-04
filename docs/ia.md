@@ -82,7 +82,7 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 * *Verificación de entregables:* Revisión de la lista de chequeo de las entregas incrementales (arc42, C4, corte vertical, tabla de aspectos, tabla de dueños, violaciones) para confirmar que todo estuviera completo.
 * *Organización del trabajo:* Guía sobre el flujo de trabajo con Git y la estructura de carpetas para la documentación.
 * *Revisión de prueba de mutación y ADR de IA (S9):* Verifiqué que la prueba sobre el emparejamiento falla de verdad al introducir un defecto real (no solo que pasa en verde), revisando la salida capturada en `docs/ia-auditoria-mutacion-emparejamiento.txt`. También revisé el ADR-0007, que justifica por qué el equipo decidió no usar un modelo generativo para mejorar el emparejamiento (costo por operación, latencia, riesgo de alucinación) en vez de incorporarlo sin una decisión explícita.
-* *Revisión de la mutación de la búsqueda y del ADR-0009 (S9):* Revisé `docs/ia-auditoria-mutacion-busqueda.txt`: en la primera corrida la prueba e2e del filtro de categoría seguía en verde con el filtro invertido (era débil), se reforzó y en la segunda corrida falla como debe, con lo que la mutación sirvió para corregir una prueba, no solo para comprobarla. También revisé el ADR-0009, que registra los cambios del contrato en un ADR sucesor en vez de editar el ADR-0004 ya aceptado.
+* 
 
 ### 3. Declaración de Autonomía
 * Toda la documentación generada con apoyo de IA fue revisada, ajustada y validada por mí antes de integrarse al repositorio. El contenido final refleja el entendimiento del proyecto y sus requisitos.
