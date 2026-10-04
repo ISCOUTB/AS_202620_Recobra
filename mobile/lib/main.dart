@@ -33,7 +33,7 @@ class RecobraApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF0B4F6C));
+    final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF093AD8));
     return MaterialApp(
       title: 'Recobra',
       theme: ThemeData(

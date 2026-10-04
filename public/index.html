@@ -3,241 +3,253 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Recobra — Demo del corte vertical</title>
+<title>Recobra — Objetos perdidos y encontrados</title>
 <style>
+  /* Paleta tomada de la web institucional de la UTB (utb.edu.co); validar
+     contra el manual de identidad antes de la entrega final. */
   :root {
-    --tinta: #1f2318;
-    --papel: #f6f3ea;
-    --papel-borde: #ddd6c2;
-    --encontrado: #2f6b4f;
-    --perdido: #a15c2f;
-    --linea: #c9c2ab;
+    --azul: #093ad8;
+    --azul-oscuro: #15295a;
+    --celeste: #6ec1e4;
+    --fondo: #f5f7fb;
+    --superficie: #ffffff;
+    --borde: #d8deea;
+    --texto: #1b2437;
+    --texto-suave: #4b5670;
+    --perdido-fondo: #fef0c7;
+    --perdido-texto: #93370d;
+    --encontrado-fondo: #d1fadf;
+    --encontrado-texto: #05603a;
+    --error: #b42318;
   }
 
   * { box-sizing: border-box; }
 
   body {
     margin: 0;
-    background: var(--papel);
-    color: var(--tinta);
-    font-family: "Iowan Old Style", "Georgia", serif;
-    min-height: 100vh;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.45;
   }
 
   header {
-    padding: 2.5rem 1.5rem 1.5rem;
-    text-align: center;
-    border-bottom: 1px solid var(--linea);
+    background: var(--azul-oscuro);
+    color: #ffffff;
+    border-bottom: 4px solid var(--celeste);
   }
 
-  header h1 {
-    margin: 0 0 0.35rem;
-    font-size: 2.1rem;
-    letter-spacing: 0.01em;
+  .contenedor {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
   }
 
-  header p {
-    margin: 0;
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 0.95rem;
-    color: #55503f;
+  .cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
   }
+
+  header h1 { margin: 0; font-size: 1.9rem; letter-spacing: 0.01em; }
+  header p { margin: 0.15rem 0 0; color: #c9d6f5; font-size: 0.95rem; }
 
   #estado-salud {
     display: inline-block;
-    margin-top: 0.75rem;
-    padding: 0.25rem 0.75rem;
+    padding: 0.3rem 0.85rem;
     border-radius: 999px;
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 0.8rem;
-    border: 1px solid var(--linea);
+    font-size: 0.82rem;
+    border: 1px solid #5d75b8;
+    color: #dbe4fb;
   }
-
-  #estado-salud.ok { border-color: var(--encontrado); color: var(--encontrado); }
-  #estado-salud.error { border-color: var(--perdido); color: var(--perdido); }
+  #estado-salud.ok { border-color: #6ce9a6; color: #6ce9a6; }
+  #estado-salud.error { border-color: #fda29b; color: #fda29b; }
 
   #boton-reintentar[hidden] { display: none; }
-
   #boton-reintentar {
-    display: inline-block;
-    margin-top: 0.75rem;
     margin-left: 0.5rem;
-    padding: 0.25rem 0.75rem;
+    padding: 0.3rem 0.85rem;
     border-radius: 999px;
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 0.8rem;
-    border: 1px solid var(--perdido);
-    color: var(--perdido);
+    border: 1px solid #fda29b;
     background: transparent;
+    color: #fda29b;
+    font: inherit;
+    font-size: 0.82rem;
     cursor: pointer;
   }
 
   main {
-    max-width: 560px;
+    max-width: 1040px;
     margin: 0 auto;
-    padding: 2rem 1.5rem 4rem;
+    padding: 1.75rem 1.25rem 4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    gap: 1.75rem;
+    align-items: start;
   }
 
-  section h2 {
-    font-size: 1.15rem;
-    margin: 0 0 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--linea);
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-weight: 600;
+  @media (max-width: 800px) {
+    main { grid-template-columns: minmax(0, 1fr); }
   }
 
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.9rem;
+  .panel {
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 2px rgba(21, 41, 90, 0.06);
   }
+
+  .panel h2 { margin: 0 0 1rem; font-size: 1.15rem; color: var(--azul-oscuro); }
+
+  form { display: flex; flex-direction: column; gap: 0.85rem; }
 
   label {
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 0.82rem;
-    color: #55503f;
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--texto-suave);
   }
 
   input, select {
     font: inherit;
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    padding: 0.55rem 0.6rem;
-    border: 1px solid var(--linea);
-    border-radius: 4px;
-    background: #fffdf7;
-    color: var(--tinta);
+    font-weight: 400;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--texto);
+  }
+
+  input:focus-visible, select:focus-visible, button:focus-visible, .zona-foto:focus-visible {
+    outline: 3px solid var(--celeste);
+    outline-offset: 1px;
   }
 
   button {
-    font-family: "Helvetica Neue", Arial, sans-serif;
+    font: inherit;
     font-weight: 600;
-    font-size: 0.9rem;
-    padding: 0.65rem 1rem;
-    border-radius: 4px;
-    border: 1px solid var(--tinta);
-    background: var(--tinta);
-    color: var(--papel);
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--azul);
+    background: var(--azul);
+    color: #ffffff;
     cursor: pointer;
   }
-
-  button:hover { opacity: 0.88; }
-
+  button:hover { background: #0a31b3; }
   button.secundario {
     background: transparent;
-    color: var(--tinta);
-  }
-
-  #mensaje-crear {
-    font-family: "Helvetica Neue", Arial, sans-serif;
+    color: var(--azul);
+    padding: 0.4rem 0.8rem;
     font-size: 0.85rem;
-    min-height: 1.2em;
   }
+  button.secundario:hover { background: #eaf0ff; }
 
-  #mensaje-crear.error { color: var(--perdido); }
-  #mensaje-crear.ok { color: var(--encontrado); }
+  #mensaje-crear { margin: 0; font-size: 0.88rem; min-height: 1.2em; }
+  #mensaje-crear.error { color: var(--error); }
+  #mensaje-crear.ok { color: var(--encontrado-texto); }
 
-  .tarjeta {
-    border: 1px solid var(--linea);
-    border-radius: 6px;
-    padding: 0.9rem 1rem;
-    background: #fffdf7;
-    margin-bottom: 0.7rem;
-  }
-
-  .tarjeta .foto-tarjeta {
-    display: block;
-    width: 100%;
-    max-height: 160px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin: 0.4rem 0;
-  }
-
-  .tarjeta .fila-superior {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.5rem;
-    margin-bottom: 0.3rem;
-  }
-
-  .etiqueta-tipo {
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    white-space: nowrap;
-  }
-
-  .etiqueta-tipo.perdido { background: #f3e3d3; color: var(--perdido); }
-  .etiqueta-tipo.encontrado { background: #dcecdf; color: var(--encontrado); }
-
-  .tarjeta .descripcion { font-size: 1rem; }
-
-  .tarjeta .meta {
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 0.78rem;
-    color: #756f5a;
-    margin-top: 0.35rem;
-  }
-
-  .tarjeta .id {
-    font-family: "SF Mono", Menlo, Consolas, monospace;
-    font-size: 0.72rem;
-    color: #8b8468;
-    word-break: break-all;
-  }
-
-  #lista-publicaciones:empty::after {
-    content: "Todavía no has creado ninguna publicación en esta sesión.";
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 0.85rem;
-    color: #8b8468;
-  }
   .zona-foto {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 1.5rem 1rem;
-    border: 1px dashed var(--linea);
-    border-radius: 6px;
-    background: #fffdf7;
+    gap: 0.4rem;
+    padding: 1.1rem 1rem;
+    border: 1px dashed #9aa8c7;
+    border-radius: 8px;
+    background: #fafbff;
     cursor: pointer;
     text-align: center;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--texto-suave);
+  }
+  .zona-foto:hover { border-color: var(--azul); }
+  #vista-previa-foto { max-width: 100%; max-height: 130px; border-radius: 6px; }
+
+  .filtros {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  @media (max-width: 560px) {
+    .filtros { grid-template-columns: minmax(0, 1fr); }
   }
 
-  .zona-foto:hover { border-color: var(--tinta); }
-
-  #texto-zona-foto {
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 0.82rem;
-    color: #756f5a;
+  #resumen {
+    margin: 0 0 0.9rem;
+    font-size: 0.88rem;
+    color: var(--texto-suave);
   }
 
-  #vista-previa-foto {
-    max-width: 100%;
-    max-height: 140px;
-    border-radius: 4px;
+  .tarjeta {
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    background: #ffffff;
+    margin-bottom: 0.75rem;
+  }
+
+  .tarjeta .fila-superior {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .etiqueta-tipo {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .etiqueta-tipo.perdido { background: var(--perdido-fondo); color: var(--perdido-texto); }
+  .etiqueta-tipo.encontrado { background: var(--encontrado-fondo); color: var(--encontrado-texto); }
+
+  .tarjeta .descripcion { font-size: 1.05rem; font-weight: 600; }
+  .tarjeta .meta { font-size: 0.82rem; color: var(--texto-suave); margin-top: 0.25rem; }
+  .tarjeta .acciones { margin-top: 0.6rem; }
+
+  .coincidencias { margin: 0.6rem 0 0; padding: 0.6rem 0.8rem; background: #eef4ff; border-radius: 8px; font-size: 0.88rem; }
+  .coincidencias ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+
+  .vacio {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--texto-suave);
+    border: 1px dashed var(--borde);
+    border-radius: 10px;
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Recobra</h1>
-  <span id="estado-salud">verificando backend…</span>
-  <button id="boton-reintentar" type="button" hidden>Reintentar</button>
+  <div class="contenedor cabecera">
+    <div>
+      <h1>Recobra</h1>
+      <p>Objetos perdidos y encontrados en el campus</p>
+    </div>
+    <div>
+      <span id="estado-salud" role="status">verificando backend…</span>
+      <button id="boton-reintentar" type="button" hidden>Reintentar</button>
+    </div>
+  </div>
 </header>
 
 <main>
-  <section aria-labelledby="titulo-crear">
+  <section class="panel" aria-labelledby="titulo-crear">
     <h2 id="titulo-crear">Publicar un objeto</h2>
     <form id="form-crear">
       <label>Tipo
@@ -264,18 +276,45 @@
       <label>Ubicación
         <input type="text" name="ubicacion" placeholder="Bloque 5, UTB" required />
       </label>
-      <label>Foto (opcional)
-        <div class="zona-foto" id="zona-foto">
+      <label>Foto (opcional, solo vista previa por ahora)
+        <div class="zona-foto" id="zona-foto" tabindex="0" role="button">
           <img id="vista-previa-foto" alt="Vista previa" hidden />
-          <span id="texto-zona-foto">Click para elegir una foto del objeto</span>
+          <span id="texto-zona-foto">Elegir una foto del objeto</span>
         </div>
         <input type="file" id="input-foto" accept="image/*" hidden />
       </label>
       <button type="submit">Publicar</button>
-      <p id="mensaje-crear"></p>
+      <p id="mensaje-crear" role="status"></p>
     </form>
+  </section>
 
-    <h2 style="margin-top: 2rem;">Publicaciones creadas en esta sesión</h2>
+  <section class="panel" aria-labelledby="titulo-buscar">
+    <h2 id="titulo-buscar">Buscar publicaciones</h2>
+    <div class="filtros">
+      <label>Tipo
+        <select id="filtro-tipo">
+          <option value="">Todos</option>
+          <option value="perdido">Perdido</option>
+          <option value="encontrado">Encontrado</option>
+        </select>
+      </label>
+      <label>Categoría
+        <select id="filtro-categoria">
+          <option value="">Todas</option>
+          <option value="electronica">Electrónica</option>
+          <option value="mochilas">Mochilas y bolsos</option>
+          <option value="documentos">Documentos e identificación</option>
+          <option value="llaves">Llaves</option>
+          <option value="ropa">Ropa y accesorios</option>
+          <option value="utiles">Útiles y libros</option>
+          <option value="otros">Otros</option>
+        </select>
+      </label>
+      <label>Ubicación
+        <input type="text" id="filtro-ubicacion" placeholder="Bloque 5, UTB" />
+      </label>
+    </div>
+    <p id="resumen" role="status"></p>
     <div id="lista-publicaciones"></div>
   </section>
 </main>
@@ -286,12 +325,24 @@
   const formCrear = document.getElementById('form-crear');
   const mensajeCrear = document.getElementById('mensaje-crear');
   const listaPublicaciones = document.getElementById('lista-publicaciones');
+  const resumen = document.getElementById('resumen');
   const zonaFoto = document.getElementById('zona-foto');
   const inputFoto = document.getElementById('input-foto');
   const vistaPreviaFoto = document.getElementById('vista-previa-foto');
   const textoZonaFoto = document.getElementById('texto-zona-foto');
+  const filtroTipo = document.getElementById('filtro-tipo');
+  const filtroCategoria = document.getElementById('filtro-categoria');
+  const filtroUbicacion = document.getElementById('filtro-ubicacion');
+
+  const TEXTO_FOTO = 'Elegir una foto del objeto';
 
   zonaFoto.addEventListener('click', () => inputFoto.click());
+  zonaFoto.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      inputFoto.click();
+    }
+  });
 
   inputFoto.addEventListener('change', () => {
     const archivo = inputFoto.files[0];
@@ -308,12 +359,10 @@
   /**
    * El plan Free de Render (ADR-0005) "duerme" el servicio tras
    * inactividad: la primera petición tras despertar puede tardar decenas
-   * de segundos (medido hasta ~22s solo para la primera respuesta, ver
-   * docs/despliegue/) o fallar de plano mientras el proxy de Render
-   * todavía no tiene el contenedor listo. Reintenta durante ~80s antes de
-   * darlo por caído, con timeout corto por intento para no quedarse
-   * colgado esperando uno solo, y deja un botón manual como último
-   * recurso (por si la red del sitio donde se demuestra es más lenta).
+   * de segundos. Reintenta durante ~80 s antes de darlo por caído y deja un
+   * botón manual como último recurso. Al quedar en línea carga la lista
+   * desde el servidor (GET /publicaciones), así lo publicado no depende de
+   * la sesión del navegador.
    */
   async function verificarSalud(intento = 1) {
     const maxIntentos = 20;
@@ -329,6 +378,7 @@
       if (!respuesta.ok) throw new Error();
       estadoSalud.textContent = 'backend en línea';
       estadoSalud.className = 'ok';
+      buscar();
     } catch {
       if (intento < maxIntentos) {
         setTimeout(() => verificarSalud(intento + 1), 4000);
@@ -342,21 +392,105 @@
 
   botonReintentar.addEventListener('click', () => verificarSalud(1));
 
-  function tarjetaPublicacion(pub, fotoDataUrl) {
-    const div = document.createElement('div');
-    div.className = 'tarjeta';
-    div.innerHTML = `
-      <div class="fila-superior">
-        <span class="etiqueta-tipo ${pub.tipo}">${pub.tipo}</span>
-        <span class="meta">${pub.estado}</span>
-      </div>
-      ${fotoDataUrl ? `<img class="foto-tarjeta" src="${fotoDataUrl}" alt="Foto del objeto" />` : ''}
-      <div class="descripcion">${pub.descripcion}</div>
-      <div class="meta">${pub.categoria} · ${pub.ubicacion}</div>
-      <div class="id">${pub.id}</div>
-    `;
-    return div;
+  function elemento(etiqueta, clase, texto) {
+    const nodo = document.createElement(etiqueta);
+    if (clase) nodo.className = clase;
+    if (texto !== undefined) nodo.textContent = texto;
+    return nodo;
   }
+
+  function formatearFecha(iso) {
+    const fecha = new Date(iso);
+    if (Number.isNaN(fecha.getTime())) return '';
+    return fecha.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  async function verCoincidencias(pub, contenedor, boton) {
+    boton.disabled = true;
+    contenedor.replaceChildren();
+    try {
+      const respuesta = await fetch(`/coincidencias?publicacionId=${encodeURIComponent(pub.id)}`);
+      const coincidencias = await respuesta.json();
+      const caja = elemento('div', 'coincidencias');
+      if (!Array.isArray(coincidencias) || coincidencias.length === 0) {
+        caja.textContent = 'Sin coincidencias por ahora.';
+      } else {
+        caja.append(elemento('strong', '', `${coincidencias.length} posible(s) coincidencia(s)`));
+        const lista = document.createElement('ul');
+        for (const c of coincidencias) {
+          const otroId = c.publicacionOrigenId === pub.id ? c.publicacionCoincidenteId : c.publicacionOrigenId;
+          const item = elemento('li', '', 'Cargando…');
+          lista.append(item);
+          fetch(`/publicaciones/${encodeURIComponent(otroId)}`)
+            .then((r) => r.json())
+            .then((otra) => {
+              item.textContent = `${otra.descripcion} (${otra.tipo}, ${otra.ubicacion})`;
+            })
+            .catch(() => {
+              item.textContent = 'No se pudo cargar la publicación coincidente.';
+            });
+        }
+        caja.append(lista);
+      }
+      contenedor.append(caja);
+    } catch {
+      contenedor.append(elemento('div', 'coincidencias', 'No se pudieron consultar las coincidencias.'));
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  function tarjetaPublicacion(pub) {
+    const tarjeta = elemento('div', 'tarjeta');
+    const fila = elemento('div', 'fila-superior');
+    fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), elemento('span', 'meta', pub.estado));
+    const meta = elemento('div', 'meta', `${pub.categoria} · ${pub.ubicacion} · ${formatearFecha(pub.creadoEn)}`);
+    const acciones = elemento('div', 'acciones');
+    const boton = elemento('button', 'secundario', 'Ver coincidencias');
+    boton.type = 'button';
+    const resultado = elemento('div');
+    boton.addEventListener('click', () => verCoincidencias(pub, resultado, boton));
+    acciones.append(boton);
+    tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion), meta, acciones, resultado);
+    return tarjeta;
+  }
+
+  let temporizadorBusqueda;
+  async function buscar() {
+    const parametros = new URLSearchParams({ limite: '20' });
+    if (filtroTipo.value) parametros.set('tipo', filtroTipo.value);
+    if (filtroCategoria.value) parametros.set('categoria', filtroCategoria.value);
+    if (filtroUbicacion.value.trim()) parametros.set('ubicacion', filtroUbicacion.value.trim());
+    const hayFiltros = [...parametros].length > 1;
+    try {
+      const respuesta = await fetch(`/publicaciones?${parametros}`);
+      const publicaciones = await respuesta.json();
+      if (!respuesta.ok) throw new Error();
+      listaPublicaciones.replaceChildren();
+      if (publicaciones.length === 0) {
+        listaPublicaciones.append(
+          elemento('div', 'vacio', hayFiltros ? 'No hay publicaciones con esos filtros.' : 'Todavía no hay publicaciones.'),
+        );
+        resumen.textContent = '';
+        return;
+      }
+      resumen.textContent = hayFiltros
+        ? `${publicaciones.length} resultado(s), los más recientes primero.`
+        : `Las ${publicaciones.length} publicaciones más recientes.`;
+      for (const pub of publicaciones) listaPublicaciones.append(tarjetaPublicacion(pub));
+    } catch {
+      resumen.textContent = 'No se pudo cargar la lista. Intenta de nuevo en unos segundos.';
+    }
+  }
+
+  function buscarConRetraso() {
+    clearTimeout(temporizadorBusqueda);
+    temporizadorBusqueda = setTimeout(buscar, 300);
+  }
+
+  filtroTipo.addEventListener('change', buscar);
+  filtroCategoria.addEventListener('change', buscar);
+  filtroUbicacion.addEventListener('input', buscarConRetraso);
 
   formCrear.addEventListener('submit', async (evento) => {
     evento.preventDefault();
@@ -374,19 +508,19 @@
       const cuerpo = await respuesta.json();
 
       if (!respuesta.ok) {
-        mensajeCrear.textContent = `${respuesta.status}: ${cuerpo.message}`;
+        mensajeCrear.textContent = cuerpo.message || 'No se pudo publicar.';
         mensajeCrear.className = 'error';
         return;
       }
 
-      mensajeCrear.textContent = `Creada con estado 201 — id ${cuerpo.id}`;
+      mensajeCrear.textContent = 'Publicación creada.';
       mensajeCrear.className = 'ok';
-      listaPublicaciones.prepend(tarjetaPublicacion(cuerpo, vistaPreviaFoto.hidden ? null : vistaPreviaFoto.src));
       formCrear.reset();
       inputFoto.value = '';
       vistaPreviaFoto.hidden = true;
       vistaPreviaFoto.src = '';
-      textoZonaFoto.textContent = 'Click para elegir una foto del objeto';
+      textoZonaFoto.textContent = TEXTO_FOTO;
+      buscar();
     } catch {
       mensajeCrear.textContent = 'No se pudo contactar al backend.';
       mensajeCrear.className = 'error';
