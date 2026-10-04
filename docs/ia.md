@@ -96,6 +96,7 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 ### 2. Casos de Uso Específicos
 * *Diagramas C4:* Apoyo para etiquetar las flechas del nivel 2 con protocolo y formato (S7), y para los flujos de interacción de la sección 6 de arc42.
 * *Revisión de la auditoría de erosión (S9):* Revisé `docs/auditoria-generacion-ia.md` y confirmé que el código de Emparejamiento generado con IA solo lee publicaciones a través del puerto `PublicacionRepository` y nunca escribe sobre datos que no son suyos — respeta la regla de dueño único de datos de la semana 6.
+* *Revisión de la erosión en la búsqueda con filtros (S9):* Revisé las secciones 6 a 9 de `docs/auditoria-generacion-ia.md` y comprobé en el buscador de código de GitHub que `buscar()` solo la invoca el caso de uso `BuscarPublicaciones` (fuera de las pruebas), y que ese caso de uso solo importa el dominio y el puerto, sin adaptadores. La búsqueda es de solo lectura, así que no rompe la regla de dueño único de datos.
 
 ### 3. Declaración de Autonomía
 * Todo el código y la documentación generados con apoyo de IA que revisé fueron comprendidos y validados por mí antes de darlos por aceptados.
