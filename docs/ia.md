@@ -42,6 +42,7 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 * *Revisión y validación de código:* Análisis de fragmentos de código en JavaScript (Node.js) para entender el flujo de datos entre la interfaz y la lógica del corte vertical.
 * *Estructuración de entregables:* Guía en la organización de la documentación del proyecto y verificación de la lista de chequeo de la entrega.
 * *Verificación de dependencias (S9):* Confirmé manualmente en npmjs.com que `pg`, `@types/pg`, `@nestjs/event-emitter` y `jest-openapi` son paquetes reales, con repositorio público y volumen de descargas alto — ninguno parece inventado por una IA.
+* *Verificación de la dependencia de la búsqueda (S9):* Confirmé manualmente en npmjs.com que `autocannon` (herramienta de carga HTTP agregada para medir la búsqueda) es un paquete real: repositorio público `mcollina/autocannon`, licencia MIT, publicado desde 2016 y con alto volumen de descargas — no parece inventado por una IA.
 
 
 ### 3. Declaración de Autonomía
