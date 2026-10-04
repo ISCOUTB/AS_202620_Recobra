@@ -1,0 +1,21 @@
+# Despliegue alternativo en Dokploy (servidor del laboratorio). El despliegue
+# principal sigue siendo Render (render.yaml, ADR-0005); este archivo reutiliza
+# el mismo Dockerfile. Sin DATABASE_URL el backend usa el adaptador en memoria
+# (ver src/publicaciones/publicaciones.module.ts); para persistir, definirla
+# en las variables de entorno del panel de Dokploy, nunca en este archivo.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PORT: "3000"
+      DATABASE_URL: ${DATABASE_URL:-}
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
