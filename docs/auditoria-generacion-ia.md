@@ -1,7 +1,10 @@
 # Auditoría de generación con IA (evidencia S9)
 
-Cubre los tres barridos que pide la ficha de S9 sobre la porción construida
-con IA más reciente: Emparejamiento + persistencia PostgreSQL
+Cubre los barridos que pide la ficha de S9. Las secciones 1-5 son sobre la
+primera porción (Emparejamiento y PostgreSQL); la segunda porción, construida
+dentro de la semana 9, está a partir de la sección 6.
+
+Primera porción: Emparejamiento + persistencia PostgreSQL
 (`src/emparejamiento/`, `src/application/use-cases/buscar-coincidencias.ts`,
 `src/infrastructure/persistence/postgres-publicacion.repository.ts`).
 
@@ -85,3 +88,73 @@ introducido, y se revirtió. Salida completa capturada en
 
 Ver [`docs/medicion-emparejamiento.md`](medicion-emparejamiento.md) — S3,
 umbral 60.000 ms, resultado medido ~1.6-2.9 ms.
+
+---
+
+# Segunda porción: búsqueda con filtros (construida dentro de S9)
+
+La revisión preliminar de S9 señaló con razón que Emparejamiento y PostgreSQL
+(secciones 1-5 de arriba) nacieron en el commit `e952f5b`, antes de la línea
+base de S8 (`5c7f77b`). Para tener una porción **íntegramente construida
+dentro de la semana**, se construyó la búsqueda con filtros del escenario S1,
+que no existía. Cadena completa: aspecto
+[A6](aspectos.md) → [S1](calidad/escenarios_calidad.md#escenario-s1--rendimiento-de-búsqueda)
+→ [ADR-0008](adr/0008-busqueda-con-filtros-en-el-repositorio.md) →
+`src/application/use-cases/buscar-publicaciones.ts` y `buscar()` en los dos
+adaptadores → `buscar-publicaciones.spec.ts`, `test/publicaciones.e2e-spec.ts`,
+`test/contract.e2e-spec.ts` → [medición](medicion-busqueda.md).
+
+## 6. Erosión
+
+```bash
+grep -rn "\.buscar(" src | grep -v spec
+grep -rnE "(INSERT INTO|UPDATE |\.save\(|\.create\()" src --include=*.ts | grep -v spec | grep -v "NestFactory.create"
+```
+
+- `buscar()` solo la invoca `BuscarPublicaciones`: ningún otro contexto lo
+  usa (Emparejamiento sigue leyendo con `listarPorTipo`).
+- El único `INSERT` del código sigue siendo el de `guardar()` en el adaptador
+  de **Publicaciones**, el dueño único del dato (`docs/modulo-datos.md`). La
+  búsqueda es de solo lectura y no agrega ninguna escritura.
+- El caso de uso importa solo el dominio y el puerto, no un adaptador.
+
+**Conclusión: sin erosión** en la segunda porción.
+
+## 7. Dependencias propuestas en el período
+
+```bash
+git diff 5c7f77b -- package.json | grep -E '^\+ ' | grep -v '^+++'
+```
+
+Desde la línea base de S8 solo se agregó **`autocannon`** (devDependency):
+herramienta de carga HTTP concurrente que necesita la medición de S1 (200
+usuarios simultáneos; el script secuencial anterior no mide concurrencia).
+
+| Paquete | Registro de npm | Repositorio | Descargas último mes | Antigüedad |
+|---|---|---|---|---|
+| `autocannon` | existe, licencia MIT | `github.com/mcollina/autocannon` (Matteo Collina, miembro del comité técnico de Node.js) | 4.084.184 | Publicado 2016-03-31 |
+
+```bash
+curl -s "https://registry.npmjs.org/autocannon" | grep -o '"repository":{[^}]*}'
+curl -s "https://api.npmjs.org/downloads/point/last-month/autocannon"
+```
+
+Se verificó antes de instalarlo, no después.
+
+## 8. Credenciales
+
+Mismo barrido que la sección 3, repetido tras agregar esta porción:
+**sin coincidencias** en código, `docs/` ni ejemplos.
+
+## 9. Prueba que falla ante el defecto, y lo que reveló
+
+Se invirtió a propósito el filtro de categoría en
+`MemoriaPublicacionRepository.buscar` (`===` → `!==`). La **primera**
+corrida mostró que la prueba unitaria fallaba (1 de 10) pero la prueba e2e
+**seguía en verde**: era débil, porque otra publicación "encontrado" de otra
+categoría, creada por otro test, hacía que el conteo diera 1 por casualidad.
+Se reforzó el e2e (publicación de ruido de otra categoría y comprobación del
+id exacto) y se repitió: ahora **fallan las dos** (1 de 10 y 1 de 7) y, al
+revertir, pasan todas. Salida completa en
+[`docs/ia-auditoria-mutacion-busqueda.txt`](ia-auditoria-mutacion-busqueda.txt).
+La mutación no solo comprobó una prueba: corrigió una que parecía buena.

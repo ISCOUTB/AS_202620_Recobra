@@ -115,4 +115,28 @@ describe('Contrato de la API (e2e)', () => {
     expect(respuesta.body.length).toBeGreaterThan(0);
     expect(respuesta).toSatisfyApiSpec();
   });
+
+  it('GET /publicaciones (200) cumple el esquema de lista de Publicacion del contrato', async () => {
+    await request(app.getHttpServer()).post('/publicaciones').send({
+      tipo: 'perdido',
+      descripcion: 'Para la búsqueda',
+      categoria: 'contrato-busqueda',
+      ubicacion: 'Biblioteca',
+    });
+
+    const respuesta = await request(app.getHttpServer())
+      .get('/publicaciones')
+      .query({ categoria: 'contrato-busqueda', limite: 5 });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.length).toBeGreaterThan(0);
+    expect(respuesta).toSatisfyApiSpec();
+  });
+
+  it('GET /publicaciones con límite inválido (400) cumple el esquema Error del contrato', async () => {
+    const respuesta = await request(app.getHttpServer()).get('/publicaciones').query({ limite: 0 });
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta).toSatisfyApiSpec();
+  });
 });

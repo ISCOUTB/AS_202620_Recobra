@@ -236,6 +236,8 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0005](../adr/0005-plataforma-despliegue-backend.md) | Plataforma de despliegue del backend (Render.com) | Aceptada |
 | [ADR-0006](../adr/0006-plataforma-persistencia-postgresql.md) | Plataforma de persistencia (Neon PostgreSQL) | Aceptada |
 | [ADR-0007](../adr/0007-no-incorporar-componente-generativo.md) | No incorporar un LLM en tiempo de ejecución (por ahora) | Aceptada |
+| [ADR-0008](../adr/0008-busqueda-con-filtros-en-el-repositorio.md) | Búsqueda con filtros resuelta en el repositorio, con límite acotado | Aceptada |
+| [ADR-0009](../adr/0009-versionado-del-contrato-y-error-unico.md) | Versionado del contrato y esquema de error único (sucesor de lo que ADR-0004 no cubría) | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -243,7 +245,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 Los escenarios de [`escenarios_calidad.md`](../calidad/escenarios_calidad.md) guían las
 decisiones:
 
-- **S1 Rendimiento:** indexación/almacenamiento de búsqueda (futuro).
+- **S1 Rendimiento:** búsqueda con filtros implementada y medida (aspecto A6; ADR-0008; `docs/medicion-busqueda.md`). La búsqueda de texto libre sigue fuera de alcance.
 - **S2 Seguridad:** verificación de reclamaciones (futuro; aspecto A3).
 - **S3 Notificaciones:** matching + push (futuro).
 - **S4 / S4a / S4b Disponibilidad:** aislar fallos de infraestructura del

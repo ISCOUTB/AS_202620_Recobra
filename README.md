@@ -142,6 +142,14 @@ curl http://localhost:3000/publicaciones/<id>
 
 `200` o `404`.
 
+**Buscar con filtros** (escenario S1, ver [ADR-0008](docs/adr/0008-busqueda-con-filtros-en-el-repositorio.md))
+
+```bash
+curl "http://localhost:3000/publicaciones?categoria=electronica&ubicacion=Biblioteca&tipo=perdido&limite=10"
+```
+
+Filtros opcionales y exactos (sin distinguir mayúsculas); `limite` entre 1 y 50 (20 por defecto); más recientes primero. Filtro inválido → `400`. Medición: `npm run measure:busqueda` ([`docs/medicion-busqueda.md`](docs/medicion-busqueda.md)).
+
 **Consultar coincidencias** (contexto Emparejamiento, ver
 [`docs/context-map.md`](docs/context-map.md); se calculan de forma
 asíncrona tras crear una publicación, ver [ADR-0004](docs/adr/0004-integracion-sincrona-vs-asincrona.md))

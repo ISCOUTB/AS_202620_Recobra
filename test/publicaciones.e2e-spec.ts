@@ -64,4 +64,26 @@ describe('Publicaciones (e2e)', () => {
 
     expect(respuesta.status).toBe(404);
   });
+
+  it('GET /publicaciones filtra por categoría y tipo', async () => {
+    const categoria = 'busqueda-e2e';
+    const datos = { descripcion: 'x', categoria, ubicacion: 'Bloque A1' };
+    await request(app.getHttpServer()).post('/publicaciones').send({ ...datos, tipo: 'perdido' });
+    const buscada = await request(app.getHttpServer()).post('/publicaciones').send({ ...datos, tipo: 'encontrado' });
+    // Ruido de OTRA categoría y mismo tipo: un filtro de categoría roto lo dejaría pasar.
+    await request(app.getHttpServer()).post('/publicaciones').send({ ...datos, categoria: 'otra-cosa', tipo: 'encontrado' });
+
+    const respuesta = await request(app.getHttpServer()).get('/publicaciones').query({ categoria, tipo: 'encontrado' });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.map((p: { id: string }) => p.id)).toEqual([buscada.body.id]);
+    expect(respuesta.body.every((p: { categoria: string }) => p.categoria === categoria)).toBe(true);
+  });
+
+  it('GET /publicaciones con límite inválido responde 400', async () => {
+    const respuesta = await request(app.getHttpServer()).get('/publicaciones').query({ limite: '999' });
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.message).toMatch(/limite debe ser/);
+  });
 });

@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { PublicacionRepository } from '../src/domain/ports/publicacion-repository';
+import { FiltrosBusqueda, PublicacionRepository } from '../src/domain/ports/publicacion-repository';
 import { Publicacion, TipoPublicacion } from '../src/domain/entities/publicacion';
 import { crearAppDePrueba } from './support/crear-app-prueba';
 
@@ -23,6 +23,10 @@ class RepositorioQueFalla extends PublicacionRepository {
   }
 
   async listarPorTipo(_tipo: TipoPublicacion): Promise<Publicacion[]> {
+    throw new Error('conexión con el almacenamiento perdida');
+  }
+
+  async buscar(_filtros: FiltrosBusqueda): Promise<Publicacion[]> {
     throw new Error('conexión con el almacenamiento perdida');
   }
 }

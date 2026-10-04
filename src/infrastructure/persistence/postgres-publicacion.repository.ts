@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Pool } from 'pg';
 import { Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
-import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
+import { FiltrosBusqueda, PublicacionRepository } from '../../domain/ports/publicacion-repository';
 
 /**
  * Adaptador real de persistencia (ADR-0006). Reemplaza a
@@ -36,6 +36,9 @@ export class PostgresPublicacionRepository extends PublicacionRepository impleme
         creado_en TIMESTAMPTZ NOT NULL
       )
     `);
+    await this.pool.query(
+      'CREATE INDEX IF NOT EXISTS idx_publicaciones_creado_en ON publicaciones (creado_en DESC)',
+    );
   }
 
   async guardar(publicacion: Publicacion): Promise<Publicacion> {
@@ -64,6 +67,21 @@ export class PostgresPublicacionRepository extends PublicacionRepository impleme
 
   async listarPorTipo(tipo: TipoPublicacion): Promise<Publicacion[]> {
     const resultado = await this.pool.query('SELECT * FROM publicaciones WHERE tipo = $1', [tipo]);
+    return resultado.rows.map((fila) => this.aEntidad(fila));
+  }
+
+  async buscar({ tipo, categoria, ubicacion, limite }: FiltrosBusqueda): Promise<Publicacion[]> {
+    // Consulta fija y parametrizada: los valores del usuario viajan solo como
+    // parámetros ($1..$4), nunca concatenados al SQL.
+    const resultado = await this.pool.query(
+      `SELECT * FROM publicaciones
+       WHERE ($1::text IS NULL OR tipo = $1)
+         AND ($2::text IS NULL OR lower(trim(categoria)) = $2)
+         AND ($3::text IS NULL OR lower(trim(ubicacion)) = $3)
+       ORDER BY creado_en DESC
+       LIMIT $4`,
+      [tipo ?? null, categoria ?? null, ubicacion ?? null, limite],
+    );
     return resultado.rows.map((fila) => this.aEntidad(fila));
   }
 

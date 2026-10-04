@@ -109,6 +109,16 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Persistencia solo en memoria, se perdía en cada redeploy | `PostgresPublicacionRepository` (Neon, sin tarjeta, ADR-0006) activo en producción; verificado que los datos sobreviven a un reinicio real del servicio | [`docs/adr/0006-plataforma-persistencia-postgresql.md`](docs/adr/0006-plataforma-persistencia-postgresql.md#verificación) |
 | Interfaz mínima, sin mostrar el emparejamiento, sin adaptar a navegador | Sección "Coincidencias" visible en la app; layout centrado con ancho máximo para navegador de escritorio; chips de color por tipo | [`mobile/lib/main.dart`](mobile/lib/main.dart) |
 
+## Semana 9 · S9 (2026-10-04)
+
+| Hallazgo | Corrección | Evidencia |
+|---|---|---|
+| Ninguna porción generada con IA construida dentro de la semana (Emparejamiento y PostgreSQL son anteriores a S8) | Búsqueda con filtros del escenario S1 (`GET /publicaciones`), construida en S9 de punta a punta: aspecto A6 → ADR-0008 → código → pruebas → medición | [`docs/aspectos.md`](docs/aspectos.md), [`docs/auditoria-generacion-ia.md`](docs/auditoria-generacion-ia.md), [`docs/medicion-busqueda.md`](docs/medicion-busqueda.md) |
+| Dependencia nueva sin verificar | `autocannon` verificada en npm (repositorio, mantenedor, descargas) antes de instalarla | [`docs/auditoria-generacion-ia.md`](docs/auditoria-generacion-ia.md#7-dependencias-propuestas-en-el-período) |
+| ADR-0004 editado después de aceptarse | ADR-0009 sucesor registra los cambios posteriores; ADR-0004 no se vuelve a modificar | [`docs/adr/0009-versionado-del-contrato-y-error-unico.md`](docs/adr/0009-versionado-del-contrato-y-error-unico.md) |
+| Prueba e2e débil detectada por mutación | Reforzada y repetida la mutación hasta que falla ante el defecto | [`docs/ia-auditoria-mutacion-busqueda.txt`](docs/ia-auditoria-mutacion-busqueda.txt) |
+| SonarCloud sin invocación explícita en el workflow | Paso `sonarcloud` en `ci.yml`; **parcial**: falta el secreto `SONAR_TOKEN` (acción del equipo) | [`docs/no-conformidades.md`](docs/no-conformidades.md) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

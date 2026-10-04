@@ -15,8 +15,9 @@ info:
     `Error` ({ statusCode, message }) — el 400 antes respondía { error }, así
     que es un cambio incompatible y sube la versión mayor. Los dos
     consumidores (Flutter y la vitrina public/index.html) se actualizaron en
-    el mismo commit.
-  version: "2.0.0"
+    el mismo commit. 2.1.0 agrega `GET /publicaciones` con filtros (búsqueda
+    del escenario S1, ADR-0008): cambio compatible, sube la versión menor.
+  version: "2.1.0"
 servers:
   - url: https://recobra-backend.onrender.com
     description: Producción (Render, ver ADR-0005)
@@ -36,6 +37,59 @@ paths:
               schema:
                 $ref: "#/components/schemas/Salud"
   /publicaciones:
+    get:
+      operationId: buscarPublicaciones
+      summary: Buscar publicaciones con filtros (escenario S1)
+      description: >
+        Filtros exactos, sin distinguir mayúsculas ni espacios de borde.
+        Devuelve las más recientes primero. `limite` entre 1 y 50 (por
+        defecto 20). Ver ADR-0008.
+      tags: [Publicaciones]
+      parameters:
+        - name: tipo
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/TipoPublicacion"
+        - name: categoria
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: ubicacion
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limite
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: Lista de publicaciones que cumplen los filtros (puede ser vacía)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Publicacion"
+        "400":
+          description: Filtro inválido (tipo desconocido o límite fuera de rango)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Error interno controlado (p. ej. falla el adaptador de persistencia)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     post:
       operationId: crearPublicacion
       summary: Crear una publicación (objeto perdido o encontrado)

@@ -1,0 +1,76 @@
+=== MUTACIÓN: se invirtió el filtro de categoría en MemoriaPublicacionRepository.buscar (=== -> !==) ===
+(Primera corrida de esta mutación: el e2e original PASABA en verde, es decir, era débil; se reforzó con ruido de otra categoría y comprobación del id exacto. Salida de la corrida con el e2e reforzado:)
+
+FAIL src/application/use-cases/buscar-publicaciones.spec.ts
+  BuscarPublicaciones
+    × filtra por categoría sin distinguir mayúsculas ni espacios de borde (4 ms)
+    √ filtra por tipo y por ubicación a la vez (1 ms)
+    √ sin filtros devuelve todo, más recientes primero (15 ms)
+    √ respeta el límite pedido y usa el límite por defecto
+    √ rechaza el límite inválido 0 con PublicacionInvalidaError (3 ms)
+    √ rechaza el límite inválido -1 con PublicacionInvalidaError
+    √ rechaza el límite inválido abc con PublicacionInvalidaError
+    √ rechaza el límite inválido 2.5 con PublicacionInvalidaError
+    √ rechaza el límite inválido 51 con PublicacionInvalidaError
+    √ rechaza un tipo inválido con PublicacionInvalidaError (1 ms)
+
+  ● BuscarPublicaciones › filtra por categoría sin distinguir mayúsculas ni espacios de borde
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "electronica"
+    Received: "llaves"
+
+      25 |
+      26 |     expect(resultado).toHaveLength(1);
+    > 27 |     expect(resultado[0].categoria).toBe('electronica');
+         |                                    ^
+      28 |   });
+      29 |
+      30 |   it('filtra por tipo y por ubicación a la vez', async () => {
+
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 9 passed, 10 total
+Snapshots:   0 total
+Time:        2.493 s, estimated 3 s
+Ran all test suites matching /buscar-publicaciones/i.
+
+--- e2e (reforzado) ---
+FAIL test/publicaciones.e2e-spec.ts
+  Publicaciones (e2e)
+    √ GET /health responde 200 con el estado del servicio (17 ms)
+    √ POST /publicaciones crea una publicación y responde 201 (13 ms)
+    √ POST /publicaciones con tipo inválido responde 400 (4 ms)
+    √ GET /publicaciones/:id devuelve la publicación creada (6 ms)
+    √ GET /publicaciones/:id con id inexistente responde 404 (3 ms)
+    × GET /publicaciones filtra por categoría y tipo (17 ms)
+    √ GET /publicaciones con límite inválido responde 400 (9 ms)
+
+  ● Publicaciones (e2e) › GET /publicaciones filtra por categoría y tipo
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 2
+
+      Array [
+    -   "a1028849-1cb6-4c4f-8353-be549dc037d0",
+    +   "f9e2510d-5486-4ed1-9878-4b3709527344",
+    +   "801a2d16-5471-459d-b838-4ab77a6b82af",
+      ]
+
+      77 |
+      78 |     expect(respuesta.status).toBe(200);
+    > 79 |     expect(respuesta.body.map((p: { id: string }) => p.id)).toEqual([buscada.body.id]);
+         |                                                             ^
+      80 |     expect(respuesta.body.every((p: { categoria: string }) => p.categoria === categoria)).toBe(true);
+      81 |   });
+      82 |
+
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 6 passed, 7 total
+Snapshots:   0 total
+Time:        2.645 s, estimated 7 s
+Ran all test suites matching /publicaciones.e2e/i.

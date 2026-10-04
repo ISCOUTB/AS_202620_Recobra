@@ -6,10 +6,12 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   UseInterceptors,
 } from '@nestjs/common';
 import { CrearPublicacion } from '../application/use-cases/crear-publicacion';
 import { ConsultarPublicacion } from '../application/use-cases/consultar-publicacion';
+import { BuscarPublicaciones } from '../application/use-cases/buscar-publicaciones';
 import { CrearPublicacionDto } from './dto/crear-publicacion.dto';
 import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
 
@@ -18,6 +20,7 @@ export class PublicacionesController {
   constructor(
     private readonly crearPublicacion: CrearPublicacion,
     private readonly consultarPublicacion: ConsultarPublicacion,
+    private readonly buscarPublicaciones: BuscarPublicaciones,
   ) {}
 
   @Post()
@@ -29,6 +32,16 @@ export class PublicacionesController {
     // publicacion-invalida.filter.ts) la traduce a 400. El controlador no
     // conoce la regla de negocio, solo la orquesta.
     return this.crearPublicacion.ejecutar(body);
+  }
+
+  @Get()
+  async buscar(
+    @Query('tipo') tipo?: string,
+    @Query('categoria') categoria?: string,
+    @Query('ubicacion') ubicacion?: string,
+    @Query('limite') limite?: string,
+  ) {
+    return this.buscarPublicaciones.ejecutar({ tipo, categoria, ubicacion, limite });
   }
 
   @Get(':id')

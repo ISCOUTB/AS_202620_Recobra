@@ -105,4 +105,16 @@ describe('PostgresPublicacionRepository', () => {
     expect(resultado).toHaveLength(2);
     expect(resultado.map((p) => p.id)).toEqual(['1', '2']);
   });
+
+  it('buscar pasa los filtros solo como parámetros, nunca concatenados al SQL', async () => {
+    queryMock.mockResolvedValueOnce({ rowCount: 0, rows: [] });
+    const repo = new PostgresPublicacionRepository();
+
+    await repo.buscar({ tipo: 'perdido', categoria: "x'; DROP TABLE publicaciones;--", limite: 5 });
+
+    const [sql, parametros] = queryMock.mock.calls[0];
+    expect(sql).not.toContain('DROP TABLE');
+    expect(sql).toContain('LIMIT $4');
+    expect(parametros).toEqual(['perdido', "x'; DROP TABLE publicaciones;--", null, 5]);
+  });
 });
