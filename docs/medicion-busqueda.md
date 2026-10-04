@@ -41,6 +41,44 @@ latencia crece de forma lineal con las filas — consistente con el filtrado
 O(n) del adaptador en memoria — y es la razón por la que ADR-0008 declara el
 volumen que revisaría la decisión.
 
+## Resultado 2 — producción (Render Free + Neon), 2026-10-04
+
+Comando: `BASE_URL=https://recobra-backend.onrender.com SEMBRAR=0 CONEXIONES=<n> DURACION_S=10 node scripts/measure-busqueda.js`.
+No se sembró nada: la base tenía 1 fila, así que esta medición no prueba
+volumen sino **concurrencia, red y capacidad del plan gratuito**. 0 errores y
+0 respuestas no 2xx en las tres corridas. El cliente estaba en Colombia,
+fuera de la red del servidor.
+
+| Conexiones | Peticiones/s | p50 | p90 | p97,5 | p99 | Máx. | p97,5 ≤ 400 ms |
+|---:|---:|---:|---:|---:|---:|---:|:---:|
+| 1 | 5 | 205 ms | 236 ms | 267 ms | 345 ms | 345 ms | sí |
+| 5 | 22 | 207 ms | 241 ms | 274 ms | 738 ms | 841 ms | sí |
+| 20 | 65 | 244 ms | 406 ms | 1.113 ms | 1.751 ms | 1.842 ms | **no** |
+
+**Lectura honesta:**
+
+- Con 1 y 5 conexiones el p97,5 queda en ~270 ms: de esos, ~205 ms son
+  latencia de red hasta Render (la mediana no se mueve entre 1 y 5
+  conexiones), no costo de la consulta.
+- Con **20 conexiones el umbral de 400 ms no se cumple en producción**: el
+  p97,5 sube a 1.113 ms y la cola se degrada, mientras el rendimiento se
+  satura en ~65 peticiones/s. Es el comportamiento esperado de una instancia
+  gratuita de Render (CPU compartida y fraccionada). Ojo: las 20 conexiones
+  disparan peticiones sin pausa (~65/s), mucho más duro que el escenario
+  descrito en [`docs/despliegue/costo-mensual.md`](despliegue/costo-mensual.md)
+  (~400 peticiones/min en el pico de 200 usuarios, ≈ 7/s); esto muestra el
+  techo del plan, no que el uso previsto lo supere.
+- **No se midieron las 200 conexiones del escenario contra producción**: si
+  con 20 ya se satura, 200 solo mediría la cola de peticiones del plan Free y
+  castigaría un servicio compartido sin aportar información nueva.
+
+**Conclusión:** el escenario S1 (200 usuarios, p95 ≤ 400 ms) está demostrado
+con el adaptador en memoria en local (Resultado 1), pero **no está demostrado
+en el entorno desplegado**; ahí el límite medido es del orden de 5-20
+conexiones concurrentes. Cerrar la brecha exige un plan de pago con más CPU
+o instancias adicionales (costo fuera del límite de $0/mes de ADR-0005); es
+una decisión pendiente del equipo, no una afirmación de cumplimiento.
+
 ## Límites de esta medición (declarados, no ocultos)
 
 - El generador de carga corre en la **misma máquina** que el servidor, así
