@@ -151,11 +151,13 @@
   }
   button.secundario:hover { background: #eaf0ff; }
 
-  #mensaje-crear { margin: 0; font-size: 0.88rem; min-height: 1.2em; }
+  #mensaje-crear { display: block; margin: 0; font-size: 0.88rem; min-height: 1.2em; }
   #mensaje-crear.error { color: var(--error); }
   #mensaje-crear.ok { color: var(--encontrado-texto); }
 
   .zona-foto {
+    width: 100%;
+    font: inherit;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -171,7 +173,7 @@
     font-weight: 400;
     color: var(--texto-suave);
   }
-  .zona-foto:hover { border-color: var(--azul); }
+  .zona-foto:hover { border-color: var(--azul); background: #eef2ff; }
   #vista-previa-foto { max-width: 100%; max-height: 130px; border-radius: 6px; }
 
   .filtros {
@@ -185,6 +187,7 @@
   }
 
   #resumen {
+    display: block;
     margin: 0 0 0.9rem;
     font-size: 0.88rem;
     color: var(--texto-suave);
@@ -242,7 +245,7 @@
       <p>Objetos perdidos y encontrados en el campus</p>
     </div>
     <div>
-      <span id="estado-salud" role="status">verificando backend…</span>
+      <output id="estado-salud">verificando backend…</output>
       <button id="boton-reintentar" type="button" hidden>Reintentar</button>
     </div>
   </div>
@@ -277,14 +280,14 @@
         <input type="text" name="ubicacion" placeholder="Bloque 5, UTB" required />
       </label>
       <label>Foto (opcional, solo vista previa por ahora)
-        <div class="zona-foto" id="zona-foto" tabindex="0" role="button">
+        <button type="button" class="zona-foto" id="zona-foto">
           <img id="vista-previa-foto" alt="Vista previa" hidden />
           <span id="texto-zona-foto">Elegir una foto del objeto</span>
-        </div>
+        </button>
         <input type="file" id="input-foto" accept="image/*" hidden />
       </label>
       <button type="submit">Publicar</button>
-      <p id="mensaje-crear" role="status"></p>
+      <output id="mensaje-crear"></output>
     </form>
   </section>
 
@@ -314,7 +317,7 @@
         <input type="text" id="filtro-ubicacion" placeholder="Bloque 5, UTB" />
       </label>
     </div>
-    <p id="resumen" role="status"></p>
+    <output id="resumen"></output>
     <div id="lista-publicaciones"></div>
   </section>
 </main>
@@ -337,12 +340,6 @@
   const TEXTO_FOTO = 'Elegir una foto del objeto';
 
   zonaFoto.addEventListener('click', () => inputFoto.click());
-  zonaFoto.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      inputFoto.click();
-    }
-  });
 
   inputFoto.addEventListener('change', () => {
     const archivo = inputFoto.files[0];
@@ -367,10 +364,11 @@
   async function verificarSalud(intento = 1, ultimoMotivo = '') {
     const maxIntentos = 20;
     botonReintentar.hidden = true;
+    const sufijoMotivo = ultimoMotivo ? ` · ${ultimoMotivo}` : '';
     estadoSalud.textContent =
       intento === 1
         ? 'verificando backend…'
-        : `despertando el backend… (intento ${intento}/${maxIntentos}${ultimoMotivo ? ' · ' + ultimoMotivo : ''})`;
+        : `despertando el backend… (intento ${intento}/${maxIntentos}${sufijoMotivo})`;
     estadoSalud.className = '';
     let motivo = 'error de red';
     try {
@@ -474,7 +472,7 @@
     try {
       const respuesta = await fetch(`/publicaciones?${parametros}`);
       const publicaciones = await respuesta.json();
-      if (!respuesta.ok) throw new Error();
+      if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
       listaPublicaciones.replaceChildren();
       if (publicaciones.length === 0) {
         listaPublicaciones.append(
