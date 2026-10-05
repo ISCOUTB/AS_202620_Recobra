@@ -64,7 +64,7 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 
 ### 3. Declaración de Autonomía
 * Todo el código y la documentación generados con apoyo de IA fueron revisados, ejecutados (pruebas automatizadas) y validados antes de integrarlos al repositorio.
-* 
+
 ## Registro de Uso de IA - [Verónica Ubarne]
 
 ### 1. Nivel de Uso
