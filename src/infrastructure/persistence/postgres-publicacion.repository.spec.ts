@@ -4,6 +4,7 @@ jest.mock('pg', () => ({
   Pool: jest.fn().mockImplementation(() => ({ query: queryMock })),
 }));
 
+import { Pool } from 'pg';
 import { PostgresPublicacionRepository } from './postgres-publicacion.repository';
 import { Publicacion } from '../../domain/entities/publicacion';
 
@@ -11,6 +12,22 @@ describe('PostgresPublicacionRepository', () => {
   beforeEach(() => {
     queryMock.mockReset();
     process.env.DATABASE_URL = 'postgres://prueba';
+  });
+
+  it('exige TLS por omisión y lo desactiva solo con DATABASE_SSL=false', () => {
+    const PoolMock = Pool as unknown as jest.Mock;
+    PoolMock.mockClear();
+
+    delete process.env.DATABASE_SSL;
+    new PostgresPublicacionRepository();
+    expect(PoolMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ ssl: { rejectUnauthorized: false } }),
+    );
+
+    process.env.DATABASE_SSL = 'false';
+    new PostgresPublicacionRepository();
+    expect(PoolMock).toHaveBeenLastCalledWith(expect.objectContaining({ ssl: false }));
+    delete process.env.DATABASE_SSL;
   });
 
   it('onModuleInit crea la tabla si no existe', async () => {

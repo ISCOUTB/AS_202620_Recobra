@@ -20,6 +20,9 @@ services:
     environment:
       PORT: "3000"
       DATABASE_URL: ${DATABASE_URL:-}
+      # La base PostgreSQL interna de Dokploy no ofrece TLS; sin esto el
+      # backend no arranca. Con una base externa (p. ej. Neon) poner true.
+      DATABASE_SSL: ${DATABASE_SSL:-false}
     expose:
       - "3000"
     networks:

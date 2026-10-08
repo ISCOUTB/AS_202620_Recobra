@@ -18,9 +18,14 @@ export class PostgresPublicacionRepository extends PublicacionRepository impleme
 
   constructor() {
     super();
+    // Una base gestionada fuera de la red del servicio (Neon) exige TLS; una
+    // base interna del mismo proyecto de Dokploy no lo ofrece y el handshake
+    // fallaría al arrancar. DATABASE_SSL=false lo desactiva; por omisión se
+    // mantiene el comportamiento seguro.
+    const sinTls = process.env.DATABASE_SSL === 'false';
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      ssl: sinTls ? false : { rejectUnauthorized: false },
     });
   }
 
