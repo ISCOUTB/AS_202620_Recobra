@@ -7,6 +7,7 @@ jest.mock('pg', () => ({
 import { Pool } from 'pg';
 import { PostgresPublicacionRepository } from './postgres-publicacion.repository';
 import { Publicacion } from '../../domain/entities/publicacion';
+import { AlmacenamientoNoDisponibleError } from '../../domain/errors/almacenamiento-no-disponible.error';
 
 describe('PostgresPublicacionRepository', () => {
   beforeEach(() => {
@@ -28,6 +29,42 @@ describe('PostgresPublicacionRepository', () => {
     new PostgresPublicacionRepository();
     expect(PoolMock).toHaveBeenLastCalledWith(expect.objectContaining({ ssl: false }));
     delete process.env.DATABASE_SSL;
+  });
+
+  it('onModuleInit no lanza si la base no responde: el proceso debe poder arrancar', async () => {
+    jest.useFakeTimers();
+    queryMock.mockRejectedValue(Object.assign(new Error('getaddrinfo EAI_AGAIN'), { code: 'EAI_AGAIN' }));
+    const repo = new PostgresPublicacionRepository();
+
+    await expect(repo.onModuleInit()).resolves.toBeUndefined();
+
+    repo.onModuleDestroy();
+    jest.useRealTimers();
+  });
+
+  it('traduce una caída de conexión a AlmacenamientoNoDisponibleError', async () => {
+    queryMock.mockRejectedValueOnce(Object.assign(new Error('boom'), { code: 'ECONNREFUSED' }));
+    const repo = new PostgresPublicacionRepository();
+
+    await expect(repo.buscarPorId('1')).rejects.toBeInstanceOf(AlmacenamientoNoDisponibleError);
+  });
+
+  it('no oculta los errores que no son de conexión', async () => {
+    queryMock.mockRejectedValueOnce(Object.assign(new Error('sintaxis'), { code: '42601' }));
+    const repo = new PostgresPublicacionRepository();
+
+    const resultado = repo.buscarPorId('1');
+    await expect(resultado).rejects.toThrow('sintaxis');
+    await expect(resultado).rejects.not.toBeInstanceOf(AlmacenamientoNoDisponibleError);
+  });
+
+  it('verificarDisponibilidad ejecuta SELECT 1', async () => {
+    queryMock.mockResolvedValueOnce({});
+    const repo = new PostgresPublicacionRepository();
+
+    await repo.verificarDisponibilidad();
+
+    expect(queryMock).toHaveBeenCalledWith('SELECT 1', undefined);
   });
 
   it('onModuleInit crea la tabla si no existe', async () => {

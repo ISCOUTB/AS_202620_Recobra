@@ -8,6 +8,7 @@ import { PublicacionRepository } from '../domain/ports/publicacion-repository';
 import { MemoriaPublicacionRepository } from '../infrastructure/persistence/memoria-publicacion.repository';
 import { PostgresPublicacionRepository } from '../infrastructure/persistence/postgres-publicacion.repository';
 import { PublicacionInvalidaFilter } from './publicacion-invalida.filter';
+import { AlmacenamientoNoDisponibleFilter } from './almacenamiento-no-disponible.filter';
 import { ObservabilidadModule } from '../observabilidad/observabilidad.module';
 import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
 import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda.interceptor';
@@ -28,6 +29,7 @@ import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda
       useClass: process.env.DATABASE_URL ? PostgresPublicacionRepository : MemoriaPublicacionRepository,
     },
     { provide: APP_FILTER, useClass: PublicacionInvalidaFilter },
+    { provide: APP_FILTER, useClass: AlmacenamientoNoDisponibleFilter },
     LatenciaPublicacionesInterceptor,
     LatenciaBusquedaInterceptor,
   ],

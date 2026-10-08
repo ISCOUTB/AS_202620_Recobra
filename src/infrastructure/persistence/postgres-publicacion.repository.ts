@@ -1,7 +1,11 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Pool } from 'pg';
 import { Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
 import { FiltrosBusqueda, PublicacionRepository } from '../../domain/ports/publicacion-repository';
+import { AlmacenamientoNoDisponibleError } from '../../domain/errors/almacenamiento-no-disponible.error';
+
+const CODIGOS_DE_CONEXION = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ETIMEDOUT', 'ECONNRESET', 'EPIPE']);
+const ESPERA_REINTENTO_MS = 5000;
 
 /**
  * Adaptador real de persistencia (ADR-0006). Reemplaza a
@@ -13,8 +17,14 @@ import { FiltrosBusqueda, PublicacionRepository } from '../../domain/ports/publi
  * real.
  */
 @Injectable()
-export class PostgresPublicacionRepository extends PublicacionRepository implements OnModuleInit {
+export class PostgresPublicacionRepository
+  extends PublicacionRepository
+  implements OnModuleInit, OnModuleDestroy
+{
+  readonly almacenamiento = 'postgres';
   private readonly pool: Pool;
+  private readonly logger = new Logger(PostgresPublicacionRepository.name);
+  private reintento?: NodeJS.Timeout;
 
   constructor() {
     super();
@@ -26,10 +36,72 @@ export class PostgresPublicacionRepository extends PublicacionRepository impleme
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: sinTls ? false : { rejectUnauthorized: false },
+      // Sin esto una base que no contesta deja las peticiones colgadas.
+      connectionTimeoutMillis: 3000,
     });
   }
 
+  /**
+   * Un fallo al crear el esquema (la base aún no resuelve o no contesta) NO
+   * debe impedir que el proceso arranque: si lo impidiera, una dependencia
+   * caída tumbaría hasta /health y el enrutamiento. Se registra, se sigue
+   * reintentando en segundo plano y las operaciones responden 503 mientras
+   * tanto.
+   */
   async onModuleInit(): Promise<void> {
+    try {
+      await this.crearEsquema();
+    } catch (error) {
+      this.logger.warn(`No se pudo preparar el esquema (${this.describir(error)}); se reintentará`);
+      this.programarReintento();
+    }
+  }
+
+  onModuleDestroy(): void {
+    if (this.reintento) clearTimeout(this.reintento);
+  }
+
+  async verificarDisponibilidad(): Promise<void> {
+    await this.consultar('SELECT 1');
+  }
+
+  private programarReintento(): void {
+    this.reintento = setTimeout(() => {
+      this.crearEsquema()
+        .then(() => this.logger.log('Esquema preparado tras reintentar'))
+        .catch((error: unknown) => {
+          this.logger.warn(`Reintento fallido (${this.describir(error)})`);
+          this.programarReintento();
+        });
+    }, ESPERA_REINTENTO_MS);
+    this.reintento.unref();
+  }
+
+  private describir(error: unknown): string {
+    const codigo = (error as { code?: string })?.code;
+    return codigo ?? (error instanceof Error ? error.name : 'error desconocido');
+  }
+
+  /** Ejecuta una consulta y traduce las caídas de conexión al error de dominio. */
+  private async consultar(sql: string, parametros?: unknown[]) {
+    try {
+      return await this.pool.query(sql, parametros);
+    } catch (error) {
+      const codigo = (error as { code?: string })?.code ?? '';
+      const mensaje = error instanceof Error ? error.message : '';
+      if (
+        CODIGOS_DE_CONEXION.has(codigo) ||
+        codigo.startsWith('08') ||
+        codigo.startsWith('57P') ||
+        /Connection terminated|timeout/i.test(mensaje)
+      ) {
+        throw new AlmacenamientoNoDisponibleError();
+      }
+      throw error;
+    }
+  }
+
+  private async crearEsquema(): Promise<void> {
     await this.pool.query(`
       CREATE TABLE IF NOT EXISTS publicaciones (
         id TEXT PRIMARY KEY,
@@ -47,7 +119,7 @@ export class PostgresPublicacionRepository extends PublicacionRepository impleme
   }
 
   async guardar(publicacion: Publicacion): Promise<Publicacion> {
-    await this.pool.query(
+    await this.consultar(
       `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (id) DO NOTHING`,
@@ -65,20 +137,20 @@ export class PostgresPublicacionRepository extends PublicacionRepository impleme
   }
 
   async buscarPorId(id: string): Promise<Publicacion | null> {
-    const resultado = await this.pool.query('SELECT * FROM publicaciones WHERE id = $1', [id]);
+    const resultado = await this.consultar('SELECT * FROM publicaciones WHERE id = $1', [id]);
     if (resultado.rowCount === 0) return null;
     return this.aEntidad(resultado.rows[0]);
   }
 
   async listarPorTipo(tipo: TipoPublicacion): Promise<Publicacion[]> {
-    const resultado = await this.pool.query('SELECT * FROM publicaciones WHERE tipo = $1', [tipo]);
+    const resultado = await this.consultar('SELECT * FROM publicaciones WHERE tipo = $1', [tipo]);
     return resultado.rows.map((fila) => this.aEntidad(fila));
   }
 
   async buscar({ tipo, categoria, ubicacion, limite }: FiltrosBusqueda): Promise<Publicacion[]> {
     // Consulta fija y parametrizada: los valores del usuario viajan solo como
     // parámetros ($1..$4), nunca concatenados al SQL.
-    const resultado = await this.pool.query(
+    const resultado = await this.consultar(
       `SELECT * FROM publicaciones
        WHERE ($1::text IS NULL OR tipo = $1)
          AND ($2::text IS NULL OR lower(trim(categoria)) = $2)

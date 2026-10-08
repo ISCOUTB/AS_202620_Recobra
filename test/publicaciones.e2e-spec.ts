@@ -20,6 +20,13 @@ describe('Publicaciones (e2e)', () => {
     expect(respuesta.body).toEqual({ status: 'ok', service: 'recobra-backend' });
   });
 
+  it('GET /health/ready responde 200 e indica el almacenamiento (memoria en pruebas)', async () => {
+    const respuesta = await request(app.getHttpServer()).get('/health/ready');
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body).toEqual({ status: 'ok', service: 'recobra-backend', almacenamiento: 'memoria' });
+  });
+
   it('POST /publicaciones crea una publicación y responde 201', async () => {
     const respuesta = await request(app.getHttpServer()).post('/publicaciones').send({
       tipo: 'perdido',

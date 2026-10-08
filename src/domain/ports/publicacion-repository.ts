@@ -21,6 +21,18 @@ export interface FiltrosBusqueda {
  * PublicacionesModule).
  */
 export abstract class PublicacionRepository {
+  /** Nombre del almacenamiento que respalda este adaptador (para /health/ready). */
+  readonly almacenamiento: string = 'memoria';
+
+  /**
+   * Comprueba que el almacenamiento responde; lanza si no. Los adaptadores en
+   * memoria siempre están disponibles, por eso el valor por omisión no hace
+   * nada.
+   */
+  async verificarDisponibilidad(): Promise<void> {
+    // sin dependencia externa: nada que comprobar
+  }
+
   abstract guardar(publicacion: Publicacion): Promise<Publicacion>;
   abstract buscarPorId(id: string): Promise<Publicacion | null>;
   /**

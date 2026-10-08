@@ -139,4 +139,11 @@ describe('Contrato de la API (e2e)', () => {
     expect(respuesta.status).toBe(400);
     expect(respuesta).toSatisfyApiSpec();
   });
+
+  it('GET /health/ready cumple el contrato (200 con almacenamiento en memoria)', async () => {
+    const respuesta = await request(app.getHttpServer()).get('/health/ready');
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta).toSatisfyApiSpec();
+  });
 });

@@ -17,10 +17,13 @@ info:
     consumidores (Flutter y la vitrina public/index.html) se actualizaron en
     el mismo commit. 2.1.0 agrega `GET /publicaciones` con filtros (búsqueda
     del escenario S1, ADR-0008): cambio compatible, sube la versión menor.
-  version: "2.1.0"
+    2.2.0 agrega `GET /health/ready` (disponibilidad de datos, distinta de la
+    vivacidad del proceso) y la respuesta 503 cuando el almacenamiento no
+    responde: cambio compatible.
+  version: "2.2.0"
 servers:
-  - url: https://recobra-backend.onrender.com
-    description: Producción (Render, ver ADR-0005)
+  - url: https://recobra.iscoutb.dev
+    description: Producción (Dokploy, servidor del laboratorio)
   - url: http://localhost:3000
     description: Backend local (npm run start)
 paths:
@@ -36,6 +39,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Salud"
+  /health/ready:
+    get:
+      operationId: consultarDisponibilidad
+      summary: Disponibilidad de datos (el almacenamiento responde)
+      description: >
+        A diferencia de `/health`, que solo dice que el proceso está vivo,
+        este endpoint comprueba que la base de datos contesta. Responde 503
+        si no, para que un monitor distinga "proceso vivo" de "puede atender
+        publicaciones".
+      tags: [Salud]
+      responses:
+        "200":
+          description: El almacenamiento responde
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Disponibilidad"
+        "503":
+          description: El almacenamiento no responde
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Disponibilidad"
   /publicaciones:
     get:
       operationId: buscarPublicaciones
@@ -90,6 +116,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "503":
+          description: El almacenamiento no está disponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     post:
       operationId: crearPublicacion
       summary: Crear una publicación (objeto perdido o encontrado)
@@ -115,6 +147,12 @@ paths:
                 $ref: "#/components/schemas/Error"
         "500":
           description: Error interno controlado (p. ej. falla el adaptador de persistencia)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: El almacenamiento no está disponible
           content:
             application/json:
               schema:
@@ -165,6 +203,20 @@ paths:
                   $ref: "#/components/schemas/Coincidencia"
 components:
   schemas:
+    Disponibilidad:
+      type: object
+      required: [status, service, almacenamiento]
+      properties:
+        status:
+          type: string
+          enum: [ok, degradado]
+        service:
+          type: string
+          example: recobra-backend
+        almacenamiento:
+          type: string
+          description: Almacenamiento que respalda el servicio
+          enum: [memoria, postgres]
     Salud:
       type: object
       required: [status, service]
