@@ -10,6 +10,7 @@ import { PostgresPublicacionRepository } from '../infrastructure/persistence/pos
 import { PublicacionInvalidaFilter } from './publicacion-invalida.filter';
 import { ObservabilidadModule } from '../observabilidad/observabilidad.module';
 import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
+import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda.interceptor';
 
 @Module({
   imports: [ObservabilidadModule],
@@ -28,6 +29,7 @@ import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-pub
     },
     { provide: APP_FILTER, useClass: PublicacionInvalidaFilter },
     LatenciaPublicacionesInterceptor,
+    LatenciaBusquedaInterceptor,
   ],
   exports: [PublicacionRepository],
 })

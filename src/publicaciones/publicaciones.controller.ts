@@ -14,6 +14,7 @@ import { ConsultarPublicacion } from '../application/use-cases/consultar-publica
 import { BuscarPublicaciones } from '../application/use-cases/buscar-publicaciones';
 import { CrearPublicacionDto } from './dto/crear-publicacion.dto';
 import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
+import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda.interceptor';
 
 @Controller('publicaciones')
 export class PublicacionesController {
@@ -35,6 +36,7 @@ export class PublicacionesController {
   }
 
   @Get()
+  @UseInterceptors(LatenciaBusquedaInterceptor)
   async buscar(
     @Query('tipo') tipo?: string,
     @Query('categoria') categoria?: string,

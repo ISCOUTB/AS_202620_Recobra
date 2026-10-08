@@ -86,4 +86,17 @@ describe('Publicaciones (e2e)', () => {
     expect(respuesta.status).toBe(400);
     expect(respuesta.body.message).toMatch(/limite debe ser/);
   });
+
+  it('GET /metrics registra la latencia de la búsqueda y cuenta sus errores (S1)', async () => {
+    const antes = (await request(app.getHttpServer()).get('/metrics')).body.busqueda;
+
+    await request(app.getHttpServer()).get('/publicaciones').query({ categoria: 'electronica' });
+    await request(app.getHttpServer()).get('/publicaciones').query({ limite: '999' }); // 400
+
+    const despues = (await request(app.getHttpServer()).get('/metrics')).body.busqueda;
+    expect(despues.n).toBe(antes.n + 1);
+    expect(despues.errores).toBe(antes.errores + 1);
+    expect(despues.objetivoP95Ms).toBe(400);
+    expect(typeof despues.p95Ms).toBe('number');
+  });
 });
