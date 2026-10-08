@@ -87,9 +87,9 @@ respalda **no modificar la consulta** por ahora.
   incluyen ~110 ms de red. Es una cota pesimista para el servidor.
 - **El servidor del laboratorio es compartido**: la carga de otros servicios
   en ese momento no se controló.
-- **Máximos de 2,7 a 5 s** en los niveles de 50 a 200 conexiones: aparecen
-  junto con el establecimiento de las conexiones TLS al inicio de la corrida;
-  no afectan al p97,5 pero conviene vigilarlos.
+- **Máximos de 2,7 a 5 s** en los niveles de 50 a 200 conexiones: probablemente
+  se deban al establecimiento de las conexiones TLS al inicio de la corrida
+  (hipótesis, no verificada); no afectan al p97,5 pero conviene vigilarlos.
 - **Volumen:** 1.000 filas. No se midió la carga de ruptura ni volúmenes
   mayores; el escenario no los exige.
 - **Disponibilidad durante un redespliegue:** en los redespliegues observados
