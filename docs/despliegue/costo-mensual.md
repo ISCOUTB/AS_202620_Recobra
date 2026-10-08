@@ -37,6 +37,19 @@ Con estos cuatro números, el resultado es el esperado por la guía: **$0/mes**,
   duerme tras 15 min sin tráfico) → el servicio no corre 24/7 a plena carga,
   se estima uso efectivo de cómputo de **~10-12 h/día**, no 24 h/día.
 
+## Actualización S10: despliegue vigente en Dokploy
+
+Desde 2026-10-08 el despliegue oficial corre en Dokploy, en el servidor del
+laboratorio ([ADR-0010](../adr/0010-despliegue-en-dokploy-servidor-del-laboratorio.md)):
+**$0/mes para el equipo y sin tarjeta**, con la API y su base PostgreSQL en el
+mismo proyecto. Lo que sigue (Render y Neon) se conserva como la estimación
+histórica que sustentó ADR-0005 y ADR-0006 y como referencia de costo de la
+alternativa de pago: Render Starter, USD 7/mes por servicio.
+
+Cuándo deja de bastar el servidor del laboratorio **no se midió**: el
+experimento llegó a 200 conexiones concurrentes (p97,5 = 157 ms, ver
+[`docs/medicion-s10.md`](../medicion-s10.md)), sin buscar el punto de ruptura.
+
 ## Capa gratuita de Render (verificada, plan Free)
 
 | Recurso | Límite Free | Uso estimado de Recobra |

@@ -204,4 +204,4 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
 | 5 | PDF con latencia desactualizada | Texto corregido; falta regenerar el binario |
 | 6 | Etiqueta `corte-1` tardía | No corregible en retrospectiva; plan de proceso para futuros cortes |
 | 7 | Participación desigual | Resuelta — Fernando con 24 commits, Miguel 10, Verónica 25 (ver planilla oficial) |
-| 8 | ADR aceptados editados sin declarar reemplazo | Declarada — ADR-0009 (sucesor) registra los cambios posteriores a ADR-0004 y reconoce su edición del 2026-09-28; ADR-0004 no se vuelve a tocar; práctica corregida desde ADR-0007 |
+| 8 | ADR aceptados editados sin declarar reemplazo | Declarada y enlazada — ADR-0009 (ADR-0004), ADR-0010 (ADR-0005 y 0006) y ADR-0011 (tabla de enmiendas de 0002 a 0006); cada ADR afectado lleva una línea de estado; no se reescribe el historial; práctica corregida desde ADR-0007 |

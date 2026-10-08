@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'api/recobra_api.dart';
 
 /// Se puede sobrescribir en tiempo de compilación con
-/// `--dart-define=API_BASE_URL=https://recobra-backend.onrender.com` para
+/// `--dart-define=API_BASE_URL=https://recobra.iscoutb.dev` para
 /// apuntar al backend desplegado en vez de local (ver README, sección
 /// Despliegue). Sin ese flag, usa localhost (desarrollo).
 const String _apiBaseUrlOverride = String.fromEnvironment('API_BASE_URL');

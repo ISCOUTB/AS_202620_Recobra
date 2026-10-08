@@ -184,35 +184,39 @@ tal como las declara el contrato.
 
 ## 7. Vista de despliegue
 
-Una caja por pieza, con dónde se ejecuta hoy (ver ADR-0005 y ADR-0006 para
-las decisiones de plataforma):
+Una caja por pieza, con dónde se ejecuta hoy (ver
+[ADR-0010](../adr/0010-despliegue-en-dokploy-servidor-del-laboratorio.md), que
+reemplaza a ADR-0005 y, en lo del alojamiento, a ADR-0006):
 
 | Pieza | Dónde se ejecuta | Cómo se recrea |
 |---|---|---|
-| API backend NestJS | Contenedor Docker en **Render.com** (plan Free), a partir de [`Dockerfile`](../../Dockerfile) + [`render.yaml`](../../render.yaml) | `docker build -t recobra-backend .` (mismo Dockerfile que valida el CI); en Render, Blueprint desde `render.yaml` |
+| API backend NestJS (y la vitrina web que sirve) | Contenedor Docker en **Dokploy**, servidor del laboratorio, a partir de [`Dockerfile`](../../Dockerfile) + [`deploy/compose.lab.yaml`](../../deploy/compose.lab.yaml); dominio `recobra.iscoutb.dev` | `docker build -t recobra-backend .` (mismo Dockerfile que valida el CI); en Dokploy, servicio Compose con la ruta `./deploy/compose.lab.yaml` |
 | Cliente Flutter | Dispositivo/emulador del usuario (no es un servicio desplegado) | `cd mobile && flutter run` |
-| Persistencia (`Publicacion`) | **PostgreSQL en Neon** (plan Free), activo en producción desde 2026-09-27 — verificado: los datos sobreviven a un reinicio del servicio ([ADR-0006](../adr/0006-plataforma-persistencia-postgresql.md)) | `PostgresPublicacionRepository` crea su propia tabla al iniciar (`onModuleInit`); sin `DATABASE_URL` (pruebas locales), cae a memoria automáticamente |
+| Persistencia (`Publicacion`) | **PostgreSQL como servicio del mismo proyecto de Dokploy**, alcanzado por la red interna (`DATABASE_URL` en las variables del servicio; `DATABASE_SSL=false` porque la base interna no ofrece TLS) | `PostgresPublicacionRepository` crea su propia tabla al iniciar y reintenta en segundo plano si la base no responde; sin `DATABASE_URL` cae a memoria |
+| Coincidencias | Memoria del proceso (`MemoriaCoincidenciaRepository`) | Se pierden al reiniciar; persistirlas está pendiente |
 
-**URL pública:** https://recobra-backend.onrender.com — desplegada
-2026-09-26 vía Blueprint de Render sobre el commit `c81d7b8`. Verificado
-desde fuera de la red de la universidad el 2026-09-26 20:03 UTC:
+**URL pública:** https://recobra.iscoutb.dev. Comprobaciones:
 
-| Ruta | Código | Tiempo |
-|---|---|---|
-| `/` | 200 | 0.55 s |
-| `/health` | 200 | 0.22 s |
-| `/metrics` | 200 | 0.28 s |
-| `POST /publicaciones` (extremo a extremo) | 201 | — |
+| Ruta | Qué dice |
+|---|---|
+| `/health` | El proceso está vivo (no toca la base) |
+| `/health/ready` | La base responde: `{"status":"ok","almacenamiento":"postgres"}`, o 503 si no |
+| `/metrics` | Latencia de `POST` (S5) y de la búsqueda (S1), con sus errores |
 
-`POST /publicaciones` se probó de verdad (no solo el health check): creó
-una publicación real y `/metrics` reflejó la latencia registrada (p95 =
-2.07 ms), confirmando que el corte vertical completo funciona en
-producción, no solo el proceso arriba.
+Resultado del experimento sobre este entorno (escenario S1, 200 conexiones,
+p97,5 = 157 ms): [`docs/medicion-s10.md`](../medicion-s10.md). Un redespliegue
+deja el dominio sin servicio entre ~30 y ~50 s.
+
+**Despliegue anterior (histórico, ADR-0005 y ADR-0006):** API en Render Free
+(`recobra-backend.onrender.com`, [`render.yaml`](../../render.yaml)) y base en
+Neon. Se abandonó porque, con 20 conexiones, la búsqueda superó los 1.100 ms
+(umbral 400 ms) y el plan se duerme tras 15 minutos. Su verificación del
+2026-09-26 está en el historial de este documento.
 
 Estimación de costo y su punto de ruptura:
 [`docs/despliegue/costo-mensual.md`](../despliegue/costo-mensual.md).
-Observabilidad (logs estructurados y métrica ligada a S5):
-`src/observabilidad/` — logs en JSON por línea, métrica en `GET /metrics`.
+Observabilidad: `src/observabilidad/` — logs en JSON por línea, métrica en
+`GET /metrics` por escenario.
 
 ## 8. Conceptos transversales
 
@@ -232,12 +236,14 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0001](../adr/0001-estilo-arquitectonico.md) | Estilo hexagonal (Express histórico) | Reemplazada por ADR-0002 |
 | [ADR-0002](../adr/0002-arquitectura-y-stack.md) | Hexagonal + NestJS + Flutter | Aceptada |
 | [ADR-0003](../adr/0003-reto-corte1-stack-obligatorio.md) | Reto corte 1 / stack obligatorio | Aceptada |
-| [ADR-0004](../adr/0004-integracion-sincrona-vs-asincrona.md) | Integración síncrona (corte vertical) / asíncrona (entre contextos) | Aceptada |
-| [ADR-0005](../adr/0005-plataforma-despliegue-backend.md) | Plataforma de despliegue del backend (Render.com) | Aceptada |
-| [ADR-0006](../adr/0006-plataforma-persistencia-postgresql.md) | Plataforma de persistencia (Neon PostgreSQL) | Aceptada |
+| [ADR-0004](../adr/0004-integracion-sincrona-vs-asincrona.md) | Integración síncrona (corte vertical) / asíncrona (entre contextos) | Aceptada; parcialmente reemplazada por ADR-0009 |
+| [ADR-0005](../adr/0005-plataforma-despliegue-backend.md) | Plataforma de despliegue del backend (Render.com) | Reemplazada por ADR-0010 |
+| [ADR-0006](../adr/0006-plataforma-persistencia-postgresql.md) | Plataforma de persistencia (Neon PostgreSQL) | Aceptada; el alojamiento fue reemplazado por ADR-0010 |
 | [ADR-0007](../adr/0007-no-incorporar-componente-generativo.md) | No incorporar un LLM en tiempo de ejecución (por ahora) | Aceptada |
 | [ADR-0008](../adr/0008-busqueda-con-filtros-en-el-repositorio.md) | Búsqueda con filtros resuelta en el repositorio, con límite acotado | Aceptada |
 | [ADR-0009](../adr/0009-versionado-del-contrato-y-error-unico.md) | Versionado del contrato y esquema de error único (sucesor de lo que ADR-0004 no cubría) | Aceptada |
+| [ADR-0010](../adr/0010-despliegue-en-dokploy-servidor-del-laboratorio.md) | Despliegue en Dokploy (servidor del laboratorio) en lugar de Render y Neon | Aceptada |
+| [ADR-0011](../adr/0011-registro-de-enmiendas-a-adrs-aceptados.md) | Registro de enmiendas a ADR aceptados y regla de inmutabilidad | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -257,10 +263,10 @@ decisiones:
 
 ## 11. Riesgos y deuda técnica
 
-- Persistencia en PostgreSQL (Neon) ya implementada y verificada (ADR-0006); el adaptador en memoria queda solo para pruebas locales sin `DATABASE_URL`.
+- Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias aún están solo en memoria.
 - Notificaciones, Reclamaciones e Identidad son solo diseño, sin código todavía (Emparejamiento ya se implementó, ver aspecto A5).
 - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
-- **Solo una persona del equipo tiene acceso a las cuentas de Render y Neon** — si esa persona no está disponible, nadie más puede recrear el servicio o la base de datos desde cero. Mitigado parcialmente: los redespliegues de código normales no requieren esas cuentas (`render.yaml` tiene `autoDeployTrigger: commit`, redespliega solo con `git push`); pendiente compartir el acceso a las cuentas con al menos una persona más del equipo.
+- **La plataforma es el servidor del laboratorio (Dokploy), no del equipo:** si deja de estar disponible o cambia su política, hay que redesplegar en otro lado (el `Dockerfile` se reutiliza; ver el costo de revertir en ADR-0010). Un redespliegue deja el dominio sin servicio ~30-50 s. Las copias de seguridad de la base en Dokploy no están configuradas. Lo ya mitigado: los redespliegues de código no requieren cuentas (cada commit a `master` redespliega solo).
 
 ## 12. Glosario
 

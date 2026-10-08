@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Parcialmente reemplazada por [ADR-0009](0009-versionado-del-contrato-y-error-unico.md)** (Emparejamiento, contrato 2.x y esquema de error único); la decisión de integración sigue vigente. Ediciones posteriores registradas en [ADR-0011](0011-registro-de-enmiendas-a-adrs-aceptados.md).
+
 Aceptada — 2026-09-19.
 Evidencia S7 (contrato de API y prueba de contrato). Complementa
 [ADR-0002](0002-arquitectura-y-stack.md) (stack) y se apoya en

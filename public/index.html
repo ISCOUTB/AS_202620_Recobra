@@ -354,8 +354,8 @@
   });
 
   /**
-   * El plan Free de Render (ADR-0005) "duerme" el servicio tras
-   * inactividad: la primera petición tras despertar puede tardar decenas
+   * Un servicio en plan gratuito (p. ej. Render Free, ADR-0005) "duerme"
+   * tras inactividad; la primera petición tras despertar puede tardar decenas
    * de segundos. Reintenta durante ~80 s antes de darlo por caído y deja un
    * botón manual como último recurso. Al quedar en línea carga la lista
    * desde el servidor (GET /publicaciones), así lo publicado no depende de

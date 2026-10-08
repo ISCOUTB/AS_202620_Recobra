@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Parcialmente reemplazada por [ADR-0010](0010-despliegue-en-dokploy-servidor-del-laboratorio.md)** (2026-10-08): solo el alojamiento de la base; PostgreSQL detrás del puerto sigue vigente. Ediciones posteriores registradas en [ADR-0011](0011-registro-de-enmiendas-a-adrs-aceptados.md).
+
 Aceptada — 2026-09-27. Pieza decidida aquí: dónde vive la base de datos
 PostgreSQL que reemplaza al adaptador en memoria (objetivo ya declarado
 desde ADR-0002 y `docs/modulo-datos.md`). No cubre el hosting del backend

@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Reemplazada por [ADR-0010](0010-despliegue-en-dokploy-servidor-del-laboratorio.md)** (2026-10-08): el despliegue oficial pasó a Dokploy. Ediciones posteriores registradas en [ADR-0011](0011-registro-de-enmiendas-a-adrs-aceptados.md).
+
 Aceptada — 2026-09-26. Evidencia S8. Una sola pieza decidida aquí: dónde
 corre el contenedor de la API. El cliente Flutter no se despliega como
 servicio (corre en el dispositivo/emulador del usuario) y la persistencia

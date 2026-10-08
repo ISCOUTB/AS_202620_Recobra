@@ -52,7 +52,7 @@ Para apuntar la app al backend **desplegado** en vez de local (útil para
 demos sin correr nada local):
 
 ```bash
-flutter run -d chrome --dart-define=API_BASE_URL=https://recobra-backend.onrender.com
+flutter run -d chrome --dart-define=API_BASE_URL=https://recobra.iscoutb.dev
 ```
 
 ## Cómo correr las pruebas
@@ -65,35 +65,50 @@ cd mobile && flutter test
 
 CI: `.github/workflows/ci.yml` ejecuta backend + Flutter en cada push/PR.
 
-## Despliegue (evidencia S8)
+## Despliegue (Dokploy, evidencia S8 y S10)
 
-Infraestructura como código versionada en la raíz: [`Dockerfile`](Dockerfile)
-(imagen del backend) + [`render.yaml`](render.yaml) (Render Blueprint).
-Decisión de plataforma en [ADR-0005](docs/adr/0005-plataforma-despliegue-backend.md),
-costo estimado en [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md).
+El despliegue oficial corre en **Dokploy** (servidor del laboratorio), según
+[ADR-0010](docs/adr/0010-despliegue-en-dokploy-servidor-del-laboratorio.md),
+que reemplaza a Render y Neon ([ADR-0005](docs/adr/0005-plataforma-despliegue-backend.md),
+[ADR-0006](docs/adr/0006-plataforma-persistencia-postgresql.md)). Infraestructura
+como código en el repositorio: [`Dockerfile`](Dockerfile) (imagen del backend)
+y [`deploy/compose.lab.yaml`](deploy/compose.lab.yaml) (servicio que lee
+Dokploy). [`render.yaml`](render.yaml) se conserva solo como referencia
+histórica. Costo: [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md).
+
+**URL desplegada:** https://recobra.iscoutb.dev — salud del proceso en
+[`/health`](https://recobra.iscoutb.dev/health), disponibilidad de la base en
+[`/health/ready`](https://recobra.iscoutb.dev/health/ready), métricas por
+escenario en [`/metrics`](https://recobra.iscoutb.dev/metrics). Detalle del
+entorno en [`docs/arc42/arc42.md`](docs/arc42/arc42.md#7-vista-de-despliegue).
+
+**Variables de entorno** (se definen en el panel de Dokploy, nunca en el
+repositorio; ver [`.env.example`](.env.example)):
+
+| Variable | Para qué sirve | Si falta |
+|---|---|---|
+| `PORT` | Puerto de la API (3000 en el compose) | Usa 3000 |
+| `DATABASE_URL` | Conexión a PostgreSQL | La API usa el adaptador en memoria: los datos se pierden en cada despliegue |
+| `DATABASE_SSL` | `false` para una base interna sin TLS (el compose lo trae en `false`) | Exige TLS, como una base externa |
 
 **Recrear el entorno:**
 
 ```bash
 docker build -t recobra-backend .
-docker run -p 3000:3000 -e PORT=3000 recobra-backend
+docker run -p 3000:3000 -e PORT=3000 recobra-backend      # sin DATABASE_URL: en memoria
 ```
 
-**Desplegar en Render:** con sesión iniciada en render.com (cuenta sin
-tarjeta, plan Free) → New → Blueprint → seleccionar este repositorio → Render
-detecta `render.yaml` automáticamente → Apply. No hay secretos que
-configurar manualmente: `PORT` lo asigna Render, y el resto de la app no usa
-variables de entorno todavía.
-
-**URL desplegada:** https://recobra-backend.onrender.com — health check en
-[`/health`](https://recobra-backend.onrender.com/health), métrica ligada al
-escenario S5 en [`/metrics`](https://recobra-backend.onrender.com/metrics).
-Verificación externa completa (hora, código de respuesta, prueba de extremo
-a extremo) en [`docs/arc42/arc42.md`](docs/arc42/arc42.md#7-vista-de-despliegue).
+**Desplegar en Dokploy:** en un proyecto de Dokploy, crear un servicio
+*Compose* apuntando a este repositorio y a la ruta `./deploy/compose.lab.yaml`;
+crear un servicio *PostgreSQL* en el mismo proyecto; definir `DATABASE_URL`
+(`DATABASE_URL=postgresql://...`) en la pestaña *Environment*; agregar el
+dominio al servicio `backend` con el puerto 3000 y desplegar. Cada commit a
+`master` redespliega solo (el dominio tarda entre 30 y 50 s en volver).
 
 **Observabilidad:**
 - Logs estructurados en JSON (`src/observabilidad/json-logger.service.ts`), un objeto por línea con `timestamp`, `level`, `context`, `message`.
-- Métrica consultable: `GET /metrics` — latencia de `POST /publicaciones` (p50/p95), ligada al escenario S5 (ver [`docs/medicion-corte1.md`](docs/medicion-corte1.md)).
+- `GET /metrics`: latencia p50/p95 de `POST /publicaciones` (escenario S5, objetivo 100 ms) y, en el bloque `busqueda`, de `GET /publicaciones` con sus errores aparte (escenario S1, objetivo 400 ms). Ver [`docs/medicion-s10.md`](docs/medicion-s10.md).
+- `GET /health` dice que el proceso está vivo; `GET /health/ready` dice si la base responde (200, o 503 si no).
 
 ## Medición del corte 1
 
@@ -132,7 +147,7 @@ curl -X POST http://localhost:3000/publicaciones \
   }'
 ```
 
-`201 Created` con la publicación. Datos inválidos → `400` con `{ "error": "..." }`.
+`201 Created` con la publicación. Datos inválidos → `400` con `{ "statusCode": 400, "message": "..." }` (esquema de error único, ADR-0009).
 
 **Consultar**
 
@@ -148,7 +163,7 @@ curl http://localhost:3000/publicaciones/<id>
 curl "http://localhost:3000/publicaciones?categoria=electronica&ubicacion=Biblioteca&tipo=perdido&limite=10"
 ```
 
-Filtros opcionales y exactos (sin distinguir mayúsculas); `limite` entre 1 y 50 (20 por defecto); más recientes primero. Filtro inválido → `400`. Medición: `npm run measure:busqueda` ([`docs/medicion-busqueda.md`](docs/medicion-busqueda.md)).
+Filtros opcionales y exactos (sin distinguir mayúsculas); `limite` entre 1 y 50 (20 por defecto); más recientes primero. Filtro inválido → `400`; almacenamiento caído → `503`. Medición: `npm run measure:busqueda` ([`docs/medicion-busqueda.md`](docs/medicion-busqueda.md) y [`docs/medicion-s10.md`](docs/medicion-s10.md)).
 
 **Consultar coincidencias** (contexto Emparejamiento, ver
 [`docs/context-map.md`](docs/context-map.md); se calculan de forma
@@ -174,6 +189,7 @@ La documentación del proyecto se encuentra en la carpeta `docs/`.
 - [`docs/context-map.md`](docs/context-map.md) — mapa de contextos delimitados.
 - [`docs/modulo-datos.md`](docs/modulo-datos.md) — módulo → datos, con dueño único.
 - [`docs/medicion-corte1.md`](docs/medicion-corte1.md) — línea base y resultado del reto de corte 1.
+- [`docs/medicion-s10.md`](docs/medicion-s10.md) — experimento del segundo corte: escenario S1 sobre el despliegue en Dokploy.
 - [`docs/no-conformidades.md`](docs/no-conformidades.md) — no conformidades detectadas y su plan de corrección.
 - [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).
 - [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md) — estimación de costo del despliegue (ADR-0005).

@@ -119,6 +119,21 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Prueba e2e débil detectada por mutación | Reforzada y repetida la mutación hasta que falla ante el defecto | [`docs/ia-auditoria-mutacion-busqueda.txt`](docs/ia-auditoria-mutacion-busqueda.txt) |
 | SonarCloud sin invocación explícita en el workflow | Paso `sonarcloud` en `ci.yml`; **parcial**: falta el secreto `SONAR_TOKEN` (acción del equipo) | [`docs/no-conformidades.md`](docs/no-conformidades.md) |
 
+## Semana 10 · Segundo corte (2026-10-08)
+
+| Hallazgo | Corrección | Evidencia |
+|---|---|---|
+| Escenario operativo asignado "No verificado" | Se documenta que el docente indicó tomar uno de los escenarios planeados por el equipo; se elige S1 con su motivo | [`docs/medicion-s10.md`](docs/medicion-s10.md) |
+| Hipótesis, montaje, variables, umbral y línea base | Hipótesis H1, montaje, variables, umbral y línea base de Render (1/5/20 conexiones) | [`docs/medicion-s10.md`](docs/medicion-s10.md) |
+| S1 no demostrado en producción (p97,5 = 1.113 ms a 20 conexiones) | Se mide sobre Dokploy: 200 conexiones, p97,5 = 157 ms, 0 errores; incluye factores de confusión y límites | [`docs/medicion-s10.md`](docs/medicion-s10.md) |
+| Decisión registrada en ADR | ADR-0010 (Dokploy en lugar de Render y Neon), con alternativas, costo y qué la revisaría | [`docs/adr/0010-despliegue-en-dokploy-servidor-del-laboratorio.md`](docs/adr/0010-despliegue-en-dokploy-servidor-del-laboratorio.md) |
+| Métrica ligada al escenario (`/metrics` solo medía POST) | `/metrics` expone la latencia de la búsqueda (S1) con errores aparte | `src/observabilidad/`, `src/observabilidad/metricas.service.spec.ts` |
+| Salud del proceso confundida con disponibilidad de datos | `/health` (vivo) y `/health/ready` (base responde, 503 si no); el proceso arranca sin la base | `src/salud/`, `test/almacenamiento-no-disponible.e2e-spec.ts` |
+| C4-C2/C3 con PostgreSQL "planeado" y sin búsqueda ni Emparejamiento | Ambos diagramas reescritos con el estado real del código | [`docs/c4/C4-C2.md`](docs/c4/C4-C2.md), [`docs/c4/C4-C3.md`](docs/c4/C4-C3.md) |
+| Sucesión de ADR-0002/0003 y enlace de ADR-0004 | ADR-0011 registra las enmiendas; cada ADR afectado lleva una línea de estado con enlace | [`docs/adr/0011-registro-de-enmiendas-a-adrs-aceptados.md`](docs/adr/0011-registro-de-enmiendas-a-adrs-aceptados.md) |
+| README sin variables de entorno y con ejemplo de error antiguo | Tabla de variables, URL de Dokploy y ejemplo de error `{statusCode, message}` | [`README.md`](README.md) |
+| SonarCloud: scanner con `continue-on-error`, sin run exitoso acreditado | **Abierta:** falta crear el secreto `SONAR_TOKEN` (acción del equipo); el Quality Gate público sí está en verde | [`docs/no-conformidades.md`](docs/no-conformidades.md) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

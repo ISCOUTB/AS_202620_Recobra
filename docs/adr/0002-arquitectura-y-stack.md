@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Nota de estado (2026-10-08):** la decisión sigue vigente. Las ediciones posteriores a su aceptación están registradas en [ADR-0011](0011-registro-de-enmiendas-a-adrs-aceptados.md).
+
 Aceptada - 2026-09-05.
 Reemplaza a ADR-0001.
 Complementada por [ADR-0003](0003-reto-corte1-stack-obligatorio.md) (marco

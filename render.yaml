@@ -1,3 +1,7 @@
+# RETIRADO como despliegue oficial (ADR-0010): hoy la API corre en Dokploy, ver
+# deploy/compose.lab.yaml. Se conserva como referencia histórica de la
+# evidencia S8 y como vía de reversión.
+#
 # Infraestructura como código (evidencia S8) — Render Blueprint.
 # Render inyecta la variable de entorno PORT automáticamente; src/main.ts ya
 # la lee (`process.env.PORT || 3000`), así que no se declara aquí como

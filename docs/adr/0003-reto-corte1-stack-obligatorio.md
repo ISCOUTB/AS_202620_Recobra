@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Nota de estado (2026-10-08):** la decisión sigue vigente. Las ediciones posteriores a su aceptación están registradas en [ADR-0011](0011-registro-de-enmiendas-a-adrs-aceptados.md).
+
 Aceptada — 2026-09-05.
 ADR del reto de corte 1. Complementa [ADR-0002](0002-arquitectura-y-stack.md)
 (decisión de arquitectura y stack) y deja [ADR-0001](0001-estilo-arquitectonico.md)
