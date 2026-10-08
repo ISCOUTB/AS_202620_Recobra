@@ -113,6 +113,17 @@ Para retirar los datos sembrados (en el terminal de la base en Dokploy):
 DELETE FROM publicaciones WHERE categoria LIKE 'carga-s10-%';
 ```
 
+## Persistencia verificada tras un redespliegue
+
+Con `DATABASE_URL` apuntando al PostgreSQL de Dokploy, se creó una
+publicación marcador (categoría `verificacion-s10`, id `16f789ce…`, creada el
+2026-10-08 a las 22:22 UTC) y se provocó un redespliegue con el commit
+`9560cc0`. Al volver el dominio, `GET /publicaciones?categoria=verificacion-s10`
+devolvió la misma publicación y `/health/ready` respondió
+`{"status":"ok","almacenamiento":"postgres"}`. Los datos sobreviven a un
+redespliegue. Durante ese redespliegue el dominio respondió 404 durante unos
+26 a 34 segundos (sondeo cada ~8 s).
+
 ## Costo
 
 La alternativa elegida cuesta **$0/mes** para el equipo. La alternativa de
