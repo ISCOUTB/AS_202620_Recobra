@@ -35,10 +35,14 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0 # SonarCloud necesita el historial completo para el periodo de codigo nuevo
-      # El secreto SONAR_TOKEN ya existe: el scanner corre en cada push y,
-      # si falla (token inválido, Quality Gate no calculable), falla el job.
-      # Ya no lleva continue-on-error.
+      # SONAR_TOKEN existe, pero el token es personal y SonarCloud responde
+      # "Not authorized or project not found" al crear el análisis: falta el
+      # permiso Execute Analysis sobre el proyecto de la organización isco-utb
+      # (ver docs/no-conformidades.md, punto 4). Mientras tanto el paso no
+      # bloquea el pipeline; el Quality Gate público sigue corriendo por la
+      # GitHub App.
       - name: SonarCloud Scan
+        continue-on-error: true
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

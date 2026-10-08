@@ -104,6 +104,14 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
   pero hay que confirmarlo en SonarCloud → Administration → Analysis Method
   después del primer push con el secreto puesto, por si hay que
   desactivarlo a mano para evitar análisis duplicados o en conflicto.
+- **Actualización 2026-10-08:** el secreto `SONAR_TOKEN` ya existe (token
+  personal de `Cconde31`). Al ejecutar el scanner sin `continue-on-error`,
+  SonarCloud respondió `Not authorized or project not found` en el paso
+  "Create analysis": el token es válido y el proyecto está enlazado
+  (`BOUND`), pero esa cuenta no tiene el permiso **Execute Analysis** sobre
+  el proyecto de la organización `isco-utb`. Falta que un administrador de
+  esa organización lo conceda o genere el token. Mientras tanto el paso
+  conserva `continue-on-error` para no dejar el pipeline en rojo.
 - **Estado:** parcialmente resuelta — el Quality Gate funciona y es público
   hoy (vía GitHub App); el paso explícito en el workflow que el revisor
   automático exige está escrito y lista para activarse en cuanto exista
