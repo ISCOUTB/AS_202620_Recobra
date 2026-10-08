@@ -101,6 +101,7 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 * *Diagramas C4:* Apoyo para etiquetar las flechas del nivel 2 con protocolo y formato (S7), y para los flujos de interacción de la sección 6 de arc42.
 * *Revisión de la auditoría de erosión (S9):* Revisé `docs/auditoria-generacion-ia.md` y confirmé que el código de Emparejamiento generado con IA solo lee publicaciones a través del puerto `PublicacionRepository` y nunca escribe sobre datos que no son suyos — respeta la regla de dueño único de datos de la semana 6.
 * *Revisión de la erosión en la búsqueda con filtros (S9):* Revisé las secciones 6 a 9 de `docs/auditoria-generacion-ia.md` y comprobé en el buscador de código de GitHub que `buscar()` solo la invoca el caso de uso `BuscarPublicaciones` (fuera de las pruebas), y que ese caso de uso solo importa el dominio y el puerto, sin adaptadores. La búsqueda es de solo lectura, así que no rompe la regla de dueño único de datos.
+* *Revisión de los diagramas C4 actualizados (S10):* Comparé docs/c4/C4-C3.md con la carpeta src/ y comprobé que los componentes dibujados existen en el código (BuscarPublicaciones, el adaptador PostgreSQL, el listener de Emparejamiento, el repositorio de coincidencias en memoria y el controlador de salud). Ahora los diagramas ya no muestran PostgreSQL como planeado ni omiten la búsqueda y el Emparejamiento.
 
 ### 3. Declaración de Autonomía
 * Todo el código y la documentación generados con apoyo de IA que revisé fueron comprendidos y validados por mí antes de darlos por aceptados.
