@@ -1,8 +1,17 @@
-# Despliegue alternativo en Dokploy (servidor del laboratorio); Dokploy lo lee
-# desde ./deploy/compose.lab.yaml. El despliegue principal sigue siendo Render
-# (render.yaml, ADR-0005); este archivo reutiliza el mismo Dockerfile. Sin DATABASE_URL el backend usa el adaptador en memoria
-# (ver src/publicaciones/publicaciones.module.ts); para persistir, definirla
-# en las variables de entorno del panel de Dokploy, nunca en este archivo.
+# Despliegue de producción en Dokploy (servidor del laboratorio): Dokploy lo
+# lee desde ./deploy/compose.lab.yaml y publica el servicio `backend` en
+# https://recobra.iscoutb.dev. Reutiliza el mismo Dockerfile que se usó en
+# Render (render.yaml), que dejó de ser el despliegue oficial.
+#
+# Sin DATABASE_URL el backend usa el adaptador en memoria (ver
+# src/publicaciones/publicaciones.module.ts): los datos se pierden en cada
+# despliegue. Para persistir, crear un servicio PostgreSQL en el mismo
+# proyecto de Dokploy y definir DATABASE_URL (URL interna) en la pestaña
+# Environment del panel, nunca en este archivo.
+#
+# La red externa `dokploy-network` la crea Dokploy al instalarse; es la que
+# comparten los servicios del proyecto, incluidas las bases de datos, y
+# permite que `backend` resuelva el nombre del servicio PostgreSQL.
 services:
   backend:
     build:
@@ -13,9 +22,16 @@ services:
       DATABASE_URL: ${DATABASE_URL:-}
     expose:
       - "3000"
+    networks:
+      - default
+      - dokploy-network
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
       interval: 30s
       timeout: 5s
       retries: 3
     restart: unless-stopped
+
+networks:
+  dokploy-network:
+    external: true
