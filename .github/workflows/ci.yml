@@ -47,6 +47,21 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+  quality-gate:
+    name: Quality Gate (SonarCloud)
+    # Bloqueante: falla el pipeline si el Quality Gate público de SonarCloud no
+    # aprueba ESTE commit. No usa token (API de lectura pública), así que
+    # funciona aunque el scanner con SONAR_TOKEN no tenga permiso todavía.
+    # Solo en push: en pull_request el SHA es un commit de fusión que
+    # SonarCloud no analiza.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Esperar el análisis del commit y exigir Quality Gate aprobado
+        run: node scripts/verificar-quality-gate.js
+
   mobile:
     name: Flutter client
     runs-on: ubuntu-latest
