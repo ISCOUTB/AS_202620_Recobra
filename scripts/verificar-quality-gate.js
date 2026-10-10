@@ -5,15 +5,21 @@
  * pública. Espera hasta que aparezca el análisis de ESTE commit y entonces
  * decide, así que no valida por error el resultado de un commit anterior.
  *
- * Variables: GITHUB_SHA (commit a verificar), SONAR_PROJECT_KEY,
- * ESPERA_MAXIMA_S (por omisión 600), INTERVALO_S (por omisión 10).
- * Solo se imprimen mensajes fijos y números, nunca texto de la respuesta.
+ * Variables: GITHUB_SHA (commit a verificar), ESPERA_MAXIMA_S (por omisión
+ * 600) e INTERVALO_S (por omisión 10). El proyecto y el servidor son
+ * constantes: ninguna variable de entorno forma parte de las URL consultadas.
+ * Solo se imprimen mensajes fijos y contadores propios, nunca texto de la
+ * respuesta ni valores de entorno.
  */
 const BASE = 'https://sonarcloud.io/api';
-const PROYECTO = process.env.SONAR_PROJECT_KEY || 'ISCOUTB_AS_202620_Recobra';
+const PROYECTO = 'ISCOUTB_AS_202620_Recobra';
 const COMMIT = process.env.GITHUB_SHA;
-const ESPERA_MAXIMA_S = Number(process.env.ESPERA_MAXIMA_S || 600);
-const INTERVALO_S = Number(process.env.INTERVALO_S || 10);
+const acotar = (valor, porOmision, minimo, maximo) => {
+  const n = Number(valor);
+  return Number.isFinite(n) ? Math.min(maximo, Math.max(minimo, n)) : porOmision;
+};
+const ESPERA_MAXIMA_S = acotar(process.env.ESPERA_MAXIMA_S, 600, 1, 1800);
+const INTERVALO_S = acotar(process.env.INTERVALO_S, 10, 1, 60);
 
 const dormir = (s) => new Promise((resolver) => setTimeout(resolver, s * 1000));
 
@@ -41,11 +47,13 @@ async function buscarAnalisis() {
   if (!COMMIT) throw new Error('Falta GITHUB_SHA');
   const analisis = await buscarAnalisis();
   if (!analisis) {
-    console.error(`SonarCloud no publicó el análisis del commit en ${ESPERA_MAXIMA_S} s`);
+    console.error('SonarCloud no publicó el análisis del commit dentro del tiempo de espera');
     process.exit(1);
   }
 
-  const gate = await leer(`/qualitygates/project_status?analysisId=${encodeURIComponent(analisis)}`);
+  // La clave viene de la respuesta de SonarCloud: se exige su forma antes de usarla en una URL.
+  if (!/^[A-Za-z0-9_-]{10,64}$/.test(analisis)) throw new Error('Identificador de análisis inesperado');
+  const gate = await leer(`/qualitygates/project_status?analysisId=${analisis}`);
   const estado = gate.projectStatus || {};
   const condiciones = estado.conditions || [];
   const falladas = condiciones.filter((c) => c.status !== 'OK').length;
