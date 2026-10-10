@@ -1,0 +1,24 @@
+{
+  "descripcion": "Salidas originales de scripts/measure-busqueda.js y de GET /metrics durante el experimento S10 (ver docs/medicion-s10.md). Las cifras son las que imprimió el script; el texto del campo escenario se transcribe con espacios porque la captura de consola los había comprimido.",
+  "fecha": "2026-10-08",
+  "ventanaAproximadaUTC": "22:15 a 22:22 (despues del redespliegue de a8068df, que volvio a responder 200 a las 22:15:13 UTC, y antes de crear la publicacion marcador de las 22:22:22 UTC)",
+  "sistemaMedido": "https://recobra.iscoutb.dev",
+  "commitDesplegado": "a8068df (verificable en Dokploy, servicio sistema, pestana Deployments)",
+  "cliente": "equipo del autor, fuera de la red del servidor, mismo equipo en todas las corridas",
+  "comandos": [
+    "BASE_URL=https://recobra.iscoutb.dev PREFIJO_CATEGORIA=carga-s10- SEMBRAR=1000 CONEXIONES=20 DURACION_S=10 node scripts/measure-busqueda.js",
+    "BASE_URL=https://recobra.iscoutb.dev PREFIJO_CATEGORIA=carga-s10- SEMBRAR=0 CONEXIONES={50,100,200} DURACION_S=15 node scripts/measure-busqueda.js"
+  ],
+  "corridas": [
+    {"escenario": "S1 (p95 <= 400 ms con hasta 200 usuarios concurrentes)", "publicacionesSembradas": 1000, "conexionesConcurrentes": 20, "duracionSegundos": 10, "peticionesPorSegundo": 173, "respuestas2xx": 1733, "respuestasNo2xx": 0, "errores": 0, "latenciaMs": {"p50": 110, "p90": 119, "p97_5": 127, "p99": 399, "max": 508}, "cumpleUmbral": true},
+    {"escenario": "S1 (p95 <= 400 ms con hasta 200 usuarios concurrentes)", "publicacionesSembradas": 0, "conexionesConcurrentes": 50, "duracionSegundos": 15, "peticionesPorSegundo": 427, "respuestas2xx": 6412, "respuestasNo2xx": 0, "errores": 0, "latenciaMs": {"p50": 110, "p90": 118, "p97_5": 125, "p99": 134, "max": 2754}, "cumpleUmbral": true},
+    {"escenario": "S1 (p95 <= 400 ms con hasta 200 usuarios concurrentes)", "publicacionesSembradas": 0, "conexionesConcurrentes": 100, "duracionSegundos": 15, "peticionesPorSegundo": 767, "respuestas2xx": 11507, "respuestasNo2xx": 0, "errores": 0, "latenciaMs": {"p50": 111, "p90": 122, "p97_5": 137, "p99": 147, "max": 4084}, "cumpleUmbral": true},
+    {"escenario": "S1 (p95 <= 400 ms con hasta 200 usuarios concurrentes)", "publicacionesSembradas": 0, "conexionesConcurrentes": 200, "duracionSegundos": 15, "peticionesPorSegundo": 1337, "respuestas2xx": 20051, "respuestasNo2xx": 0, "errores": 0, "latenciaMs": {"p50": 118, "p90": 135, "p97_5": 157, "p99": 327, "max": 5031}, "cumpleUmbral": true}
+  ],
+  "metricasDelServidor": {
+    "nota": "GET /metrics, bloque busqueda. Ventana: las ultimas 200 busquedas exitosas; los errores se acumulan desde el arranque. No es la distribucion de toda la corrida ni incluye la red.",
+    "trasLaCorridaDe20Conexiones": {"n": 200, "errores": 0, "avgMs": 1.25, "p50Ms": 1.13, "p95Ms": 2.15},
+    "trasLaCorridaDe200Conexiones": {"n": 200, "errores": 0, "avgMs": 7.27, "p50Ms": 7.33, "p95Ms": 12.78}
+  },
+  "lineaBaseRender": "Ver docs/medicion-busqueda.md (resultado 2, 2026-10-04): 1 fila en la base; 1, 5 y 20 conexiones; a 20 conexiones p50 244, p90 406, p97,5 1113, p99 1751, max 1842 ms."
+}

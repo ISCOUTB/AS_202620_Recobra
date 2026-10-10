@@ -30,7 +30,7 @@ plataforma.
 | Elemento | Valor |
 |---|---|
 | Sistema medido | `https://recobra.iscoutb.dev` (Dokploy), PostgreSQL del mismo proyecto, `DATABASE_SSL=false` |
-| Commit desplegado | `a8068df` o posterior (ver `git log`) |
+| Commit desplegado | **`a8068df`**. Su redespliegue terminó a las 22:15 UTC del 2026-10-08 (el dominio volvió a responder 200) y las corridas se hicieron entre las 22:15 y las 22:22 UTC, antes del commit siguiente. El hash también se ve en Dokploy → `sistema` → Deployments |
 | Operación | `GET /publicaciones?categoria=carga-s10-electronica&ubicacion=Bloque%20A1&limite=20` |
 | Datos | 1.000 publicaciones sembradas con la categoría `carga-s10-*`; cerca de 170 coinciden con el filtro, se devuelven 20 |
 | Herramienta | [`scripts/measure-busqueda.js`](../scripts/measure-busqueda.js) (autocannon) |
@@ -42,6 +42,9 @@ plataforma.
 autocannon reporta p97,5 y no p95. Como p95 ≤ p97,5, exigir que p97,5 cumpla
 el umbral es una condición **más estricta** que la del escenario.
 
+**Salidas originales:** [`docs/evidencia/medicion-s10-dokploy.json`](evidencia/medicion-s10-dokploy.json)
+guarda lo que imprimió el script en cada corrida y el estado de `/metrics`.
+
 ## Línea base (estado inicial medido)
 
 Medida el 2026-10-04 sobre Render Free + Neon, desde el mismo equipo cliente
@@ -52,6 +55,11 @@ Medida el 2026-10-04 sobre Render Free + Neon, desde el mismo equipo cliente
 | 1 | 267 ms | sí |
 | 5 | 274 ms | sí |
 | 20 | **1.113 ms** | **no** |
+
+En esa misma medición, a 20 conexiones, el **p90 fue 406 ms**
+([`docs/medicion-busqueda.md`](medicion-busqueda.md), resultado 2). Si el p90
+ya supera 400 ms, el p95 es al menos 406 ms: la línea base incumplía S1 también
+medida con p95, y no solo con p97,5.
 
 ## Resultado (Dokploy, 2026-10-08)
 
@@ -68,12 +76,24 @@ Medida el 2026-10-04 sobre Render Free + Neon, desde el mismo equipo cliente
 la mitad de los 400 ms. Con 20 conexiones, el mismo nivel que falló en
 Render, el p97,5 pasó de 1.113 ms a 127 ms. **H1 se sostiene.**
 
-**Dónde se va el tiempo (CPU, red o SQL).** La métrica del servidor, medida
-dentro de la API tras la corrida de 200 conexiones, dio una media de 7,3 ms y
-un p95 de 12,8 ms. El p50 que ve el cliente es de ~110 ms, y no cambia entre
-20 y 200 conexiones. La diferencia (~100 ms) es red entre el cliente y el
-servidor; la consulta SQL y el proceso no son el cuello a este volumen. Esto
-respalda **no modificar la consulta** por ahora.
+**Qué se puede y qué no se puede concluir sobre CPU, red y SQL.** `GET
+/metrics` mide la latencia **dentro de la API**, sin red, sobre una ventana de
+las **últimas 200 búsquedas exitosas**; los errores se acumulan aparte desde el
+arranque y `cumpleObjetivo` solo mira latencia. Tras la corrida de 200
+conexiones esa ventana dio una media de 7,3 ms y un p95 de 12,8 ms. Ese
+percentil **no** es el p95 de toda la corrida de 15 s ni de la latencia que ve
+el cliente. El p50 del cliente (~110 ms) no cambió entre 20 y 200 conexiones,
+y la media interna es mucho menor.
+
+Eso es un **indicio**, no un aislamiento: sugiere que la consulta y el proceso
+no son lo que domina a este volumen, y que la espera visible para el cliente es
+sobre todo trayecto, pero las dos cifras salen de estadísticas y ventanas
+distintas, así que restarlas no demuestra cuánto cuesta la red ni descarta
+CPU o SQL. Para separarlos haría falta medir desde dentro de la red del
+laboratorio y registrar la latencia interna de todas las peticiones de la
+corrida. Por prudencia, **no se modificó la consulta**: no hay evidencia de que
+sea el cuello a 1.000 filas, pero tampoco una prueba de que no lo sea a mayor
+volumen.
 
 ## Factores de confusión y límites de validez
 
@@ -82,6 +102,10 @@ respalda **no modificar la consulta** por ahora.
   juega en contra de Dokploy (más datos) y a pesar de ello mejoró, pero no es
   una comparación controlada. No se pudo repetir en Render con el mismo
   volumen: el 2026-10-08 ese servicio respondía 503.
+- **La hipótesis causal no queda aislada.** H1 atribuye la brecha a la
+  capacidad de la plataforma, pero la plataforma, el volumen de datos y el
+  momento de la medición cambiaron a la vez. Lo que sí se establece es que, en
+  el entorno vigente, la búsqueda cumple S1 con 200 conexiones.
 - **Una sola corrida por nivel.** No se calcularon intervalos de confianza.
 - **El cliente está fuera de la red del servidor**, así que las cifras
   incluyen ~110 ms de red. Es una cota pesimista para el servidor.

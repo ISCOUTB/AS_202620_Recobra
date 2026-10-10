@@ -1,3 +1,5 @@
+import * as path from 'node:path';
+import * as jestOpenAPI from 'jest-openapi';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { FiltrosBusqueda, PublicacionRepository } from '../src/domain/ports/publicacion-repository';
@@ -35,6 +37,8 @@ class AlmacenamientoCaido extends PublicacionRepository {
     throw new AlmacenamientoNoDisponibleError();
   }
 }
+
+jestOpenAPI.default(path.join(__dirname, '../docs/contracts/openapi.yaml'));
 
 describe('Almacenamiento no disponible (e2e)', () => {
   let app: INestApplication;
@@ -85,5 +89,25 @@ describe('Almacenamiento no disponible (e2e)', () => {
     const despues = (await request(app.getHttpServer()).get('/metrics')).body.busqueda;
     expect(despues.errores).toBe(antes.errores + 1);
     expect(despues.n).toBe(antes.n);
+  });
+
+  it('las respuestas 503 cumplen el contrato OpenAPI en todas las rutas que leen o escriben datos', async () => {
+    const servidor = app.getHttpServer();
+    const respuestas = [
+      await request(servidor).get('/health/ready'),
+      await request(servidor).get('/publicaciones'),
+      await request(servidor).get('/publicaciones/cualquier-id'),
+      await request(servidor).post('/publicaciones').send({
+        tipo: 'perdido',
+        descripcion: 'Cargador',
+        categoria: 'electronica',
+        ubicacion: 'Bloque 3',
+      }),
+    ];
+
+    for (const respuesta of respuestas) {
+      expect(respuesta.status).toBe(503);
+      expect(respuesta).toSatisfyApiSpec();
+    }
   });
 });

@@ -181,6 +181,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "503":
+          description: El almacenamiento no está disponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /coincidencias:
     get:
       operationId: listarCoincidencias

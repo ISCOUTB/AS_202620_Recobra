@@ -58,6 +58,33 @@ describe('PostgresPublicacionRepository', () => {
     await expect(resultado).rejects.not.toBeInstanceOf(AlmacenamientoNoDisponibleError);
   });
 
+  it('verificarDisponibilidad prepara el esquema si falta y luego deja de repetirlo', async () => {
+    queryMock.mockResolvedValue({});
+    const repo = new PostgresPublicacionRepository();
+
+    await repo.verificarDisponibilidad();
+    const llamadas = queryMock.mock.calls.length;
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS publicaciones'));
+
+    await repo.verificarDisponibilidad(); // esquema ya listo: solo SELECT 1
+    expect(queryMock.mock.calls.length).toBe(llamadas + 1);
+  });
+
+  it('verificarDisponibilidad falla si la base contesta pero el esquema no se puede preparar', async () => {
+    queryMock.mockResolvedValueOnce({}); // SELECT 1
+    queryMock.mockRejectedValueOnce(Object.assign(new Error('permiso denegado'), { code: '42501' })); // CREATE TABLE
+    const repo = new PostgresPublicacionRepository();
+
+    await expect(repo.verificarDisponibilidad()).rejects.toBeInstanceOf(AlmacenamientoNoDisponibleError);
+  });
+
+  it('una tabla inexistente (42P01) se traduce a almacenamiento no disponible', async () => {
+    queryMock.mockRejectedValueOnce(Object.assign(new Error('relation does not exist'), { code: '42P01' }));
+    const repo = new PostgresPublicacionRepository();
+
+    await expect(repo.buscarPorId('1')).rejects.toBeInstanceOf(AlmacenamientoNoDisponibleError);
+  });
+
   it('verificarDisponibilidad ejecuta SELECT 1', async () => {
     queryMock.mockResolvedValueOnce({});
     const repo = new PostgresPublicacionRepository();

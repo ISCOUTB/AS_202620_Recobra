@@ -140,47 +140,63 @@ ADR-0001 queda como histórico reemplazado.
 
 ## 5. Bloques de construcción
 
-Vista estática del backend del corte 1:
+Vista estática del backend, actualizada para el segundo corte (diagramas en
+[C4-C2](../c4/C4-C2.md) y [C4-C3](../c4/C4-C3.md)):
 
 | Bloque | Responsabilidad | Ubicación |
 |--------|-----------------|-----------|
-| Dominio | Entidad `Publicacion` y reglas de validación | `src/domain/entities/` |
-| Puertos | Contrato `PublicacionRepository` | `src/domain/ports/` |
-| Aplicación | Casos de uso crear/consultar | `src/application/use-cases/` |
-| Adaptador de persistencia | Memoria (reemplazable por PostgreSQL) | `src/infrastructure/persistence/` |
-| Adaptador HTTP | Controladores Nest + filtro de errores de dominio | `src/publicaciones/`, `src/salud/` |
-| Composition root | Cableado de módulos Nest | `src/app.module.ts`, `src/main.ts` |
-| Cliente | UI Flutter del corte | `mobile/` |
+| Dominio | Entidades `Publicacion` y `Coincidencia`, sus reglas, y el error `AlmacenamientoNoDisponibleError` | `src/domain/entities/`, `src/domain/errors/` |
+| Puertos | `PublicacionRepository` (guardar, buscarPorId, listarPorTipo, buscar, verificarDisponibilidad) y `CoincidenciaRepository` | `src/domain/ports/` |
+| Aplicación | Casos de uso crear, consultar y **buscar** publicaciones, y **buscar coincidencias** | `src/application/use-cases/` |
+| Adaptadores de persistencia | `PostgresPublicacionRepository` (con `DATABASE_URL`) y `MemoriaPublicacionRepository` (sin ella); coincidencias solo en memoria | `src/infrastructure/persistence/` |
+| Adaptadores HTTP | Controladores Nest, filtros de error (400 y 503) | `src/publicaciones/`, `src/emparejamiento/`, `src/salud/` |
+| Observabilidad | Logs JSON, `GET /metrics` (S5 y S1), `GET /health` y `GET /health/ready` | `src/observabilidad/`, `src/salud/` |
+| Composition root | Cableado de módulos Nest y selección del adaptador | `src/app.module.ts`, `src/publicaciones/publicaciones.module.ts` |
+| Clientes | App Flutter y vitrina web | `mobile/`, `public/index.html` |
 
-Relación con C4 nivel 2: el contenedor API agrupa dominio + aplicación +
-adaptadores; el contenedor Flutter es `mobile/`.
+Relación con C4 nivel 2: el contenedor API agrupa dominio, aplicación y
+adaptadores; la persistencia es un contenedor PostgreSQL aparte.
 
 Propiedad de datos por módulo (regla de dueño único): ver
 [`docs/modulo-datos.md`](../modulo-datos.md).
 
 ## 6. Vista de ejecución
 
-Flujo del corte vertical **crear publicación**:
+Flujo **crear publicación**:
 
-1. El usuario envía el formulario desde Flutter (`mobile/`) o desde la vitrina
-   `public/index.html`.
-2. `PublicacionesController` recibe `POST /publicaciones`.
+1. El usuario envía el formulario desde Flutter o desde la vitrina.
+2. `PublicacionesController` recibe `POST /publicaciones` (con la medición de latencia, S5).
 3. `CrearPublicacion` valida vía la entidad `Publicacion` y llama al puerto
    `PublicacionRepository`.
-4. `MemoriaPublicacionRepository` persiste en memoria y devuelve la entidad.
-5. La API responde `201` con el JSON de la publicación.
+4. `PostgresPublicacionRepository` guarda la fila (en memoria si no hay `DATABASE_URL`).
+5. La API responde `201` y emite el evento `publicacion.creada`.
+6. **De forma asíncrona** (ADR-0004), `PublicacionCreadaListener` llama a
+   `BuscarCoincidencias`, que lee candidatas a través del puerto y guarda las
+   coincidencias; si eso falla, solo se registra una advertencia y no afecta a
+   quien publicó.
+
+Flujo **buscar** (escenario S1): `GET /publicaciones?tipo&categoria&ubicacion&limite`
+→ `BuscarPublicaciones` (valida filtros y límite 1 a 50) → puerto `buscar` → consulta
+parametrizada con `LIMIT`. La latencia se registra en `GET /metrics` (bloque `busqueda`).
 
 Flujo **consultar**: `GET /publicaciones/:id` → `ConsultarPublicacion` → puerto →
-`200` o `404`.
+`200` o `404`. Flujo **coincidencias**: `GET /coincidencias?publicacionId=`.
 
-Si la entidad lanza `PublicacionInvalidaError`, el filtro Nest responde `400`
-sin filtrar la regla de negocio hacia el controlador.
+**Modos de fallo.**
 
-El contrato ejecutable de estas tres rutas (`/health`, `POST /publicaciones`,
-`GET /publicaciones/:id`) está versionado en
-[`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) (ver ADR-0004). El
-cliente Flutter (`mobile/lib/api/recobra_api.dart`) consume esas mismas rutas
-tal como las declara el contrato.
+| Situación | Qué ocurre |
+|---|---|
+| Dato inválido | `PublicacionInvalidaError` → filtro → `400` con `{ statusCode, message }` |
+| La base no responde al arrancar | El proceso arranca igual, reintenta preparar el esquema cada 5 s y registra una advertencia |
+| La base cae o el esquema no está preparado | El adaptador lanza `AlmacenamientoNoDisponibleError` → filtro → `503` con el mismo esquema de error y un mensaje sin detalles internos; la búsqueda fallida se cuenta en `/metrics` aparte de la latencia |
+| Comprobación de salud | `GET /health` responde 200 si el proceso vive (no toca la base); `GET /health/ready` responde 200 solo si la base contesta **y** el esquema está preparado, y 503 si no |
+
+El contrato ejecutable de todas estas rutas, incluidas las respuestas `400`,
+`404` y `503`, está versionado en
+[`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) (ADR-0004, ADR-0009)
+y se prueba contra las respuestas reales en `test/contract.e2e-spec.ts` y
+`test/almacenamiento-no-disponible.e2e-spec.ts`. El cliente Flutter
+(`mobile/lib/api/recobra_api.dart`) consume esas mismas rutas.
 
 ## 7. Vista de despliegue
 
@@ -266,6 +282,7 @@ decisiones:
 - Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias aún están solo en memoria.
 - Notificaciones, Reclamaciones e Identidad son solo diseño, sin código todavía (Emparejamiento ya se implementó, ver aspecto A5).
 - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
+- **Transporte hacia la base:** con `DATABASE_SSL=false` (base interna de Dokploy) no hay TLS; con TLS activo el adaptador usa `rejectUnauthorized: false`, así que cifra pero **no valida** el certificado del servidor y no debe describirse como verificación de identidad de la base. No se verificó el aislamiento de la red interna.
 - **La plataforma es el servidor del laboratorio (Dokploy), no del equipo:** si deja de estar disponible o cambia su política, hay que redesplegar en otro lado (el `Dockerfile` se reutiliza; ver el costo de revertir en ADR-0010). Un redespliegue deja el dominio sin servicio ~30-50 s. Las copias de seguridad de la base en Dokploy no están configuradas. Lo ya mitigado: los redespliegues de código no requieren cuentas (cada commit a `master` redespliega solo).
 
 ## 12. Glosario

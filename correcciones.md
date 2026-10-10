@@ -132,7 +132,18 @@ Fuente de los hallazgos: retroalimentación publicada en
 | C4-C2/C3 con PostgreSQL "planeado" y sin búsqueda ni Emparejamiento | Ambos diagramas reescritos con el estado real del código | [`docs/c4/C4-C2.md`](docs/c4/C4-C2.md), [`docs/c4/C4-C3.md`](docs/c4/C4-C3.md) |
 | Sucesión de ADR-0002/0003 y enlace de ADR-0004 | ADR-0011 registra las enmiendas; cada ADR afectado lleva una línea de estado con enlace | [`docs/adr/0011-registro-de-enmiendas-a-adrs-aceptados.md`](docs/adr/0011-registro-de-enmiendas-a-adrs-aceptados.md) |
 | README sin variables de entorno y con ejemplo de error antiguo | Tabla de variables, URL de Dokploy y ejemplo de error `{statusCode, message}` | [`README.md`](README.md) |
-| SonarCloud: scanner con `continue-on-error`, sin run exitoso acreditado | **Abierta:** falta crear el secreto `SONAR_TOKEN` (acción del equipo); el Quality Gate público sí está en verde | [`docs/no-conformidades.md`](docs/no-conformidades.md) |
+| SonarCloud: scanner con `continue-on-error`, sin run exitoso acreditado | **Abierta, causa identificada:** el secreto `SONAR_TOKEN` ya existe (token personal de `Cconde31`), pero al quitar `continue-on-error` el scanner falló con «Not authorized or project not found»: falta el permiso *Execute Analysis* sobre el proyecto de la organización `isco-utb`. El CI con la bandera quedó en verde; el Quality Gate público (GitHub App) sigue en OK | [`docs/no-conformidades.md`](docs/no-conformidades.md), run `37858210549` (fallo sin la bandera) |
+
+### Tras la revisión preliminar del 2026-10-10
+
+| Hallazgo | Corrección | Evidencia |
+|---|---|---|
+| Sin salidas brutas ni SHA exacto desplegado ("a8068df o posterior") | Se fija el commit `a8068df`, la ventana horaria y se guardan las salidas originales de cada corrida y de `/metrics` | [`docs/medicion-s10.md`](docs/medicion-s10.md), [`docs/evidencia/medicion-s10-dokploy.json`](docs/evidencia/medicion-s10-dokploy.json) |
+| Se presentaba como medición lo que era inferencia (red frente a CPU/SQL) | Se reescribe como indicio: la ventana de `/metrics` son 200 éxitos recientes, no la corrida completa; se añade que la hipótesis causal no queda aislada y qué haría falta para separarla | [`docs/medicion-s10.md`](docs/medicion-s10.md) |
+| `SELECT 1` no prueba que el esquema esté listo | `/health/ready` exige base y esquema preparado; una tabla inexistente responde 503; pruebas unitarias nuevas | `src/infrastructure/persistence/postgres-publicacion.repository.ts` y su spec |
+| Contrato sin 503 en `GET /publicaciones/{id}` | Se declara el 503 y se prueban las cuatro respuestas 503 contra OpenAPI | [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml), `test/almacenamiento-no-disponible.e2e-spec.ts` |
+| arc42 secciones 5 y 6 y C4-C3 sin el estado actual | Reescritas con PostgreSQL, búsqueda, Emparejamiento, `/health/ready`, métrica GET, filtro 503 y los modos de fallo | [`docs/arc42/arc42.md`](docs/arc42/arc42.md), [`docs/c4/C4-C3.md`](docs/c4/C4-C3.md) |
+| TLS con `rejectUnauthorized: false` | Se documenta que cifra pero no valida el certificado, y que `DATABASE_SSL=false` es una decisión para red interna no verificada | [`docs/arc42/arc42.md`](docs/arc42/arc42.md) (riesgos) |
 
 ## Pendientes que siguen abiertos
 

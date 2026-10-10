@@ -25,6 +25,8 @@ export class PostgresPublicacionRepository
   private readonly pool: Pool;
   private readonly logger = new Logger(PostgresPublicacionRepository.name);
   private reintento?: NodeJS.Timeout;
+  /** Verdadero cuando la tabla y el índice existen: conectar no basta para servir. */
+  private esquemaListo = false;
 
   constructor() {
     super();
@@ -61,8 +63,21 @@ export class PostgresPublicacionRepository
     if (this.reintento) clearTimeout(this.reintento);
   }
 
+  /**
+   * Disponible = la base contesta Y el esquema está preparado. Con solo
+   * `SELECT 1` una base que acepta conexiones pero donde falló la creación de
+   * la tabla pasaría por sana mientras toda operación real falla. Si el
+   * esquema falta, se intenta crear aquí mismo y, si no se logra, se informa
+   * como no disponible.
+   */
   async verificarDisponibilidad(): Promise<void> {
     await this.consultar('SELECT 1');
+    if (this.esquemaListo) return;
+    try {
+      await this.crearEsquema();
+    } catch {
+      throw new AlmacenamientoNoDisponibleError('El esquema de la base no está preparado');
+    }
   }
 
   private programarReintento(): void {
@@ -93,6 +108,7 @@ export class PostgresPublicacionRepository
         CODIGOS_DE_CONEXION.has(codigo) ||
         codigo.startsWith('08') ||
         codigo.startsWith('57P') ||
+        codigo === '42P01' || // la tabla aún no existe: esquema sin preparar
         /Connection terminated|timeout/i.test(mensaje)
       ) {
         throw new AlmacenamientoNoDisponibleError();
@@ -116,6 +132,7 @@ export class PostgresPublicacionRepository
     await this.pool.query(
       'CREATE INDEX IF NOT EXISTS idx_publicaciones_creado_en ON publicaciones (creado_en DESC)',
     );
+    this.esquemaListo = true;
   }
 
   async guardar(publicacion: Publicacion): Promise<Publicacion> {

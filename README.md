@@ -108,7 +108,7 @@ dominio al servicio `backend` con el puerto 3000 y desplegar. Cada commit a
 **Observabilidad:**
 - Logs estructurados en JSON (`src/observabilidad/json-logger.service.ts`), un objeto por línea con `timestamp`, `level`, `context`, `message`.
 - `GET /metrics`: latencia p50/p95 de `POST /publicaciones` (escenario S5, objetivo 100 ms) y, en el bloque `busqueda`, de `GET /publicaciones` con sus errores aparte (escenario S1, objetivo 400 ms). Ver [`docs/medicion-s10.md`](docs/medicion-s10.md).
-- `GET /health` dice que el proceso está vivo; `GET /health/ready` dice si la base responde (200, o 503 si no).
+- `GET /health` dice que el proceso está vivo; `GET /health/ready` dice si la base responde y su esquema está preparado (200, o 503 si no).
 
 ## Medición del corte 1
 
