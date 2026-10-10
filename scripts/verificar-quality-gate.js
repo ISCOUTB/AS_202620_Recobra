@@ -25,7 +25,7 @@ const dormir = (s) => new Promise((resolver) => setTimeout(resolver, s * 1000));
 
 async function leer(ruta) {
   const respuesta = await fetch(`${BASE}${ruta}`);
-  if (!respuesta.ok) throw new Error(`SonarCloud respondió HTTP ${Number(respuesta.status)}`);
+  if (!respuesta.ok) throw new Error('SonarCloud respondió con error');
   return respuesta.json();
 }
 
@@ -54,13 +54,11 @@ async function buscarAnalisis() {
   // La clave viene de la respuesta de SonarCloud: se exige su forma antes de usarla en una URL.
   if (!/^[A-Za-z0-9_-]{10,64}$/.test(analisis)) throw new Error('Identificador de análisis inesperado');
   const gate = await leer(`/qualitygates/project_status?analysisId=${analisis}`);
-  const estado = gate.projectStatus || {};
-  const condiciones = estado.conditions || [];
-  const falladas = condiciones.filter((c) => c.status !== 'OK').length;
-  const aprobado = estado.status === 'OK';
-  console.log(`Quality Gate: ${aprobado ? 'aprobado' : 'NO aprobado'} (${condiciones.length} condiciones, ${falladas} fallidas)`);
+  const aprobado = (gate.projectStatus || {}).status === 'OK';
+  // Solo mensajes fijos: ni siquiera contadores calculados a partir de la respuesta.
+  console.log(aprobado ? 'Quality Gate: aprobado' : 'Quality Gate: NO aprobado');
   process.exit(aprobado ? 0 : 1);
-})().catch((error) => {
-  console.error(error instanceof Error ? error.message : 'Error al consultar SonarCloud');
+})().catch(() => {
+  console.error('No se pudo consultar SonarCloud o su respuesta no fue la esperada');
   process.exit(1);
 });
