@@ -144,6 +144,7 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Contrato sin 503 en `GET /publicaciones/{id}` | Se declara el 503 y se prueban las cuatro respuestas 503 contra OpenAPI | [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml), `test/almacenamiento-no-disponible.e2e-spec.ts` |
 | arc42 secciones 5 y 6 y C4-C3 sin el estado actual | Reescritas con PostgreSQL, búsqueda, Emparejamiento, `/health/ready`, métrica GET, filtro 503 y los modos de fallo | [`docs/arc42/arc42.md`](docs/arc42/arc42.md), [`docs/c4/C4-C3.md`](docs/c4/C4-C3.md) |
 | TLS con `rejectUnauthorized: false` | Se documenta que cifra pero no valida el certificado, y que `DATABASE_SSL=false` es una decisión para red interna no verificada | [`docs/arc42/arc42.md`](docs/arc42/arc42.md) (riesgos) |
+| Quality Gate sin bloqueo efectivo en el pipeline | Job `Quality Gate (SonarCloud)` que falla el pipeline si el Quality Gate público no aprueba el commit; probado en rojo (run `38070271517`) y en verde (run `38070527030`) | `.github/workflows/ci.yml`, `scripts/verificar-quality-gate.js` |
 
 ## Pendientes que siguen abiertos
 

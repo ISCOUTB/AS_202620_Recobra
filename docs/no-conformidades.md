@@ -112,6 +112,16 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
   el proyecto de la organización `isco-utb`. Falta que un administrador de
   esa organización lo conceda o genere el token. Mientras tanto el paso
   conserva `continue-on-error` para no dejar el pipeline en rojo.
+- **Bloqueo efectivo (2026-10-10):** el workflow tiene un job
+  `Quality Gate (SonarCloud)` que ejecuta `scripts/verificar-quality-gate.js`:
+  espera a que SonarCloud publique el análisis **de ese commit** y falla el
+  pipeline si el Quality Gate no está aprobado. No usa token (API pública de
+  lectura), así que funciona aunque el scanner con `SONAR_TOKEN` siga sin
+  permiso. Se probó que bloquea: un commit con dos vulnerabilidades nuevas en
+  el propio script dejó el job en rojo (run `38070271517`) y el siguiente, ya
+  corregido, lo dejó en verde (run `38070527030`). El scanner explícito se
+  conserva con `continue-on-error` hasta que exista el permiso *Execute
+  Analysis*.
 - **Estado:** parcialmente resuelta — el Quality Gate funciona y es público
   hoy (vía GitHub App); el paso explícito en el workflow que el revisor
   automático exige está escrito y lista para activarse en cuanto exista
