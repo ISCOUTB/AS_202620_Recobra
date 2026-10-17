@@ -149,11 +149,11 @@ Vista estática del backend, actualizada para el segundo corte (diagramas en
 
 | Bloque | Responsabilidad | Ubicación |
 |--------|-----------------|-----------|
-| Dominio | Entidades `Publicacion` y `Coincidencia`, sus reglas, y el error `AlmacenamientoNoDisponibleError` | `src/domain/entities/`, `src/domain/errors/` |
-| Puertos | `PublicacionRepository` (guardar, buscarPorId, listarPorTipo, buscar, verificarDisponibilidad) y `CoincidenciaRepository` | `src/domain/ports/` |
-| Aplicación | Casos de uso crear, consultar y **buscar** publicaciones, y **buscar coincidencias** | `src/application/use-cases/` |
+| Dominio | Entidades `Publicacion` (con su ciclo de vida), `Coincidencia`, `Cuenta` y `Reclamacion`; errores de dominio | `src/domain/entities/`, `src/domain/errors/` |
+| Puertos | `PublicacionRepository` (guardar, guardarSiNoExiste, buscarPorId, listarPorTipo, buscar, cambiarEstado, listarPorAutor, verificarDisponibilidad), `CoincidenciaRepository`, `CuentaRepository`, `SesionRepository`, `ReclamacionRepository`, `HashContrasenas` | `src/domain/ports/` |
+| Aplicación | Publicaciones (crear, crear idempotente, consultar, buscar, cambiar estado, listar las propias), Emparejamiento, Identidad (registrar, iniciar y cerrar sesión, resolver sesión) y Reclamaciones (crear, aprobar, rechazar, consultar) | `src/application/use-cases/` |
 | Adaptadores de persistencia | `PostgresPublicacionRepository` (con `DATABASE_URL`) y `MemoriaPublicacionRepository` (sin ella); coincidencias solo en memoria | `src/infrastructure/persistence/` |
-| Adaptadores HTTP | Controladores Nest, filtros de error (400 y 503) | `src/publicaciones/`, `src/emparejamiento/`, `src/salud/` |
+| Adaptadores HTTP | Controladores Nest, `AutenticacionGuard`, filtros de error (400, 401, 403, 404, 409, 422 y 503) | `src/publicaciones/`, `src/emparejamiento/`, `src/identidad/`, `src/reclamaciones/`, `src/salud/` |
 | Observabilidad | Logs JSON, `GET /metrics` (S5 y S1), `GET /health` y `GET /health/ready` | `src/observabilidad/`, `src/salud/` |
 | Composition root | Cableado de módulos Nest y selección del adaptador | `src/app.module.ts`, `src/publicaciones/publicaciones.module.ts` |
 | Clientes | App Flutter y vitrina web | `mobile/`, `public/index.html` |
@@ -182,6 +182,18 @@ Flujo **crear publicación**:
 Flujo **buscar** (escenario S1): `GET /publicaciones?tipo&categoria&ubicacion&limite`
 → `BuscarPublicaciones` (valida filtros y límite 1 a 50) → puerto `buscar` → consulta
 parametrizada con `LIMIT`. La latencia se registra en `GET /metrics` (bloque `busqueda`).
+
+Flujo **reclamar** (escenario S2, ADR-0014): con sesión, `POST /publicaciones/:id/reclamaciones`
+→ `CrearReclamacion` comprueba que es un objeto encontrado, con autor, ajeno y sin
+otra pendiente de la misma cuenta → guarda la reclamación → pide a
+`CambiarEstadoPublicacion` (Publicaciones) pasar de `publicado` a `en_verificacion`.
+Quien publicó la aprueba (`ResolverReclamacion.aprobar` → `en_verificacion` a
+`reclamado`, solo si sigue en verificación; las demás pendientes se rechazan) o la
+rechaza con motivo (si no quedan pendientes, vuelve a `publicado`).
+
+Flujo **identidad** (ADR-0013): `POST /cuentas` (correo `@utb.edu.co`, contraseña con
+scrypt) → `POST /sesiones` devuelve un token opaco → las rutas protegidas lo reciben
+como `Authorization: Bearer` y `AutenticacionGuard` lo resuelve; sin sesión, 401.
 
 Flujo **consultar**: `GET /publicaciones/:id` → `ConsultarPublicacion` → puerto →
 `200` o `404`. Flujo **coincidencias**: `GET /coincidencias?publicacionId=`.
@@ -265,6 +277,8 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0010](../adr/0010-despliegue-en-dokploy-servidor-del-laboratorio.md) | Despliegue en Dokploy (servidor del laboratorio) en lugar de Render y Neon | Aceptada |
 | [ADR-0011](../adr/0011-registro-de-enmiendas-a-adrs-aceptados.md) | Registro de enmiendas a ADR aceptados y regla de inmutabilidad | Aceptada |
 | [ADR-0012](../adr/0012-no-extraer-emparejamiento.md) | No extraer Emparejamiento como servicio aparte (por ahora), con criterios para revisarlo | Aceptada |
+| [ADR-0013](../adr/0013-cuentas-con-correo-institucional-y-sesiones-opacas.md) | Cuentas propias con correo institucional y sesiones con token opaco | Aceptada |
+| [ADR-0014](../adr/0014-reclamacion-con-prueba-y-aprobacion.md) | Reclamación con prueba del reclamante y aprobación de quien encontró el objeto | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -300,7 +314,11 @@ Detalle completo, con código y pruebas de cada fila, en
 - **Eventos de Emparejamiento perdidos:** si el proceso cae entre guardar la publicación y emitir el evento, o si el cálculo falla, esas coincidencias no se recalculan. Plan: bandeja de salida o broker en la S12.
 - **Sin circuit breaker hacia la base:** con una caída larga, cada petición espera hasta 3 s antes del 503. Plan: agregarlo en el adaptador si una caída real lo justifica.
 - **Vitrina sin pruebas automáticas:** sus reintentos, límites de tiempo y el bloqueo del botón están implementados pero no tienen prueba.
-- **Idempotencia sin usuario:** las claves no están ligadas a una cuenta porque aún no hay cuentas; ver los límites en `docs/modos-de-fallo.md`.
+- **Idempotencia:** la clave ya se compara junto con el autor (una misma clave con otra cuenta responde 422), pero no se acota por cuenta; ver los límites en `docs/modos-de-fallo.md`.
+- **Correo sin verificar por propiedad:** se exige `@utb.edu.co`, pero no hay código por correo (sin proveedor gratuito); lo mitiga que la entrega la aprueba una persona (ADR-0013, ADR-0014).
+- **Seguridad de la cuenta pendiente:** sin límite de intentos de inicio de sesión ni recuperación de contraseña; el token vive en `localStorage` de la vitrina (riesgo ante XSS). Para el modelado de amenazas de la S13.
+- **Consistencia al aprobar una reclamación:** se cambia la publicación y luego la reclamación; si la segunda escritura falla quedan desalineadas. Para la S12 (saga o bandeja de salida).
+- **App Flutter sin sesión:** publicar desde la app responde 401 hasta adaptarla.
 
 
 - Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias aún están solo en memoria.

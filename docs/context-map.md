@@ -13,7 +13,7 @@ la misma tabla).
 flowchart TB
     subgraph nucleo["Dominio núcleo"]
         PUB["Publicaciones<br/><i>implementado</i><br/>ciclo de vida de la publicación"]
-        REC["Reclamaciones<br/><i>planeado</i><br/>verificación de propiedad"]
+        REC["Reclamaciones<br/><i>implementado (ADR-0014)</i><br/>verificación de propiedad"]
     end
 
     subgraph soporte["Dominio de soporte"]
@@ -22,12 +22,12 @@ flowchart TB
 
     subgraph generico["Dominio genérico / externo"]
         NOTIF["Notificaciones<br/><i>planeado, sistema externo</i>"]
-        AUTH["Identidad / Autenticación<br/><i>planeado, sistema externo</i>"]
+        AUTH["Identidad<br/><i>implementado dentro de la API (ADR-0013)</i><br/>cuentas y sesiones"]
     end
 
     PUB -->|"Cliente/Proveedor — expone publicaciones vía puerto PublicacionRepository"| MATCH
     MATCH -->|"Cliente/Proveedor — evento de coincidencia"| NOTIF
-    REC -->|"Conformista — referencia Publicacion.id, no duplica sus campos"| PUB
+    REC -->|"Conformista — referencia Publicacion.id; cambia su estado solo vía CambiarEstadoPublicacion"| PUB
     REC -->|"Capa anticorrupción — solo consume identidad verificada"| AUTH
     PUB -->|"Capa anticorrupción — valida usuario autor sin duplicar credenciales"| AUTH
 
@@ -50,10 +50,10 @@ modelo de datos.
 | Contexto | Tipo (DDD) | Rol en el negocio | Estado |
 |---|---|---|---|
 | **Publicaciones** | Núcleo | Registrar y consultar objetos perdidos/encontrados; dueño del ciclo de vida `publicado → en contacto → reclamado/cerrado` | Implementado (`src/domain`, `src/application`, `src/publicaciones`) |
-| **Reclamaciones** | Núcleo | Verificar que quien reclama un objeto tiene derecho a hacerlo (aspecto A3, escenario S2) | Planeado |
+| **Reclamaciones** | Núcleo | Verificar que quien reclama un objeto tiene derecho a hacerlo (aspecto A3, escenario S2) | Implementado (`src/reclamaciones/`, `src/application/use-cases/reclamaciones.ts`, ADR-0014) |
 | **Emparejamiento (Matching)** | Soporte | Comparar publicaciones de "perdido" y "encontrado" y producir coincidencias (escenario S3) | Implementado (heurística por categoría + ubicación; ver `src/emparejamiento/` y `src/application/use-cases/buscar-coincidencias.ts`) |
 | **Notificaciones** | Genérico / externo | Enviar avisos de coincidencia por correo o push | Planeado, sistema externo (C4 nivel 1) |
-| **Identidad / Autenticación** | Genérico / externo | Autenticar usuarios y exponer su identidad verificada | Planeado, sistema externo (C4 nivel 1) |
+| **Identidad** | Genérico | Cuentas con correo institucional y sesiones | Implementado dentro de la API (`src/identidad/`, ADR-0013); un proveedor institucional externo queda como alternativa futura detrás de los mismos puertos |
 
 ## Patrones de relación entre contextos
 

@@ -11,11 +11,11 @@ de la misma tabla, que es la no conformidad más común en un mapa de contextos.
 
 | Módulo (contexto) | Dato del que es dueño único | Otros módulos que lo consultan | Cómo lo consultan (sin duplicar) |
 |---|---|---|---|
-| **Publicaciones** (`src/domain/entities/publicacion.ts`, `src/publicaciones/`) | `Publicacion` — id, tipo (perdido/encontrado), descripción, categoría, ubicación, estado, creadoEn | Emparejamiento, Reclamaciones | Puerto `PublicacionRepository.buscarPorId(id)` / `.listarPorTipo(tipo)` (ya implementado); evento `publicacion.creada` (ya implementado, `src/application/events/`) |
+| **Publicaciones** (`src/domain/entities/publicacion.ts`, `src/publicaciones/`) | `Publicacion` — id, tipo (perdido/encontrado), descripción, categoría, ubicación, estado, creadoEn, autorId | Emparejamiento, Reclamaciones | Lectura por el puerto `PublicacionRepository` (`buscarPorId`, `listarPorTipo`); evento `publicacion.creada`. **Escritura del estado solo por `CambiarEstadoPublicacion`**, el caso de uso de Publicaciones que Reclamaciones invoca (ADR-0014) |
 | **Emparejamiento** (implementado — `src/emparejamiento/`) | `Coincidencia` — id, publicación origen referenciada, publicación coincidente referenciada, score, estado, creadoEn | Notificaciones (a futuro) | Puerto `CoincidenciaRepository`; endpoint de solo lectura `GET /coincidencias?publicacionId=` (ver `docs/contracts/openapi.yaml`); evento `CoincidenciaDetectada` hacia Notificaciones sigue planeado |
 | **Notificaciones** (planeado, sistema externo) | `Notificacion` — destinatario, canal (correo/push), contenido, estado de envío | — (hoja del grafo de dependencias; nadie más necesita este dato) | No aplica |
-| **Identidad / Autenticación** (planeado, sistema externo) | `Usuario` — id, credenciales, rol | Publicaciones (autor), Reclamaciones (reclamante) | Ambos guardan solo el `usuarioId` devuelto por Identidad, nunca las credenciales ni el resto del perfil |
-| **Reclamaciones** (planeado) | `Reclamacion` — publicación referenciada, usuario reclamante, evidencia de verificación, estado, fecha | — | Expondría un puerto de solo lectura si otro contexto futuro necesitara el estado de una reclamación |
+| **Identidad** (implementado, `src/identidad/`, ADR-0013) | `Cuenta` — id, correo institucional, nombre, hash de la contraseña; `Sesion` — hash del token, cuenta, vencimiento | Publicaciones (autor), Reclamaciones (reclamante y contacto) | Ambos guardan solo el id de la cuenta; Reclamaciones lee nombre y correo por el puerto `CuentaRepository`, nunca el hash |
+| **Reclamaciones** (implementado, `src/reclamaciones/`, ADR-0014) | `Reclamacion` — publicación referenciada, cuenta reclamante, prueba, estado, fecha, resolución y motivo | — | Puerto `ReclamacionRepository`; rutas de lectura solo para el autor del objeto y para el propio reclamante |
 | **Salud** (`src/salud/`) | Ninguno — expone únicamente `GET /health` como verificación de proceso vivo | — | No aplica |
 
 ## Reglas derivadas
@@ -44,7 +44,6 @@ A la fecha, `Publicacion` y `Coincidencia` están materializadas en código:
 [`memoria-publicacion.repository.ts`](../src/infrastructure/persistence/memoria-publicacion.repository.ts)
 (o su adaptador PostgreSQL, ver ADR-0006) y
 [`memoria-coincidencia.repository.ts`](../src/infrastructure/persistence/memoria-coincidencia.repository.ts).
-Las filas de `Notificacion`, `Usuario` y `Reclamacion` siguen siendo el
-diseño de propiedad de datos que guiará su implementación en los próximos
-cortes, evitando que se decidan de forma improvisada cuando ya haya código
-escrito.
+Desde 2026-10-17 también están en código `Cuenta`, `Sesion` y `Reclamacion`,
+cada una con su tabla propia y sin claves foráneas hacia tablas de otros
+contextos (la referencia es por id). `Notificacion` sigue siendo diseño.

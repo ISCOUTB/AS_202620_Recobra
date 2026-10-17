@@ -160,6 +160,15 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Sugerencia de la revisión S10: matizar "aplicación sin framework" | arc42 4.4 precisa que los casos de uso importan `@Injectable()` y `EventEmitter2`, como adopta ADR-0004 | [`docs/arc42/arc42.md`](docs/arc42/arc42.md) |
 | Aspectos afectados por la integración | A5 actualizado y A8 nuevo | [`docs/aspectos.md`](docs/aspectos.md) |
 
+## Avance del proyecto · Cuentas y reclamación (2026-10-17)
+
+| Pendiente del producto | Qué se hizo | Evidencia |
+|---|---|---|
+| Escenario S2 sin implementar (aspecto A3) | Cuentas con correo institucional, sesiones con token opaco y reclamación con prueba y aprobación; solo aprobar lleva a "reclamado" y todo intento queda registrado | [ADR-0013](docs/adr/0013-cuentas-con-correo-institucional-y-sesiones-opacas.md), [ADR-0014](docs/adr/0014-reclamacion-con-prueba-y-aprobacion.md), `test/reclamaciones.e2e-spec.ts` |
+| Ciclo de vida de la publicación (S6) | La publicación pasa por `publicado → en_verificacion → reclamado` (o vuelve a `publicado`), validado en el dominio | `src/domain/entities/publicacion.ts`, `cuenta-reclamacion.spec.ts` |
+| Publicaciones anónimas | Publicar exige sesión; la publicación guarda su autor (contrato 3.0.0, cambio incompatible) | [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) |
+| Identidad y Reclamaciones solo como diseño | Implementados con su propia tabla y dueño único, reflejados en el mapa de contextos, la tabla de datos, C4 y arc42 | [`docs/context-map.md`](docs/context-map.md), [`docs/modulo-datos.md`](docs/modulo-datos.md) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

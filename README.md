@@ -121,7 +121,7 @@ npm run measure:post
 Procedimiento, línea base y contraste con S5:
 [`docs/medicion-corte1.md`](docs/medicion-corte1.md).
 
-## Corte vertical: crear y consultar una publicación
+## Corte vertical: publicaciones, cuentas y reclamaciones
 
 Atraviesa HTTP → caso de uso → dominio → puerto `PublicacionRepository`.
 
@@ -150,6 +150,23 @@ curl -X POST http://localhost:3000/publicaciones \
 `201 Created` con la publicación. Datos inválidos → `400` con `{ "statusCode": 400, "message": "..." }` (esquema de error único, ADR-0009).
 
 Con la cabecera opcional `Idempotency-Key: <clave aleatoria>`, repetir la misma creación no la duplica: el reintento responde `200` con la publicación original, y la misma clave con datos distintos responde `422`. La vitrina y la app la envían. Ver [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md).
+
+**Cuentas y sesión** (publicar y reclamar exigen sesión; ver [ADR-0013](docs/adr/0013-cuentas-con-correo-institucional-y-sesiones-opacas.md))
+
+```bash
+curl -X POST http://localhost:3000/cuentas -H "Content-Type: application/json" \
+  -d '{"correo":"ana@utb.edu.co","nombre":"Ana","contrasena":"una-contrasena"}'
+curl -X POST http://localhost:3000/sesiones -H "Content-Type: application/json" \
+  -d '{"correo":"ana@utb.edu.co","contrasena":"una-contrasena"}'   # devuelve {"token": ...}
+```
+
+Con el token, `POST /publicaciones` se llama con `Authorization: Bearer <token>`; sin él responde `401`.
+
+**Reclamar un objeto encontrado** (escenario S2, [ADR-0014](docs/adr/0014-reclamacion-con-prueba-y-aprobacion.md))
+
+- `POST /publicaciones/<id>/reclamaciones` con `{"prueba": "algo que solo el dueño sabría"}` → la publicación pasa a `en_verificacion`.
+- Quien publicó: `GET /publicaciones/<id>/reclamaciones`, y `POST /reclamaciones/<id>/aprobar` o `/rechazar` con `{"motivo": "..."}`. Aprobar es la única forma de llegar a `reclamado`.
+- Cada cuenta: `GET /publicaciones/mias` y `GET /reclamaciones/mias` (el correo de la otra persona aparece solo cuando se aprueba).
 
 **Consultar**
 

@@ -102,6 +102,7 @@ pasos que pueden fallar por separado. Ese diseño corresponde a la semana 12
 | Circuit breaker hacia la base | Pendiente | Hoy hay una sola dependencia y la conexión falla en 3 s como máximo. Con una caída larga, cada petición esperaría esos 3 s; un breaker respondería 503 de inmediato. Plan: agregarlo en el adaptador si una caída real lo justifica, con una prueba que lo abra y lo cierre |
 | Reprocesar eventos de Emparejamiento perdidos | Pendiente | El evento vive en memoria del proceso: si el proceso cae entre guardar y emitir, o si el cálculo falla, esas coincidencias no se recalculan. Plan: bandeja de salida (outbox) o broker en la S12 |
 | Persistencia de coincidencias | Pendiente | Están en memoria y se pierden al reiniciar; ya estaba declarado en arc42 |
+| Consistencia al aprobar una reclamación (desde ADR-0014) | Pendiente | Aprobar cambia la publicación a "reclamado" y después guarda la reclamación aprobada. El cambio de estado es atómico (comparar y fijar), pero entre las dos tablas no hay transacción: si la segunda escritura falla, quedan desalineadas. Es el primer caso real de saga del proyecto; plan: resolverlo en la S12 |
 
 ## Trazabilidad
 
