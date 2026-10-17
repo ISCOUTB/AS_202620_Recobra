@@ -13,6 +13,7 @@
  * cumple el umbral es una condición más estricta que la del escenario.
  */
 const autocannon = require('autocannon');
+const { obtenerToken } = require('./sesion-medicion');
 
 const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:3000';
 const SEMBRAR = Number(process.env.SEMBRAR ?? 1000);
@@ -27,10 +28,12 @@ const UMBRAL_MS = 400;
 const CATEGORIAS = ['electronica', 'mochilas', 'llaves', 'documentos', 'ropa', 'accesorios'];
 const UBICACIONES = ['Bloque A1', 'Bloque A2', 'Bloque A3', 'Bloque A4', 'Bloque A5', 'Biblioteca'];
 
+let token;
+
 async function crear(i) {
   const respuesta = await fetch(new URL('/publicaciones', BASE_URL), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
       tipo: i % 2 === 0 ? 'perdido' : 'encontrado',
       descripcion: `Medicion busqueda ${i}`,
@@ -42,6 +45,7 @@ async function crear(i) {
 }
 
 (async () => {
+  if (SEMBRAR > 0) token = await obtenerToken(BASE_URL);
   // Se siembra por lotes concurrentes: miles de peticiones secuenciales
   // contra un servidor remoto tardarían minutos.
   for (let desde = 0; desde < SEMBRAR; desde += LOTE_SIEMBRA) {

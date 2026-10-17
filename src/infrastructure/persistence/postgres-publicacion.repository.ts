@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Pool } from 'pg';
-import { Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
+import { EstadoPublicacion, Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
 import { FiltrosBusqueda, PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { AlmacenamientoNoDisponibleError } from '../../domain/errors/almacenamiento-no-disponible.error';
 
@@ -139,13 +139,16 @@ export class PostgresPublicacionRepository
     await this.pool.query(
       'CREATE INDEX IF NOT EXISTS idx_publicaciones_creado_en ON publicaciones (creado_en DESC)',
     );
+    // Cuentas (ADR-0013): columna nueva, nula en las publicaciones anteriores.
+    await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS autor_id TEXT');
+    await this.pool.query('CREATE INDEX IF NOT EXISTS idx_publicaciones_autor ON publicaciones (autor_id)');
     this.esquemaListo = true;
   }
 
   async guardar(publicacion: Publicacion): Promise<Publicacion> {
     await this.consultar(
-      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (id) DO NOTHING`,
       [
         publicacion.id,
@@ -155,6 +158,7 @@ export class PostgresPublicacionRepository
         publicacion.ubicacion,
         publicacion.estado,
         publicacion.creadoEn,
+        publicacion.autorId,
       ],
     );
     return publicacion;
@@ -163,8 +167,8 @@ export class PostgresPublicacionRepository
   /** Atómico gracias a la clave primaria: dos inserciones simultáneas del mismo id dejan una sola fila. */
   async guardarSiNoExiste(publicacion: Publicacion): Promise<boolean> {
     const resultado = await this.consultar(
-      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (id) DO NOTHING`,
       [
         publicacion.id,
@@ -174,9 +178,27 @@ export class PostgresPublicacionRepository
         publicacion.ubicacion,
         publicacion.estado,
         publicacion.creadoEn,
+        publicacion.autorId,
       ],
     );
     return resultado.rowCount === 1;
+  }
+
+  async cambiarEstado(id: string, de: EstadoPublicacion, a: EstadoPublicacion): Promise<boolean> {
+    const resultado = await this.consultar('UPDATE publicaciones SET estado = $3 WHERE id = $1 AND estado = $2', [
+      id,
+      de,
+      a,
+    ]);
+    return resultado.rowCount === 1;
+  }
+
+  async listarPorAutor(autorId: string): Promise<Publicacion[]> {
+    const resultado = await this.consultar(
+      'SELECT * FROM publicaciones WHERE autor_id = $1 ORDER BY creado_en DESC LIMIT 100',
+      [autorId],
+    );
+    return resultado.rows.map((fila) => this.aEntidad(fila));
   }
 
   async buscarPorId(id: string): Promise<Publicacion | null> {
@@ -213,6 +235,8 @@ export class PostgresPublicacionRepository
       categoria: fila.categoria as string,
       ubicacion: fila.ubicacion as string,
       creadoEn: new Date(fila.creado_en as string).toISOString(),
+      estado: fila.estado as EstadoPublicacion,
+      autorId: (fila.autor_id as string | null) ?? null,
     });
   }
 }

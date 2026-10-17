@@ -234,6 +234,35 @@
     border: 1px dashed var(--borde);
     border-radius: 10px;
   }
+  /* El atributo hidden debe ganar siempre, aunque una regla de la clase fije display. */
+  [hidden] { display: none !important; }
+  /* ---- Cuentas y reclamaciones (ADR-0013, ADR-0014) ---- */
+  .columna { display: flex; flex-direction: column; gap: 1.75rem; min-width: 0; }
+  .ancho-completo { grid-column: 1 / -1; }
+  #zona-sesion { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
+  #zona-sesion .saludo { color: #dbe4fb; font-size: 0.9rem; }
+  #zona-sesion button { padding: 0.3rem 0.85rem; font-size: 0.82rem; border-radius: 999px; }
+  #zona-sesion button.secundario { color: #ffffff; border-color: #9fb3e6; }
+  #zona-sesion button.secundario:hover { background: rgba(255, 255, 255, 0.12); }
+  .pestanas { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  .pestanas button { flex: 1; }
+  .pestanas button[aria-selected="false"] { background: transparent; color: var(--azul); }
+  textarea {
+    font: inherit; font-weight: 400; padding: 0.6rem 0.7rem; border: 1px solid var(--borde);
+    border-radius: 8px; min-height: 5rem; resize: vertical; color: var(--texto);
+  }
+  .aviso { margin: 0 0 0.9rem; padding: 0.6rem 0.8rem; border-radius: 8px; background: #eef4ff; font-size: 0.88rem; }
+  .estado-pub { font-size: 0.78rem; font-weight: 600; padding: 0.1rem 0.55rem; border-radius: 999px; background: #eef2f7; color: var(--texto-suave); }
+  .estado-pub.en_verificacion { background: #fef0c7; color: #93370d; }
+  .estado-pub.reclamado { background: #d1fadf; color: #05603a; }
+  .bloque { margin-top: 0.6rem; padding: 0.7rem 0.8rem; border: 1px solid var(--borde); border-radius: 8px; background: #fafbff; font-size: 0.88rem; }
+  .bloque form { gap: 0.5rem; }
+  .bloque .fila-botones { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .bloque .fila-botones button { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+  .mi-cuenta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; }
+  @media (max-width: 800px) { .mi-cuenta { grid-template-columns: minmax(0, 1fr); } }
+  .mi-cuenta h3 { margin: 0 0 0.6rem; font-size: 1rem; color: var(--azul-oscuro); }
+  button.peligro { background: transparent; color: var(--error); border-color: var(--error); }
 </style>
 </head>
 <body>
@@ -244,16 +273,51 @@
       <h1>Recobra</h1>
       <p>Objetos perdidos y encontrados en el campus</p>
     </div>
-    <div>
+    <div id="zona-sesion">
       <output id="estado-salud">verificando backend…</output>
       <button id="boton-reintentar" type="button" hidden>Reintentar</button>
+      <span class="saludo" id="saludo" hidden></span>
+      <button id="boton-cerrar-sesion" type="button" class="secundario" hidden>Cerrar sesión</button>
     </div>
   </div>
 </header>
 
 <main>
+  <div class="columna">
+  <section class="panel" aria-labelledby="titulo-cuenta" id="panel-cuenta">
+    <h2 id="titulo-cuenta">Tu cuenta</h2>
+    <p class="aviso">Para publicar o reclamar un objeto necesitas una cuenta con tu correo institucional (@utb.edu.co).</p>
+    <div class="pestanas" role="tablist">
+      <button type="button" role="tab" id="pestana-entrar" aria-selected="true">Iniciar sesión</button>
+      <button type="button" role="tab" id="pestana-registro" aria-selected="false">Crear cuenta</button>
+    </div>
+    <form id="form-entrar">
+      <label>Correo institucional
+        <input type="email" name="correo" autocomplete="username" placeholder="nombre@utb.edu.co" required />
+      </label>
+      <label>Contraseña
+        <input type="password" name="contrasena" autocomplete="current-password" required />
+      </label>
+      <button type="submit">Entrar</button>
+    </form>
+    <form id="form-registro" hidden>
+      <label>Nombre
+        <input type="text" name="nombre" autocomplete="name" required minlength="2" maxlength="80" />
+      </label>
+      <label>Correo institucional
+        <input type="email" name="correo" autocomplete="username" placeholder="nombre@utb.edu.co" required />
+      </label>
+      <label>Contraseña (mínimo 8 caracteres)
+        <input type="password" name="contrasena" autocomplete="new-password" required minlength="8" />
+      </label>
+      <button type="submit">Crear cuenta</button>
+    </form>
+    <output id="mensaje-cuenta"></output>
+  </section>
+
   <section class="panel" aria-labelledby="titulo-crear">
     <h2 id="titulo-crear">Publicar un objeto</h2>
+    <p class="aviso" id="aviso-publicar">Inicia sesión para publicar.</p>
     <form id="form-crear">
       <label>Tipo
         <select name="tipo" required>
@@ -290,6 +354,7 @@
       <output id="mensaje-crear"></output>
     </form>
   </section>
+  </div>
 
   <section class="panel" aria-labelledby="titulo-buscar">
     <h2 id="titulo-buscar">Buscar publicaciones</h2>
@@ -319,6 +384,22 @@
     </div>
     <output id="resumen"></output>
     <div id="lista-publicaciones"></div>
+  </section>
+
+  <section class="panel ancho-completo" aria-labelledby="titulo-mi-cuenta" id="panel-mi-cuenta" hidden>
+    <h2 id="titulo-mi-cuenta">Mis objetos y reclamaciones</h2>
+    <div class="mi-cuenta">
+      <div>
+        <h3>Lo que publiqué</h3>
+        <p class="meta">Si alguien reclama un objeto que encontraste, aquí ves lo que dice saber del objeto y decides.</p>
+        <div id="lista-mias"></div>
+      </div>
+      <div>
+        <h3>Lo que reclamé</h3>
+        <p class="meta">Cuando quien encontró el objeto apruebe tu reclamación, verás su correo para coordinar la entrega.</p>
+        <div id="lista-mis-reclamaciones"></div>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -450,7 +531,7 @@
   function tarjetaPublicacion(pub) {
     const tarjeta = elemento('div', 'tarjeta');
     const fila = elemento('div', 'fila-superior');
-    fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), elemento('span', 'meta', pub.estado));
+    fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), etiquetaEstado(pub.estado));
     const meta = elemento('div', 'meta', `${pub.categoria} · ${pub.ubicacion} · ${formatearFecha(pub.creadoEn)}`);
     const acciones = elemento('div', 'acciones');
     const boton = elemento('button', 'secundario', 'Ver coincidencias');
@@ -458,6 +539,20 @@
     const resultado = elemento('div');
     boton.addEventListener('click', () => verCoincidencias(pub, resultado, boton));
     acciones.append(boton);
+    if (pub.tipo === 'encontrado' && pub.estado !== 'reclamado' && pub.autorId) {
+      const reclamar = elemento('button', 'secundario', sesion ? 'Es mío: reclamar' : 'Inicia sesión para reclamar');
+      reclamar.type = 'button';
+      reclamar.style.marginLeft = '0.5rem';
+      if (sesion && sesion.cuenta.id === pub.autorId) reclamar.hidden = true;
+      reclamar.addEventListener('click', () => {
+        if (!sesion) {
+          document.getElementById('panel-cuenta').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+        mostrarFormularioReclamo(pub, resultado);
+      });
+      acciones.append(reclamar);
+    }
     tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion), meta, acciones, resultado);
     return tarjeta;
   }
@@ -529,18 +624,23 @@
     try {
       const respuesta = await fetch('/publicaciones', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': claveIdempotencia },
+        headers: { ...cabeceraSesion(), 'Content-Type': 'application/json', 'Idempotency-Key': claveIdempotencia },
         body: JSON.stringify(datos),
         signal: controlador.signal,
       });
       const cuerpo = await respuesta.json();
 
+      if (respuesta.status === 401) {
+        terminarSesion('Tu sesión venció. Inicia sesión de nuevo para publicar.');
+        return;
+      }
       if (!respuesta.ok) {
         mensajeCrear.textContent = cuerpo.message || 'No se pudo publicar.';
         mensajeCrear.className = 'error';
         return;
       }
 
+      cargarMiCuenta();
       mensajeCrear.textContent = respuesta.status === 200 ? 'Ya estaba publicada (reintento).' : 'Publicación creada.';
       mensajeCrear.className = 'ok';
       claveIdempotencia = nuevaClave();
@@ -562,6 +662,294 @@
     }
   });
 
+  /* ================= Cuentas y reclamaciones (ADR-0013, ADR-0014) =================
+   * El token se guarda en localStorage para no pedir la contraseña en cada
+   * visita. Todo lo que viene del servidor se pinta con textContent (nunca
+   * innerHTML), así que un texto malicioso en una publicación no se ejecuta.
+   */
+  const CLAVE_SESION = 'recobra.sesion';
+  let sesion = null;
+  try {
+    sesion = JSON.parse(localStorage.getItem(CLAVE_SESION) || 'null');
+  } catch {
+    sesion = null;
+  }
+
+  const panelCuenta = document.getElementById('panel-cuenta');
+  const panelMiCuenta = document.getElementById('panel-mi-cuenta');
+  const formEntrar = document.getElementById('form-entrar');
+  const formRegistro = document.getElementById('form-registro');
+  const mensajeCuenta = document.getElementById('mensaje-cuenta');
+  const saludo = document.getElementById('saludo');
+  const botonCerrarSesion = document.getElementById('boton-cerrar-sesion');
+  const avisoPublicar = document.getElementById('aviso-publicar');
+  const pestanaEntrar = document.getElementById('pestana-entrar');
+  const pestanaRegistro = document.getElementById('pestana-registro');
+  const ESTADOS = { publicado: 'publicado', en_verificacion: 'en verificación', reclamado: 'entregado' };
+
+  function etiquetaEstado(estado) {
+    return elemento('span', `estado-pub ${estado}`, ESTADOS[estado] || estado);
+  }
+
+  function cabeceraSesion() {
+    return sesion ? { Authorization: `Bearer ${sesion.token}` } : {};
+  }
+
+  async function llamar(ruta, opciones = {}) {
+    const respuesta = await fetch(ruta, {
+      ...opciones,
+      headers: { ...cabeceraSesion(), 'Content-Type': 'application/json', ...(opciones.headers || {}) },
+    });
+    const cuerpo = respuesta.status === 204 ? null : await respuesta.json().catch(() => null);
+    if (respuesta.status === 401 && sesion) terminarSesion('Tu sesión venció. Inicia sesión de nuevo.');
+    return { ok: respuesta.ok, estado: respuesta.status, cuerpo };
+  }
+
+  function guardarSesion(nueva) {
+    sesion = nueva;
+    try {
+      if (nueva) localStorage.setItem(CLAVE_SESION, JSON.stringify(nueva));
+      else localStorage.removeItem(CLAVE_SESION);
+    } catch {
+      /* sin almacenamiento: la sesión dura lo que la pestaña */
+    }
+    pintarSesion();
+  }
+
+  function terminarSesion(mensaje) {
+    guardarSesion(null);
+    if (mensaje) {
+      mensajeCuenta.textContent = mensaje;
+      mensajeCuenta.className = 'error';
+    }
+  }
+
+  function pintarSesion() {
+    const conSesion = Boolean(sesion);
+    panelCuenta.hidden = conSesion;
+    panelMiCuenta.hidden = !conSesion;
+    saludo.hidden = !conSesion;
+    botonCerrarSesion.hidden = !conSesion;
+    saludo.textContent = conSesion ? `Hola, ${sesion.cuenta.nombre}` : '';
+    avisoPublicar.hidden = conSesion;
+    mensajeCrear.textContent = '';
+    for (const campo of formCrear.elements) campo.disabled = !conSesion;
+    if (conSesion) cargarMiCuenta();
+    buscar();
+  }
+
+  function elegirPestana(registro) {
+    formEntrar.hidden = registro;
+    formRegistro.hidden = !registro;
+    pestanaEntrar.setAttribute('aria-selected', String(!registro));
+    pestanaRegistro.setAttribute('aria-selected', String(registro));
+    mensajeCuenta.textContent = '';
+  }
+  pestanaEntrar.addEventListener('click', () => elegirPestana(false));
+  pestanaRegistro.addEventListener('click', () => elegirPestana(true));
+
+  async function entrar(correo, contrasena) {
+    const r = await llamar('/sesiones', { method: 'POST', body: JSON.stringify({ correo, contrasena }) });
+    if (!r.ok) throw new Error((r.cuerpo && r.cuerpo.message) || 'No se pudo iniciar sesión');
+    guardarSesion({ token: r.cuerpo.token, cuenta: r.cuerpo.cuenta });
+  }
+
+  formEntrar.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const datos = Object.fromEntries(new FormData(formEntrar).entries());
+    try {
+      await entrar(datos.correo, datos.contrasena);
+      formEntrar.reset();
+    } catch (error) {
+      mensajeCuenta.textContent = error.message;
+      mensajeCuenta.className = 'error';
+    }
+  });
+
+  formRegistro.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const datos = Object.fromEntries(new FormData(formRegistro).entries());
+    const r = await llamar('/cuentas', { method: 'POST', body: JSON.stringify(datos) });
+    if (!r.ok) {
+      mensajeCuenta.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo crear la cuenta';
+      mensajeCuenta.className = 'error';
+      return;
+    }
+    try {
+      await entrar(datos.correo, datos.contrasena);
+      formRegistro.reset();
+    } catch (error) {
+      mensajeCuenta.textContent = error.message;
+      mensajeCuenta.className = 'error';
+    }
+  });
+
+  botonCerrarSesion.addEventListener('click', async () => {
+    await llamar('/sesiones', { method: 'DELETE' }).catch(() => null);
+    guardarSesion(null);
+  });
+
+  function mostrarFormularioReclamo(pub, contenedor) {
+    contenedor.replaceChildren();
+    const caja = elemento('div', 'bloque');
+    const form = document.createElement('form');
+    const etiqueta = elemento('label', '', 'Cuenta algo que solo el dueño sabría (marca, contenido, señas). Quien lo encontró lo leerá.');
+    const texto = document.createElement('textarea');
+    texto.required = true;
+    texto.minLength = 20;
+    texto.maxLength = 1000;
+    etiqueta.append(texto);
+    const filaBotones = elemento('div', 'fila-botones');
+    const enviar = elemento('button', '', 'Enviar reclamación');
+    enviar.type = 'submit';
+    const cancelar = elemento('button', 'secundario', 'Cancelar');
+    cancelar.type = 'button';
+    cancelar.addEventListener('click', () => contenedor.replaceChildren());
+    const mensaje = elemento('output');
+    filaBotones.append(enviar, cancelar);
+    form.append(etiqueta, filaBotones, mensaje);
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      enviar.disabled = true;
+      const r = await llamar(`/publicaciones/${encodeURIComponent(pub.id)}/reclamaciones`, {
+        method: 'POST',
+        body: JSON.stringify({ prueba: texto.value }),
+      });
+      enviar.disabled = false;
+      if (!r.ok) {
+        mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo enviar la reclamación';
+        mensaje.className = 'error';
+        return;
+      }
+      contenedor.replaceChildren(elemento('div', 'bloque', 'Reclamación enviada. Verás la respuesta en "Lo que reclamé".'));
+      cargarMiCuenta();
+      buscar();
+    });
+    caja.append(form);
+    contenedor.append(caja);
+  }
+
+  async function cargarMiCuenta() {
+    if (!sesion) return;
+    const listaMias = document.getElementById('lista-mias');
+    const listaReclamos = document.getElementById('lista-mis-reclamaciones');
+    const [mias, propias] = await Promise.all([llamar('/publicaciones/mias'), llamar('/reclamaciones/mias')]);
+
+    listaMias.replaceChildren();
+    if (mias.ok) {
+      if (mias.cuerpo.length === 0) listaMias.append(elemento('div', 'vacio', 'Aún no has publicado nada.'));
+      for (const pub of mias.cuerpo) listaMias.append(tarjetaMia(pub));
+    }
+
+    listaReclamos.replaceChildren();
+    if (propias.ok) {
+      if (propias.cuerpo.length === 0) listaReclamos.append(elemento('div', 'vacio', 'No has reclamado ningún objeto.'));
+      for (const reclamo of propias.cuerpo) listaReclamos.append(await tarjetaReclamoPropio(reclamo));
+    }
+  }
+
+  function tarjetaMia(pub) {
+    const tarjeta = elemento('div', 'tarjeta');
+    const fila = elemento('div', 'fila-superior');
+    fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), etiquetaEstado(pub.estado));
+    tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion));
+    if (pub.tipo === 'encontrado') {
+      const zona = elemento('div');
+      const ver = elemento('button', 'secundario', 'Ver reclamaciones');
+      ver.type = 'button';
+      ver.addEventListener('click', () => verReclamaciones(pub, zona));
+      tarjeta.append(ver, zona);
+      if (pub.estado !== 'publicado') verReclamaciones(pub, zona);
+    }
+    return tarjeta;
+  }
+
+  async function verReclamaciones(pub, zona) {
+    const r = await llamar(`/publicaciones/${encodeURIComponent(pub.id)}/reclamaciones`);
+    zona.replaceChildren();
+    if (!r.ok) {
+      zona.append(elemento('div', 'bloque', 'No se pudieron cargar las reclamaciones.'));
+      return;
+    }
+    if (r.cuerpo.length === 0) {
+      zona.append(elemento('div', 'bloque', 'Nadie lo ha reclamado todavía.'));
+      return;
+    }
+    for (const rec of r.cuerpo) {
+      const caja = elemento('div', 'bloque');
+      caja.append(
+        elemento('strong', '', `${rec.reclamante.nombre} · ${rec.estado}`),
+        elemento('p', '', `«${rec.prueba}»`),
+      );
+      if (rec.reclamante.correo) caja.append(elemento('p', '', `Contacto para la entrega: ${rec.reclamante.correo}`));
+      if (rec.motivoRechazo) caja.append(elemento('p', 'meta', `Motivo: ${rec.motivoRechazo}`));
+      if (rec.estado === 'pendiente') caja.append(botonesResolver(rec, pub, zona));
+      zona.append(caja);
+    }
+  }
+
+  function botonesResolver(rec, pub, zona) {
+    const fila = elemento('div', 'fila-botones');
+    const aprobar = elemento('button', '', 'Es el dueño: aprobar');
+    aprobar.type = 'button';
+    const rechazar = elemento('button', 'peligro', 'Rechazar');
+    rechazar.type = 'button';
+    const motivo = document.createElement('input');
+    motivo.type = 'text';
+    motivo.placeholder = 'Motivo del rechazo';
+    motivo.hidden = true;
+    const mensaje = elemento('output');
+    aprobar.addEventListener('click', async () => {
+      if (!confirm('¿Aprobar? El objeto quedará como entregado y se compartirán sus correos.')) return;
+      const r = await llamar(`/reclamaciones/${encodeURIComponent(rec.id)}/aprobar`, { method: 'POST' });
+      if (!r.ok) {
+        mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo aprobar';
+        mensaje.className = 'error';
+        return;
+      }
+      await verReclamaciones(pub, zona);
+      cargarMiCuenta();
+      buscar();
+    });
+    rechazar.addEventListener('click', async () => {
+      if (motivo.hidden) {
+        motivo.hidden = false;
+        motivo.focus();
+        return;
+      }
+      const r = await llamar(`/reclamaciones/${encodeURIComponent(rec.id)}/rechazar`, {
+        method: 'POST',
+        body: JSON.stringify({ motivo: motivo.value }),
+      });
+      if (!r.ok) {
+        mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo rechazar';
+        mensaje.className = 'error';
+        return;
+      }
+      await verReclamaciones(pub, zona);
+      cargarMiCuenta();
+      buscar();
+    });
+    fila.append(aprobar, rechazar, motivo, mensaje);
+    return fila;
+  }
+
+  async function tarjetaReclamoPropio(reclamo) {
+    const tarjeta = elemento('div', 'tarjeta');
+    const pub = await llamar(`/publicaciones/${encodeURIComponent(reclamo.publicacionId)}`);
+    tarjeta.append(
+      elemento('div', 'descripcion', pub.ok ? pub.cuerpo.descripcion : 'Publicación'),
+      elemento('div', 'meta', `Estado de tu reclamación: ${reclamo.estado} · ${formatearFecha(reclamo.creadoEn)}`),
+    );
+    if (reclamo.motivoRechazo) tarjeta.append(elemento('div', 'meta', `Motivo: ${reclamo.motivoRechazo}`));
+    if (reclamo.contactoQuienEncontro) {
+      const c = reclamo.contactoQuienEncontro;
+      tarjeta.append(elemento('div', 'bloque', `Aprobada. Coordina la entrega con ${c.nombre}: ${c.correo}`));
+    }
+    return tarjeta;
+  }
+
+  pintarSesion();
   verificarSalud();
 </script>
 

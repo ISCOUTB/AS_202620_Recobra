@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
+import { EstadoPublicacion, Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
 import { FiltrosBusqueda, PublicacionRepository } from '../../domain/ports/publicacion-repository';
 
 @Injectable()
@@ -17,6 +17,19 @@ export class MemoriaPublicacionRepository extends PublicacionRepository {
     if (this.publicaciones.has(publicacion.id)) return false;
     this.publicaciones.set(publicacion.id, publicacion);
     return true;
+  }
+
+  async cambiarEstado(id: string, de: EstadoPublicacion, a: EstadoPublicacion): Promise<boolean> {
+    const actual = this.publicaciones.get(id);
+    if (!actual || actual.estado !== de) return false;
+    this.publicaciones.set(id, new Publicacion({ ...actual, estado: a }));
+    return true;
+  }
+
+  async listarPorAutor(autorId: string): Promise<Publicacion[]> {
+    return [...this.publicaciones.values()]
+      .filter((p) => p.autorId === autorId)
+      .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
   }
 
   async buscarPorId(id: string): Promise<Publicacion | null> {

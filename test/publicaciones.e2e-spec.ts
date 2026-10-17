@@ -1,12 +1,15 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { crearAppDePrueba } from './support/crear-app-prueba';
+import { autenticar } from './support/autenticar';
 
 describe('Publicaciones (e2e)', () => {
   let app: INestApplication;
+  let token: string;
 
   beforeAll(async () => {
     app = await crearAppDePrueba();
+    token = await autenticar(app);
   });
 
   afterAll(async () => {
@@ -28,7 +31,7 @@ describe('Publicaciones (e2e)', () => {
   });
 
   it('POST /publicaciones crea una publicación y responde 201', async () => {
-    const respuesta = await request(app.getHttpServer()).post('/publicaciones').send({
+    const respuesta = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'perdido',
       descripcion: 'Cargador de laptop',
       categoria: 'electronica',
@@ -41,7 +44,7 @@ describe('Publicaciones (e2e)', () => {
   });
 
   it('POST /publicaciones con tipo inválido responde 400', async () => {
-    const respuesta = await request(app.getHttpServer()).post('/publicaciones').send({
+    const respuesta = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'robado',
       descripcion: 'x',
       categoria: 'y',
@@ -53,7 +56,7 @@ describe('Publicaciones (e2e)', () => {
   });
 
   it('GET /publicaciones/:id devuelve la publicación creada', async () => {
-    const creada = await request(app.getHttpServer()).post('/publicaciones').send({
+    const creada = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'encontrado',
       descripcion: 'Llavero',
       categoria: 'llaves',
@@ -75,10 +78,10 @@ describe('Publicaciones (e2e)', () => {
   it('GET /publicaciones filtra por categoría y tipo', async () => {
     const categoria = 'busqueda-e2e';
     const datos = { descripcion: 'x', categoria, ubicacion: 'Bloque A1' };
-    await request(app.getHttpServer()).post('/publicaciones').send({ ...datos, tipo: 'perdido' });
-    const buscada = await request(app.getHttpServer()).post('/publicaciones').send({ ...datos, tipo: 'encontrado' });
+    await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({ ...datos, tipo: 'perdido' });
+    const buscada = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({ ...datos, tipo: 'encontrado' });
     // Ruido de OTRA categoría y mismo tipo: un filtro de categoría roto lo dejaría pasar.
-    await request(app.getHttpServer()).post('/publicaciones').send({ ...datos, categoria: 'otra-cosa', tipo: 'encontrado' });
+    await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({ ...datos, categoria: 'otra-cosa', tipo: 'encontrado' });
 
     const respuesta = await request(app.getHttpServer()).get('/publicaciones').query({ categoria, tipo: 'encontrado' });
 

@@ -13,14 +13,21 @@ import { ConflictoIdempotenciaFilter } from './conflicto-idempotencia.filter';
 import { ObservabilidadModule } from '../observabilidad/observabilidad.module';
 import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
 import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda.interceptor';
+import { IdentidadModule } from '../identidad/identidad.module';
+import {
+  CambiarEstadoPublicacion,
+  ListarPublicacionesDeAutor,
+} from '../application/use-cases/cambiar-estado-publicacion';
 
 @Module({
-  imports: [ObservabilidadModule],
+  imports: [ObservabilidadModule, IdentidadModule],
   controllers: [PublicacionesController],
   providers: [
     CrearPublicacion,
     ConsultarPublicacion,
     BuscarPublicaciones,
+    CambiarEstadoPublicacion,
+    ListarPublicacionesDeAutor,
     // Aquí es donde se conecta el puerto con su adaptador concreto (ADR-0002
     // / ADR-0006): con DATABASE_URL definida usa PostgreSQL; sin ella (por
     // ejemplo en pruebas) cae al adaptador en memoria. Los casos de uso no
@@ -35,6 +42,6 @@ import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda
     LatenciaPublicacionesInterceptor,
     LatenciaBusquedaInterceptor,
   ],
-  exports: [PublicacionRepository],
+  exports: [PublicacionRepository, CambiarEstadoPublicacion],
 })
 export class PublicacionesModule {}

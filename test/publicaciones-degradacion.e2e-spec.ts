@@ -3,6 +3,7 @@ import * as request from 'supertest';
 import { FiltrosBusqueda, PublicacionRepository } from '../src/domain/ports/publicacion-repository';
 import { Publicacion, TipoPublicacion } from '../src/domain/entities/publicacion';
 import { crearAppDePrueba } from './support/crear-app-prueba';
+import { autenticar } from './support/autenticar';
 
 /**
  * Condición adversa pertinente al reto de corte 1: el reto migró el
@@ -29,15 +30,25 @@ class RepositorioQueFalla extends PublicacionRepository {
   async buscar(_filtros: FiltrosBusqueda): Promise<Publicacion[]> {
     throw new Error('conexión con el almacenamiento perdida');
   }
+
+  async cambiarEstado(): Promise<boolean> {
+    throw new Error('conexión con el almacenamiento perdida');
+  }
+
+  async listarPorAutor(): Promise<Publicacion[]> {
+    throw new Error('conexión con el almacenamiento perdida');
+  }
 }
 
 describe('Degradación controlada ante fallo del adaptador de persistencia (e2e)', () => {
   let app: INestApplication;
+  let token: string;
 
   beforeAll(async () => {
     app = await crearAppDePrueba((builder) =>
       builder.overrideProvider(PublicacionRepository).useClass(RepositorioQueFalla),
     );
+    token = await autenticar(app);
   });
 
   afterAll(async () => {
@@ -45,7 +56,7 @@ describe('Degradación controlada ante fallo del adaptador de persistencia (e2e)
   });
 
   it('POST /publicaciones responde 500 controlado (sin stack trace) cuando falla la persistencia', async () => {
-    const respuesta = await request(app.getHttpServer()).post('/publicaciones').send({
+    const respuesta = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'perdido',
       descripcion: 'Cargador de laptop',
       categoria: 'electronica',
@@ -61,7 +72,7 @@ describe('Degradación controlada ante fallo del adaptador de persistencia (e2e)
   });
 
   it('GET /health sigue respondiendo 200 después del fallo de persistencia (el proceso no se cae)', async () => {
-    await request(app.getHttpServer()).post('/publicaciones').send({
+    await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'perdido',
       descripcion: 'Otro intento',
       categoria: 'electronica',

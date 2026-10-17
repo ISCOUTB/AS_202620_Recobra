@@ -6,8 +6,11 @@
  * "asíncrono" no significa "lento" aquí.
  */
 const http = require('node:http');
+const { obtenerToken } = require('./sesion-medicion');
 
 const PORT = process.env.PORT || 3000;
+
+let token;
 
 function request(method, path, body) {
   return new Promise((resolve, reject) => {
@@ -18,7 +21,13 @@ function request(method, path, body) {
         port: PORT,
         path,
         method,
-        headers: data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {},
+        headers: data
+          ? {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(data),
+              Authorization: `Bearer ${token}`,
+            }
+          : {},
       },
       (res) => {
         let chunks = '';
@@ -41,6 +50,7 @@ function request(method, path, body) {
 }
 
 (async () => {
+  token = await obtenerToken(`http://127.0.0.1:${PORT}`);
   const categoria = `medicion-${Date.now()}`;
   const perdido = await request('POST', '/publicaciones', {
     tipo: 'perdido',

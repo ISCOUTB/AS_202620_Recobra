@@ -45,8 +45,9 @@ export class CrearPublicacion {
     private readonly eventos: EventEmitter2,
   ) {}
 
-  async ejecutar(datos: DatosCrearPublicacion): Promise<Publicacion> {
-    const publicacion = this.construir(datos, randomUUID());
+  /** `autorId`: cuenta que publica (obligatoria desde ADR-0013 en la API; opcional aquí para pruebas). */
+  async ejecutar(datos: DatosCrearPublicacion, autorId: string | null = null): Promise<Publicacion> {
+    const publicacion = this.construir(datos, randomUUID(), autorId);
     await this.publicacionRepository.guardar(publicacion);
     this.notificar(publicacion);
     return publicacion;
@@ -59,7 +60,11 @@ export class CrearPublicacion {
    * de Emparejamiento no se emite dos veces. Con la misma clave y datos
    * distintos se rechaza (ConflictoIdempotenciaError).
    */
-  async ejecutarIdempotente(datos: DatosCrearPublicacion, claveIdempotencia: string): Promise<ResultadoCreacion> {
+  async ejecutarIdempotente(
+    datos: DatosCrearPublicacion,
+    claveIdempotencia: string,
+    autorId: string | null = null,
+  ): Promise<ResultadoCreacion> {
     if (!FORMATO_CLAVE.test(claveIdempotencia)) {
       throw new PublicacionInvalidaError(
         'Idempotency-Key debe tener entre 8 y 100 caracteres: letras, números, guion o guion bajo',
@@ -68,23 +73,27 @@ export class CrearPublicacion {
     const id = idDesdeClave(claveIdempotencia);
 
     const previa = await this.publicacionRepository.buscarPorId(id);
-    if (previa) return { publicacion: this.mismaPeticion(previa, datos), repetida: true };
+    if (previa) return { publicacion: this.mismaPeticion(previa, datos, autorId), repetida: true };
 
-    const publicacion = this.construir(datos, id);
+    const publicacion = this.construir(datos, id, autorId);
     const insertada = await this.publicacionRepository.guardarSiNoExiste(publicacion);
     if (!insertada) {
       // Dos peticiones simultáneas con la misma clave: ganó la otra.
       const ganadora = await this.publicacionRepository.buscarPorId(id);
       if (!ganadora) throw new Error('La publicación concurrente no se pudo leer');
-      return { publicacion: this.mismaPeticion(ganadora, datos), repetida: true };
+      return { publicacion: this.mismaPeticion(ganadora, datos, autorId), repetida: true };
     }
 
     this.notificar(publicacion);
     return { publicacion, repetida: false };
   }
 
-  private construir({ tipo, descripcion, categoria, ubicacion }: DatosCrearPublicacion, id: string): Publicacion {
-    return new Publicacion({ id, tipo, descripcion, categoria, ubicacion, creadoEn: new Date().toISOString() });
+  private construir(
+    { tipo, descripcion, categoria, ubicacion }: DatosCrearPublicacion,
+    id: string,
+    autorId: string | null,
+  ): Publicacion {
+    return new Publicacion({ id, tipo, descripcion, categoria, ubicacion, autorId, creadoEn: new Date().toISOString() });
   }
 
   private notificar(publicacion: Publicacion): void {
@@ -93,8 +102,9 @@ export class CrearPublicacion {
     this.eventos.emit(PUBLICACION_CREADA, publicacion);
   }
 
-  private mismaPeticion(existente: Publicacion, datos: DatosCrearPublicacion): Publicacion {
+  private mismaPeticion(existente: Publicacion, datos: DatosCrearPublicacion, autorId: string | null): Publicacion {
     const igual =
+      existente.autorId === autorId &&
       existente.tipo === datos.tipo &&
       existente.descripcion === datos.descripcion?.trim() &&
       existente.categoria === datos.categoria?.trim() &&

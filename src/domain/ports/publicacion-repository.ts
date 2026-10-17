@@ -1,4 +1,4 @@
-import { Publicacion, TipoPublicacion } from '../entities/publicacion';
+import { EstadoPublicacion, Publicacion, TipoPublicacion } from '../entities/publicacion';
 
 export interface FiltrosBusqueda {
   tipo?: TipoPublicacion;
@@ -57,4 +57,15 @@ export abstract class PublicacionRepository {
    * las más recientes primero, hasta `filtros.limite`.
    */
   abstract buscar(filtros: FiltrosBusqueda): Promise<Publicacion[]>;
+
+  /**
+   * Cambia el estado solo si sigue siendo `de` (comparar y fijar) y dice si
+   * lo cambió. Así dos resoluciones simultáneas de reclamaciones no pueden
+   * dejar la publicación en un estado incoherente. Solo lo usa el propio
+   * contexto Publicaciones (`CambiarEstadoPublicacion`): es el dueño del dato.
+   */
+  abstract cambiarEstado(id: string, de: EstadoPublicacion, a: EstadoPublicacion): Promise<boolean>;
+
+  /** Publicaciones de una cuenta, las más recientes primero. */
+  abstract listarPorAutor(autorId: string): Promise<Publicacion[]>;
 }

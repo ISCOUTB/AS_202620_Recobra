@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { crearAppDePrueba } from './support/crear-app-prueba';
+import { autenticar } from './support/autenticar';
 
 /**
  * Prueba de extremo a extremo de Emparejamiento (antes solo diseño en
@@ -11,9 +12,11 @@ import { crearAppDePrueba } from './support/crear-app-prueba';
  */
 describe('Emparejamiento (e2e)', () => {
   let app: INestApplication;
+  let token: string;
 
   beforeAll(async () => {
     app = await crearAppDePrueba();
+    token = await autenticar(app);
   });
 
   afterAll(async () => {
@@ -32,14 +35,14 @@ describe('Emparejamiento (e2e)', () => {
   }
 
   it('detecta una coincidencia real tras crear dos publicaciones complementarias', async () => {
-    const perdido = await request(app.getHttpServer()).post('/publicaciones').send({
+    const perdido = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'perdido',
       descripcion: 'Cargador de laptop',
       categoria: 'electronica-e2e',
       ubicacion: 'Bloque 3',
     });
 
-    const encontrado = await request(app.getHttpServer()).post('/publicaciones').send({
+    const encontrado = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'encontrado',
       descripcion: 'Cargador negro',
       categoria: 'electronica-e2e',

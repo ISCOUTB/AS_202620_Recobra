@@ -3,6 +3,7 @@ import * as jestOpenAPI from 'jest-openapi';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { crearAppDePrueba } from './support/crear-app-prueba';
+import { autenticar } from './support/autenticar';
 
 /**
  * Modo de fallo "responde dos veces" visto desde el cliente: no recibió la
@@ -14,9 +15,11 @@ jestOpenAPI.default(path.join(__dirname, '../docs/contracts/openapi.yaml'));
 
 describe('Creación idempotente (e2e)', () => {
   let app: INestApplication;
+  let token: string;
 
   beforeAll(async () => {
     app = await crearAppDePrueba();
+    token = await autenticar(app);
   });
 
   afterAll(async () => {
@@ -25,7 +28,7 @@ describe('Creación idempotente (e2e)', () => {
 
   const servidor = () => app.getHttpServer();
   const publicar = (cuerpo: object, clave?: string) => {
-    const peticion = request(servidor()).post('/publicaciones');
+    const peticion = request(servidor()).post('/publicaciones').set('Authorization', `Bearer ${token}`);
     if (clave) peticion.set('Idempotency-Key', clave);
     return peticion.send(cuerpo);
   };

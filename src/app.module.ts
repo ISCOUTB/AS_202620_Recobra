@@ -6,6 +6,8 @@ import { PublicacionesModule } from './publicaciones/publicaciones.module';
 import { SaludModule } from './salud/salud.module';
 import { ObservabilidadModule } from './observabilidad/observabilidad.module';
 import { EmparejamientoModule } from './emparejamiento/emparejamiento.module';
+import { IdentidadModule } from './identidad/identidad.module';
+import { ReclamacionesModule } from './reclamaciones/reclamaciones.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { EmparejamientoModule } from './emparejamiento/emparejamiento.module';
     SaludModule,
     ObservabilidadModule,
     EmparejamientoModule,
+    IdentidadModule,
+    ReclamacionesModule,
   ],
 })
 export class AppModule {}

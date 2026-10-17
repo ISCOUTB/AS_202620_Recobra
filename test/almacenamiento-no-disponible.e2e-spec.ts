@@ -6,6 +6,7 @@ import { FiltrosBusqueda, PublicacionRepository } from '../src/domain/ports/publ
 import { Publicacion, TipoPublicacion } from '../src/domain/entities/publicacion';
 import { AlmacenamientoNoDisponibleError } from '../src/domain/errors/almacenamiento-no-disponible.error';
 import { crearAppDePrueba } from './support/crear-app-prueba';
+import { autenticar } from './support/autenticar';
 
 /**
  * Modo de fallo de la base de datos caída (p. ej. Neon o el PostgreSQL de
@@ -36,17 +37,27 @@ class AlmacenamientoCaido extends PublicacionRepository {
   async buscar(_filtros: FiltrosBusqueda): Promise<Publicacion[]> {
     throw new AlmacenamientoNoDisponibleError();
   }
+
+  async cambiarEstado(): Promise<boolean> {
+    throw new AlmacenamientoNoDisponibleError();
+  }
+
+  async listarPorAutor(): Promise<Publicacion[]> {
+    throw new AlmacenamientoNoDisponibleError();
+  }
 }
 
 jestOpenAPI.default(path.join(__dirname, '../docs/contracts/openapi.yaml'));
 
 describe('Almacenamiento no disponible (e2e)', () => {
   let app: INestApplication;
+  let token: string;
 
   beforeAll(async () => {
     app = await crearAppDePrueba((builder) =>
       builder.overrideProvider(PublicacionRepository).useClass(AlmacenamientoCaido),
     );
+    token = await autenticar(app);
   });
 
   afterAll(async () => {
@@ -74,7 +85,7 @@ describe('Almacenamiento no disponible (e2e)', () => {
   });
 
   it('POST /publicaciones responde 503 (no 500)', async () => {
-    const respuesta = await request(app.getHttpServer()).post('/publicaciones').send({
+    const respuesta = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'perdido',
       descripcion: 'Cargador',
       categoria: 'electronica',
@@ -97,7 +108,7 @@ describe('Almacenamiento no disponible (e2e)', () => {
       await request(servidor).get('/health/ready'),
       await request(servidor).get('/publicaciones'),
       await request(servidor).get('/publicaciones/cualquier-id'),
-      await request(servidor).post('/publicaciones').send({
+      await request(servidor).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
         tipo: 'perdido',
         descripcion: 'Cargador',
         categoria: 'electronica',

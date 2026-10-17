@@ -3,9 +3,12 @@
  * Uso: con el servidor levantado (`npm run start`), ejecutar `npm run measure:post`.
  */
 const http = require('node:http');
+const { obtenerToken } = require('./sesion-medicion');
 
 const PORT = process.env.PORT || 3000;
 const N = Number(process.env.MEASURE_N || 50);
+
+let token;
 
 function postOnce() {
   const body = JSON.stringify({
@@ -26,6 +29,7 @@ function postOnce() {
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(body),
+          Authorization: `Bearer ${token}`,
         },
       },
       (res) => {
@@ -49,6 +53,7 @@ function percentile(sorted, p) {
 }
 
 (async () => {
+  token = await obtenerToken(`http://127.0.0.1:${PORT}`);
   const samples = [];
   for (let i = 0; i < N; i += 1) {
     const result = await postOnce();

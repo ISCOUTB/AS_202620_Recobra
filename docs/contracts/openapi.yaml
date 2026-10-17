@@ -24,7 +24,13 @@ info:
     (un reintento con la misma clave responde 200 con la publicación original,
     sin crear otra; con datos distintos responde 422): cambio compatible, los
     clientes que no la envían siguen igual. Ver docs/modos-de-fallo.md.
-  version: "2.3.0"
+    3.0.0 agrega cuentas y reclamaciones (ADR-0013, ADR-0014): `POST /cuentas`,
+    `POST|DELETE /sesiones`, `GET /cuentas/yo`, `GET /publicaciones/mias`, las
+    rutas de reclamaciones, y `Publicacion` con `autorId` y los estados del
+    ciclo de vida. Es un cambio **incompatible**: `POST /publicaciones` ahora
+    exige `Authorization: Bearer <token>` (401 sin sesión), así que sube la
+    versión mayor.
+  version: "3.0.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
@@ -128,8 +134,10 @@ paths:
                 $ref: "#/components/schemas/Error"
     post:
       operationId: crearPublicacion
-      summary: Crear una publicación (objeto perdido o encontrado)
+      summary: Crear una publicación (objeto perdido o encontrado); exige sesión
       tags: [Publicaciones]
+      security:
+        - sesion: []
       parameters:
         - name: Idempotency-Key
           in: header
@@ -161,6 +169,12 @@ paths:
                 $ref: "#/components/schemas/Publicacion"
         "400":
           description: Datos de la publicación inválidos o Idempotency-Key con formato inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Falta la sesión o no es válida
           content:
             application/json:
               schema:
@@ -213,6 +227,360 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /publicaciones/mias:
+    get:
+      operationId: listarMisPublicaciones
+      summary: Publicaciones de la cuenta de la sesión
+      tags: [Publicaciones]
+      security:
+        - sesion: []
+      responses:
+        "200":
+          description: Publicaciones de la cuenta, las más recientes primero
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Publicacion"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /publicaciones/{id}/reclamaciones:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: reclamarPublicacion
+      summary: Reclamar un objeto encontrado (escenario S2)
+      tags: [Reclamaciones]
+      security:
+        - sesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prueba]
+              properties:
+                prueba:
+                  type: string
+                  minLength: 20
+                  maxLength: 1000
+                  description: Algo que solo el dueño sabría del objeto
+      responses:
+        "201":
+          description: Reclamación registrada; el objeto pasa a en_verificacion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reclamacion"
+        "400":
+          description: Prueba insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La publicación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: No se puede reclamar (no es un objeto encontrado, es propia, ya entregada o hay una pendiente)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      operationId: listarReclamacionesDePublicacion
+      summary: Reclamaciones de una publicación propia
+      tags: [Reclamaciones]
+      security:
+        - sesion: []
+      responses:
+        "200":
+          description: Reclamaciones con su prueba; el correo del reclamante solo si se aprobó
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReclamacionParaAutor"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La publicación no es de esta cuenta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La publicación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /reclamaciones/mias:
+    get:
+      operationId: listarMisReclamaciones
+      summary: Reclamaciones hechas por la cuenta de la sesión
+      tags: [Reclamaciones]
+      security:
+        - sesion: []
+      responses:
+        "200":
+          description: Estado de cada reclamación; el contacto de quien encontró el objeto solo si se aprobó
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReclamacionPropia"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /reclamaciones/{id}/aprobar:
+    post:
+      operationId: aprobarReclamacion
+      summary: Aprobar una reclamación (solo quien publicó el objeto); el objeto pasa a reclamado
+      tags: [Reclamaciones]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Reclamación aprobada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reclamacion"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Solo quien publicó el objeto puede resolver
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La reclamación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: La reclamación ya se resolvió o el estado cambió
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /reclamaciones/{id}/rechazar:
+    post:
+      operationId: rechazarReclamacion
+      summary: Rechazar una reclamación con su motivo (solo quien publicó el objeto)
+      tags: [Reclamaciones]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motivo]
+              properties:
+                motivo:
+                  type: string
+                  minLength: 3
+                  maxLength: 300
+      responses:
+        "200":
+          description: Reclamación rechazada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reclamacion"
+        "400":
+          description: Falta el motivo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Solo quien publicó el objeto puede resolver
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La reclamación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: La reclamación ya se resolvió
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /cuentas:
+    post:
+      operationId: registrarCuenta
+      summary: Registrar una cuenta con correo institucional (@utb.edu.co)
+      tags: [Identidad]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correo, nombre, contrasena]
+              properties:
+                correo:
+                  type: string
+                  example: ana.perez@utb.edu.co
+                nombre:
+                  type: string
+                contrasena:
+                  type: string
+                  minLength: 8
+      responses:
+        "201":
+          description: Cuenta creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cuenta"
+        "400":
+          description: Correo no institucional, nombre o contraseña inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Ya existe una cuenta con ese correo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /cuentas/yo:
+    get:
+      operationId: consultarMiCuenta
+      summary: Cuenta de la sesión
+      tags: [Identidad]
+      security:
+        - sesion: []
+      responses:
+        "200":
+          description: Datos de la cuenta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cuenta"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sesiones:
+    post:
+      operationId: iniciarSesion
+      summary: Iniciar sesión con correo y contraseña
+      tags: [Identidad]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correo, contrasena]
+              properties:
+                correo:
+                  type: string
+                contrasena:
+                  type: string
+      responses:
+        "201":
+          description: Sesión iniciada; el token se envía después como Authorization Bearer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, expiraEn, cuenta]
+                properties:
+                  token:
+                    type: string
+                  expiraEn:
+                    type: string
+                    format: date-time
+                  cuenta:
+                    $ref: "#/components/schemas/Cuenta"
+        "401":
+          description: Correo o contraseña incorrectos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: cerrarSesion
+      summary: Cerrar la sesión actual
+      tags: [Identidad]
+      security:
+        - sesion: []
+      responses:
+        "204":
+          description: Sesión cerrada
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /coincidencias:
     get:
       operationId: listarCoincidencias
@@ -234,7 +602,109 @@ paths:
                 items:
                   $ref: "#/components/schemas/Coincidencia"
 components:
+  securitySchemes:
+    sesion:
+      type: http
+      scheme: bearer
+      description: Token opaco devuelto por POST /sesiones (ADR-0013)
   schemas:
+    Cuenta:
+      type: object
+      required: [id, correo, nombre]
+      properties:
+        id:
+          type: string
+        correo:
+          type: string
+        nombre:
+          type: string
+    Reclamacion:
+      type: object
+      required: [id, publicacionId, reclamanteId, prueba, estado, creadoEn]
+      properties:
+        id:
+          type: string
+        publicacionId:
+          type: string
+        reclamanteId:
+          type: string
+        prueba:
+          type: string
+        estado:
+          type: string
+          enum: [pendiente, aprobada, rechazada]
+        creadoEn:
+          type: string
+          format: date-time
+        resueltaEn:
+          type: string
+          format: date-time
+          nullable: true
+        motivoRechazo:
+          type: string
+          nullable: true
+    ReclamacionParaAutor:
+      type: object
+      required: [id, publicacionId, estado, prueba, creadoEn, reclamante]
+      properties:
+        id:
+          type: string
+        publicacionId:
+          type: string
+        estado:
+          type: string
+          enum: [pendiente, aprobada, rechazada]
+        prueba:
+          type: string
+        creadoEn:
+          type: string
+          format: date-time
+        resueltaEn:
+          type: string
+          format: date-time
+          nullable: true
+        motivoRechazo:
+          type: string
+          nullable: true
+        reclamante:
+          type: object
+          required: [nombre]
+          properties:
+            nombre:
+              type: string
+            correo:
+              type: string
+              description: Solo cuando la reclamación está aprobada
+    ReclamacionPropia:
+      type: object
+      required: [id, publicacionId, estado, creadoEn]
+      properties:
+        id:
+          type: string
+        publicacionId:
+          type: string
+        estado:
+          type: string
+          enum: [pendiente, aprobada, rechazada]
+        creadoEn:
+          type: string
+          format: date-time
+        resueltaEn:
+          type: string
+          format: date-time
+          nullable: true
+        motivoRechazo:
+          type: string
+          nullable: true
+        contactoQuienEncontro:
+          type: object
+          description: Solo cuando la reclamación está aprobada
+          required: [nombre, correo]
+          properties:
+            nombre:
+              type: string
+            correo:
+              type: string
     Disponibilidad:
       type: object
       required: [status, service, almacenamiento]
@@ -293,12 +763,16 @@ components:
           type: string
         estado:
           type: string
-          example: publicado
+          enum: [publicado, en_verificacion, reclamado]
         creadoEn:
           type: string
           format: date-time
+        autorId:
+          type: string
+          nullable: true
+          description: Cuenta que publicó; null en publicaciones anteriores a las cuentas
     Error:
-      description: Formato único de error para 400, 404 y 500.
+      description: Formato único de error para 400, 401, 403, 404, 409, 422, 500 y 503.
       type: object
       required: [statusCode, message]
       properties:

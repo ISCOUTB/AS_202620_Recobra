@@ -3,6 +3,7 @@ import * as jestOpenAPI from 'jest-openapi';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { crearAppDePrueba } from './support/crear-app-prueba';
+import { autenticar } from './support/autenticar';
 
 /**
  * Prueba de contrato (S7): valida que las respuestas reales de la API
@@ -15,9 +16,11 @@ jestOpenAPI.default(path.join(__dirname, '../docs/contracts/openapi.yaml'));
 
 describe('Contrato de la API (e2e)', () => {
   let app: INestApplication;
+  let token: string;
 
   beforeAll(async () => {
     app = await crearAppDePrueba();
+    token = await autenticar(app);
   });
 
   afterAll(async () => {
@@ -32,7 +35,7 @@ describe('Contrato de la API (e2e)', () => {
   });
 
   it('POST /publicaciones (201) cumple el esquema Publicacion del contrato', async () => {
-    const respuesta = await request(app.getHttpServer()).post('/publicaciones').send({
+    const respuesta = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'perdido',
       descripcion: 'Cargador de laptop',
       categoria: 'electronica',
@@ -44,7 +47,7 @@ describe('Contrato de la API (e2e)', () => {
   });
 
   it('POST /publicaciones con tipo inválido (400) cumple el esquema Error del contrato', async () => {
-    const respuesta = await request(app.getHttpServer()).post('/publicaciones').send({
+    const respuesta = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'robado',
       descripcion: 'x',
       categoria: 'y',
@@ -56,7 +59,7 @@ describe('Contrato de la API (e2e)', () => {
   });
 
   it('GET /publicaciones/:id (200) cumple el esquema Publicacion del contrato', async () => {
-    const creada = await request(app.getHttpServer()).post('/publicaciones').send({
+    const creada = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'encontrado',
       descripcion: 'Llavero',
       categoria: 'llaves',
@@ -87,13 +90,13 @@ describe('Contrato de la API (e2e)', () => {
   });
 
   it('GET /coincidencias con una coincidencia real (200) cumple el esquema Coincidencia del contrato', async () => {
-    await request(app.getHttpServer()).post('/publicaciones').send({
+    await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'perdido',
       descripcion: 'Audífonos',
       categoria: 'contrato-coincidencia',
       ubicacion: 'Cafetería',
     });
-    const encontrado = await request(app.getHttpServer()).post('/publicaciones').send({
+    const encontrado = await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'encontrado',
       descripcion: 'Audífonos blancos',
       categoria: 'contrato-coincidencia',
@@ -117,7 +120,7 @@ describe('Contrato de la API (e2e)', () => {
   });
 
   it('GET /publicaciones (200) cumple el esquema de lista de Publicacion del contrato', async () => {
-    await request(app.getHttpServer()).post('/publicaciones').send({
+    await request(app.getHttpServer()).post('/publicaciones').set('Authorization', `Bearer ${token}`).send({
       tipo: 'perdido',
       descripcion: 'Para la búsqueda',
       categoria: 'contrato-busqueda',
