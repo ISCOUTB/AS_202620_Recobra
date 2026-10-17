@@ -43,6 +43,7 @@ desarrollo del proyecto, tal como lo pide la evidencia S1/S2.
 * *Verificación de dependencias (S9):* Confirmé manualmente en npmjs.com que `pg`, `@types/pg`, `@nestjs/event-emitter` y `jest-openapi` son paquetes reales, con repositorio público y volumen de descargas alto — ninguno parece inventado por una IA.
 * *Verificación de la dependencia de la búsqueda (S9):* Confirmé manualmente en npmjs.com que `autocannon` (herramienta de carga HTTP agregada para medir la búsqueda) es un paquete real: repositorio público `mcollina/autocannon`, licencia MIT, publicado desde 2016 y con alto volumen de descargas — no parece inventado por una IA.
 * *Verificación del costo de la alternativa de pago (S10):* Confirmé en render.com/pricing que un servicio web Starter de Render cuesta USD 7 al mes, el dato que usa el ADR-0010 para descartar la alternativa B. Leí el ADR-0010 y estoy de acuerdo con la decisión de pasar el despliegue a Dokploy.
+* *Revisión del ADR de extracción (S11):* Comprobé que las cifras que usa el ADR-0012 coinciden con las mediciones del repositorio (emparejamiento de unos 2 ms en docs/medicion-emparejamiento.md y búsqueda con p97,5 de 157 ms a 200 conexiones en docs/medicion-s10.md). Leí las tres alternativas y estoy de acuerdo con no extraer Emparejamiento por ahora, con los criterios que harían revisar la decisión.
 
 ### 3. Declaración de Autonomía
 * El código final y la documentación enviada fueron revisados, comprendidos y validados manualmente antes de su integración al repositorio.
