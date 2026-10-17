@@ -74,6 +74,9 @@ MockClient _servidor({List<http.Request>? registro, bool soyAutor = false}) => M
             : _resp('{"statusCode":401,"message":"Debes iniciar sesión"}', 401);
       }
       if (ruta == '/coincidencias') return _resp('[]', 200);
+      if (ruta == '/lugares') {
+        return _resp('[{"nombre":"Biblioteca","niveles":["Piso 1","Piso 2"]},{"nombre":"Cafetería central","niveles":[]}]', 200);
+      }
       if (request.method == 'GET' && ruta == '/notificaciones') return _resp(_bandeja, 200);
       if (request.method == 'POST' && ruta.startsWith('/notificaciones/')) return http.Response('', 204);
       if (request.method == 'GET' && ruta == '/publicaciones/abc') return _resp(_publicacion(), 200);
@@ -251,12 +254,17 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Biblioteca').last);
       await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Piso 2')); // submenú de pisos del lugar elegido
+      await tester.enterText(find.widgetWithText(TextFormField, 'Salón o referencia (opcional)'), 'Sala de estudio');
+      await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Publicar objeto perdido'));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Publicación creada'), findsOneWidget);
       final crear = peticiones.firstWhere((r) => r.method == 'POST' && r.url.path == '/publicaciones');
       expect(crear.headers['Authorization'], 'Bearer tok-123');
+      expect(jsonDecode(crear.body)['ubicacion'], 'Biblioteca');
+      expect(jsonDecode(crear.body)['detalleUbicacion'], 'Piso 2 · Sala de estudio');
       expect(find.textContaining('Ana'), findsWidgets); // saludo en Inicio
     });
 

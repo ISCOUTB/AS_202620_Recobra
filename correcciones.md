@@ -191,6 +191,13 @@ Fuente de los hallazgos: retroalimentación publicada en
 | UI/UX señalada como faltante en el mini informe | Propuesta hecha con Claude Design a partir de un brief del equipo, aplicada en la app y en la vitrina: accesos rápidos, coincidencias lado a lado, reclamar explicado, confirmación de entrega, motivos rápidos, bienvenida, vacíos y errores con acción | [`docs/diseno-ui.md`](docs/diseno-ui.md) |
 | Pocas pruebas de la interfaz | Pruebas de widgets de bienvenida, accesos rápidos, reclamar (botón habilitado con 20 caracteres) y confirmación antes de aprobar | `mobile/test/widget_test.dart` (13 pruebas) |
 
+## Avance del proyecto · Lugares y posicionamiento (2026-10-17)
+
+| Pendiente | Qué se hizo | Evidencia |
+|---|---|---|
+| El lugar era un texto libre o una lista plana | Lugar en dos niveles: catálogo de lugares con pisos (`GET /lugares`) como submenú, y piso, salón o referencia en `detalleUbicacion` (contrato 3.2.0, compatible) | `test/lugares.e2e-spec.ts`, `publicacion-lugar.spec.ts` |
+| Relación con la app UTB sin decidir | Recobra semiindependiente, con la integración como objetivo potencial y los pasos para llegar | [ADR-0016](docs/adr/0016-recobra-semiindependiente-de-la-app-utb.md) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

@@ -288,6 +288,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0013](../adr/0013-cuentas-con-correo-institucional-y-sesiones-opacas.md) | Cuentas propias con correo institucional y sesiones con token opaco | Aceptada |
 | [ADR-0014](../adr/0014-reclamacion-con-prueba-y-aprobacion.md) | Reclamación con prueba del reclamante y aprobación de quien encontró el objeto | Aceptada |
 | [ADR-0015](../adr/0015-notificaciones-en-la-aplicacion.md) | Notificaciones dentro de la aplicación, alimentadas por eventos en proceso | Aceptada |
+| [ADR-0016](../adr/0016-recobra-semiindependiente-de-la-app-utb.md) | Recobra semiindependiente de la app UTB, con la integración como objetivo potencial | Aceptada |
 
 
 ## 10. Requisitos de calidad

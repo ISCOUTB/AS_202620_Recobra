@@ -104,7 +104,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
                   children: [
                     Expanded(child: _Dato('Categoría', p.categoria)),
                     const SizedBox(width: 8),
-                    Expanded(child: _Dato('Lugar', p.ubicacion)),
+                    Expanded(child: _Dato('Lugar', p.lugarCompleto)),
                     const SizedBox(width: 8),
                     Expanded(child: _Dato('Fecha', fechaCorta(p.creadoEn))),
                   ],
@@ -312,7 +312,7 @@ class _Lado extends StatelessWidget {
                   Text(p.descripcion, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.3)),
                   const SizedBox(height: 6),
                   Text(
-                    '${p.categoria}\n${p.ubicacion}\n${fechaCorta(p.creadoEn)}',
+                    '${p.categoria}\n${p.lugarCompleto}\n${fechaCorta(p.creadoEn)}',
                     style: const TextStyle(fontSize: 12, color: ColoresUtb.textoSuave, height: 1.4),
                   ),
                 ],

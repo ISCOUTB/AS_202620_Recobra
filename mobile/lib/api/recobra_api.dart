@@ -13,6 +13,7 @@ class Publicacion {
     required this.estado,
     required this.creadoEn,
     this.autorId,
+    this.detalleUbicacion,
   });
 
   final String id;
@@ -20,6 +21,12 @@ class Publicacion {
   final String descripcion;
   final String categoria;
   final String ubicacion;
+
+  /// Piso, salón o referencia dentro del lugar ("Piso 2 · Salón 204").
+  final String? detalleUbicacion;
+
+  /// "Bloque A1 · Piso 2 · Salón 204", o solo el lugar si no hay detalle.
+  String get lugarCompleto => detalleUbicacion == null ? ubicacion : '$ubicacion · $detalleUbicacion';
 
   /// publicado · en_verificacion · reclamado (ciclo de vida, ADR-0014).
   final String estado;
@@ -38,8 +45,20 @@ class Publicacion {
       estado: json['estado'] as String,
       creadoEn: json['creadoEn'] as String,
       autorId: json['autorId'] as String?,
+      detalleUbicacion: json['detalleUbicacion'] as String?,
     );
   }
+}
+
+/// Lugar del campus con sus pisos (submenú), de `GET /lugares`.
+class LugarCampus {
+  const LugarCampus(this.nombre, this.niveles);
+
+  final String nombre;
+  final List<String> niveles;
+
+  factory LugarCampus.fromJson(Map<String, dynamic> json) =>
+      LugarCampus(json['nombre'] as String, (json['niveles'] as List<dynamic>).cast<String>());
 }
 
 class Coincidencia {
@@ -197,7 +216,7 @@ class RecobraApiException implements Exception {
   String toString() => message;
 }
 
-/// Cliente HTTP de la API de Recobra (contrato 3.1.0). La URL base se inyecta
+/// Cliente HTTP de la API de Recobra (contrato 3.2.0). La URL base se inyecta
 /// para poder apuntar a emulador, web o el despliegue. El token de sesión se
 /// guarda solo en memoria: al cerrar la app hay que volver a iniciar sesión.
 class RecobraApi {
@@ -290,6 +309,7 @@ class RecobraApi {
     required String descripcion,
     required String categoria,
     required String ubicacion,
+    String? detalleUbicacion,
     String? claveIdempotencia,
   }) async {
     final r = await _enviar(_client.post(
@@ -298,9 +318,22 @@ class RecobraApi {
         json: true,
         extra: {if (claveIdempotencia != null) 'Idempotency-Key': claveIdempotencia},
       ),
-      body: jsonEncode({'tipo': tipo, 'descripcion': descripcion, 'categoria': categoria, 'ubicacion': ubicacion}),
+      body: jsonEncode({
+        'tipo': tipo,
+        'descripcion': descripcion,
+        'categoria': categoria,
+        'ubicacion': ubicacion,
+        if (detalleUbicacion != null && detalleUbicacion.isNotEmpty) 'detalleUbicacion': detalleUbicacion,
+      }),
     ));
     return Publicacion.fromJson(_cuerpoO(r, {201, 200}, 'No se pudo crear la publicación') as Map<String, dynamic>);
+  }
+
+  /// Catálogo de lugares con sus pisos; es la misma lista para la app y la vitrina.
+  Future<List<LugarCampus>> lugares() async {
+    final r = await _enviar(_client.get(_uri('/lugares')));
+    final lista = _cuerpoO(r, {200}, 'No se pudieron cargar los lugares') as List<dynamic>;
+    return lista.map((e) => LugarCampus.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<Publicacion> consultarPublicacion(String id) async {

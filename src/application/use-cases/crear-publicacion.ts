@@ -11,6 +11,7 @@ export interface DatosCrearPublicacion {
   descripcion: string;
   categoria: string;
   ubicacion: string;
+  detalleUbicacion?: string | null;
 }
 
 export interface ResultadoCreacion {
@@ -89,11 +90,20 @@ export class CrearPublicacion {
   }
 
   private construir(
-    { tipo, descripcion, categoria, ubicacion }: DatosCrearPublicacion,
+    { tipo, descripcion, categoria, ubicacion, detalleUbicacion }: DatosCrearPublicacion,
     id: string,
     autorId: string | null,
   ): Publicacion {
-    return new Publicacion({ id, tipo, descripcion, categoria, ubicacion, autorId, creadoEn: new Date().toISOString() });
+    return new Publicacion({
+      id,
+      tipo,
+      descripcion,
+      categoria,
+      ubicacion,
+      detalleUbicacion,
+      autorId,
+      creadoEn: new Date().toISOString(),
+    });
   }
 
   private notificar(publicacion: Publicacion): void {
@@ -108,7 +118,8 @@ export class CrearPublicacion {
       existente.tipo === datos.tipo &&
       existente.descripcion === datos.descripcion?.trim() &&
       existente.categoria === datos.categoria?.trim() &&
-      existente.ubicacion === datos.ubicacion?.trim();
+      existente.ubicacion === datos.ubicacion?.trim() &&
+      existente.detalleUbicacion === (datos.detalleUbicacion?.trim() || null);
     if (!igual) throw new ConflictoIdempotenciaError();
     return existente;
   }

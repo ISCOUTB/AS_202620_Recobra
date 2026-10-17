@@ -239,7 +239,7 @@ class TarjetaPublicacion extends StatelessWidget {
                         Text(p.descripcion, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.3)),
                         const SizedBox(height: 6),
                         Text(
-                          '${p.categoria} · ${p.ubicacion} · ${fechaCorta(p.creadoEn)}',
+                          '${p.categoria} · ${p.lugarCompleto} · ${fechaCorta(p.creadoEn)}',
                           style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12, fontWeight: FontWeight.w500),
                         ),
                         if (ayuda != null && pie == null) ...[

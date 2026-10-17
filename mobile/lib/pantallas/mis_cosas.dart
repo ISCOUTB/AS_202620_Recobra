@@ -550,7 +550,7 @@ class _TarjetaReclamoPropio extends StatelessWidget {
                       Text(p?.descripcion ?? 'Publicación', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
                       Text(
-                        [if (p != null) p.ubicacion, 'Enviada el ${fechaCorta(r.creadoEn)}'].join(' · '),
+                        [if (p != null) p.lugarCompleto, 'Enviada el ${fechaCorta(r.creadoEn)}'].join(' · '),
                         style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
                       ),
                     ],

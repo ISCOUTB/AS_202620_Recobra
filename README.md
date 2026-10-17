@@ -13,6 +13,19 @@ ciclo de vida del objeto hasta su reclamación o cierre.
 Problema, usuarios objetivo, propuesta de solución y tensiones de calidad
 completas en [`docs/ficha_problema.md`](docs/ficha_problema.md).
 
+**Posicionamiento ([ADR-0016](docs/adr/0016-recobra-semiindependiente-de-la-app-utb.md)):** hoy Recobra es
+**semiindependiente** de la app de la UTB: tiene su propia API, app y
+vitrina, con cuentas `@utb.edu.co` y el mismo lenguaje visual de la app
+institucional. El **objetivo potencial** es integrarse como un módulo de la app
+UTB (inicio de sesión con la cuenta de la universidad, entrada desde su menú y
+avisos por su canal); cada punto de integración ya está detrás de un puerto o
+del contrato de la API para poder darlo sin reescribir el dominio.
+
+**Probar:** vitrina web en https://recobra.iscoutb.dev (crear cuenta con un
+correo `@utb.edu.co`, publicar, buscar, reclamar, aprobar y ver avisos). La app
+Flutter se prueba con `flutter run -d chrome --dart-define=API_BASE_URL=https://recobra.iscoutb.dev`
+desde `mobile/`.
+
 ## Stack
 
 Backend **NestJS** (TypeScript) + frontend **Flutter**, según
@@ -147,11 +160,12 @@ curl -X POST http://localhost:3000/publicaciones \
     "tipo": "perdido",
     "descripcion": "Cargador de laptop",
     "categoria": "electronica",
-    "ubicacion": "Bloque 3"
+    "ubicacion": "Bloque A1",
+    "detalleUbicacion": "Piso 2 · Salón 204"
   }'
 ```
 
-`201 Created` con la publicación. Datos inválidos → `400` con `{ "statusCode": 400, "message": "..." }` (esquema de error único, ADR-0009).
+`201 Created` con la publicación. `ubicacion` es el lugar del campus (filtra y empareja) y `detalleUbicacion`, opcional, el piso, salón o referencia. El catálogo de lugares con sus pisos sale de `GET /lugares`, el mismo para la app y la vitrina. Datos inválidos → `400` con `{ "statusCode": 400, "message": "..." }` (esquema de error único, ADR-0009).
 
 Con la cabecera opcional `Idempotency-Key: <clave aleatoria>`, repetir la misma creación no la duplica: el reintento responde `200` con la publicación original, y la misma clave con datos distintos responde `422`. La vitrina y la app la envían. Ver [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md).
 

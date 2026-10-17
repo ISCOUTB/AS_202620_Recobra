@@ -33,7 +33,10 @@ info:
     3.1.0 agrega la bandeja de avisos (`GET /notificaciones`,
     `POST /notificaciones/{id}/leida`, `POST /notificaciones/leidas`, ADR-0015):
     cambio compatible.
-  version: "3.1.0"
+    3.2.0 agrega los lugares en dos niveles: `GET /lugares` (catálogo con
+    pisos) y el campo opcional `detalleUbicacion` (piso, salón o referencia):
+    cambio compatible.
+  version: "3.2.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
@@ -584,6 +587,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /lugares:
+    get:
+      operationId: listarLugares
+      summary: Catálogo de lugares del campus con sus pisos
+      tags: [Publicaciones]
+      responses:
+        "200":
+          description: Lugares en el orden en que se muestran
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LugarCampus"
   /notificaciones:
     get:
       operationId: listarNotificaciones
@@ -683,6 +700,19 @@ components:
       scheme: bearer
       description: Token opaco devuelto por POST /sesiones (ADR-0013)
   schemas:
+    LugarCampus:
+      type: object
+      required: [nombre, niveles]
+      properties:
+        nombre:
+          type: string
+          example: Bloque A1
+        niveles:
+          type: array
+          description: Pisos que se ofrecen como submenú; vacío si el lugar no tiene
+          items:
+            type: string
+          example: [Piso 1, Piso 2, Piso 3, Piso 4]
     Notificacion:
       type: object
       required: [id, cuentaId, tipo, titulo, mensaje, publicacionId, leida, creadoEn]
@@ -845,6 +875,13 @@ components:
         ubicacion:
           type: string
           minLength: 1
+          description: Lugar del campus (edificio o zona); se usa para filtrar y emparejar
+        detalleUbicacion:
+          type: string
+          nullable: true
+          maxLength: 120
+          description: Piso, salón o punto de referencia dentro del lugar (opcional)
+          example: "Piso 2 · Salón 204"
     Publicacion:
       type: object
       required: [id, tipo, descripcion, categoria, ubicacion, estado, creadoEn]
@@ -859,6 +896,10 @@ components:
           type: string
         ubicacion:
           type: string
+        detalleUbicacion:
+          type: string
+          nullable: true
+          description: Piso, salón o referencia; null si no se indicó
         estado:
           type: string
           enum: [publicado, en_verificacion, reclamado]

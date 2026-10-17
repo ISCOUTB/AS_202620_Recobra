@@ -14,6 +14,9 @@ export type EstadoPublicacion = (typeof ESTADOS_PUBLICACION)[number];
 
 const ESTADO_INICIAL: EstadoPublicacion = 'publicado';
 
+/** Largo máximo del piso, salón o referencia ("Piso 2 · Salón 204"). */
+export const DETALLE_MAXIMO = 120;
+
 const TRANSICIONES: Record<EstadoPublicacion, EstadoPublicacion[]> = {
   publicado: ['en_verificacion'],
   en_verificacion: ['reclamado', 'publicado'],
@@ -33,6 +36,8 @@ export interface DatosPublicacion {
   descripcion: string;
   categoria: string;
   ubicacion: string;
+  /** Piso, salón o punto de referencia dentro del lugar (opcional, solo se muestra). */
+  detalleUbicacion?: string | null;
   creadoEn: string;
   /** Cuenta que la publicó; null en publicaciones anteriores a las cuentas. */
   autorId?: string | null;
@@ -45,18 +50,20 @@ export class Publicacion {
   readonly descripcion: string;
   readonly categoria: string;
   readonly ubicacion: string;
+  readonly detalleUbicacion: string | null;
   readonly estado: EstadoPublicacion;
   readonly creadoEn: string;
   readonly autorId: string | null;
 
-  constructor({ id, tipo, descripcion, categoria, ubicacion, creadoEn, autorId, estado }: DatosPublicacion) {
-    Publicacion.validar({ tipo, descripcion, categoria, ubicacion });
+  constructor({ id, tipo, descripcion, categoria, ubicacion, detalleUbicacion, creadoEn, autorId, estado }: DatosPublicacion) {
+    Publicacion.validar({ tipo, descripcion, categoria, ubicacion, detalleUbicacion });
 
     this.id = id;
     this.tipo = tipo;
     this.descripcion = descripcion.trim();
     this.categoria = categoria.trim();
     this.ubicacion = ubicacion.trim();
+    this.detalleUbicacion = detalleUbicacion?.trim() || null;
     this.estado = estado && ESTADOS_PUBLICACION.includes(estado) ? estado : ESTADO_INICIAL;
     this.creadoEn = creadoEn;
     this.autorId = autorId ?? null;
@@ -74,7 +81,8 @@ export class Publicacion {
     descripcion,
     categoria,
     ubicacion,
-  }: Pick<DatosPublicacion, 'tipo' | 'descripcion' | 'categoria' | 'ubicacion'>): void {
+    detalleUbicacion,
+  }: Pick<DatosPublicacion, 'tipo' | 'descripcion' | 'categoria' | 'ubicacion' | 'detalleUbicacion'>): void {
     if (!TIPOS_VALIDOS.includes(tipo)) {
       throw new PublicacionInvalidaError(`tipo debe ser uno de: ${TIPOS_VALIDOS.join(', ')}`);
     }
@@ -86,6 +94,9 @@ export class Publicacion {
     }
     if (!ubicacion || !ubicacion.trim()) {
       throw new PublicacionInvalidaError('ubicacion es obligatoria');
+    }
+    if (detalleUbicacion != null && (typeof detalleUbicacion !== 'string' || detalleUbicacion.trim().length > DETALLE_MAXIMO)) {
+      throw new PublicacionInvalidaError(`detalleUbicacion debe tener como máximo ${DETALLE_MAXIMO} caracteres`);
     }
   }
 }

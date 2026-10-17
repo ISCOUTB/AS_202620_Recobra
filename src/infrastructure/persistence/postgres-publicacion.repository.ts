@@ -142,13 +142,15 @@ export class PostgresPublicacionRepository
     // Cuentas (ADR-0013): columna nueva, nula en las publicaciones anteriores.
     await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS autor_id TEXT');
     await this.pool.query('CREATE INDEX IF NOT EXISTS idx_publicaciones_autor ON publicaciones (autor_id)');
+    // Lugares en dos niveles: piso, salón o referencia; nulo en las anteriores.
+    await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS detalle_ubicacion TEXT');
     this.esquemaListo = true;
   }
 
   async guardar(publicacion: Publicacion): Promise<Publicacion> {
     await this.consultar(
-      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id, detalle_ubicacion)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (id) DO NOTHING`,
       [
         publicacion.id,
@@ -159,6 +161,7 @@ export class PostgresPublicacionRepository
         publicacion.estado,
         publicacion.creadoEn,
         publicacion.autorId,
+        publicacion.detalleUbicacion,
       ],
     );
     return publicacion;
@@ -167,8 +170,8 @@ export class PostgresPublicacionRepository
   /** Atómico gracias a la clave primaria: dos inserciones simultáneas del mismo id dejan una sola fila. */
   async guardarSiNoExiste(publicacion: Publicacion): Promise<boolean> {
     const resultado = await this.consultar(
-      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id, detalle_ubicacion)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (id) DO NOTHING`,
       [
         publicacion.id,
@@ -179,6 +182,7 @@ export class PostgresPublicacionRepository
         publicacion.estado,
         publicacion.creadoEn,
         publicacion.autorId,
+        publicacion.detalleUbicacion,
       ],
     );
     return resultado.rowCount === 1;
@@ -234,6 +238,7 @@ export class PostgresPublicacionRepository
       descripcion: fila.descripcion as string,
       categoria: fila.categoria as string,
       ubicacion: fila.ubicacion as string,
+      detalleUbicacion: (fila.detalle_ubicacion as string | null) ?? null,
       creadoEn: new Date(fila.creado_en as string).toISOString(),
       estado: fila.estado as EstadoPublicacion,
       autorId: (fila.autor_id as string | null) ?? null,

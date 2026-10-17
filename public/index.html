@@ -504,6 +504,14 @@
       <label id="etiqueta-otro-lugar" hidden>Escribe el lugar
         <input type="text" name="otroLugar" id="campo-otro-lugar" maxlength="120" />
       </label>
+      <label id="etiqueta-piso" hidden>¿En qué piso? (opcional)
+        <select name="piso" id="campo-piso">
+          <option value="">Sin precisar</option>
+        </select>
+      </label>
+      <label>Salón o referencia (opcional)
+        <input type="text" name="referencia" maxlength="80" placeholder="Salón 204, cerca de los baños…" />
+      </label>
       <label>Foto (opcional, solo vista previa por ahora)
         <button type="button" class="zona-foto" id="zona-foto">
           <img id="vista-previa-foto" alt="Vista previa" hidden />
@@ -532,16 +540,18 @@
         <select id="filtro-categoria">
           <option value="">Todas</option>
           <option value="electronica">Electrónica</option>
-          <option value="mochilas">Mochilas y bolsos</option>
-          <option value="documentos">Documentos e identificación</option>
+          <option value="mochilas">Mochilas</option>
           <option value="llaves">Llaves</option>
-          <option value="ropa">Ropa y accesorios</option>
-          <option value="utiles">Útiles y libros</option>
+          <option value="documentos">Documentos</option>
+          <option value="ropa">Ropa</option>
+          <option value="accesorios">Accesorios</option>
           <option value="otros">Otros</option>
         </select>
       </label>
-      <label>Ubicación
-        <input type="text" id="filtro-ubicacion" placeholder="Bloque 5, UTB" />
+      <label>Lugar
+        <select id="filtro-ubicacion">
+          <option value="">Todos</option>
+        </select>
       </label>
     </div>
     <output id="resumen"></output>
@@ -699,9 +709,14 @@
 
   const AYUDA_ESTADO = { en_verificacion: 'Alguien dijo que es suyo. Quien lo encontró está revisando.' };
 
+  /** "Bloque A1 · Piso 2 · Salón 204", o solo el lugar si no hay detalle. */
+  function lugarCompleto(p) {
+    return p.detalleUbicacion ? `${p.ubicacion} · ${p.detalleUbicacion}` : p.ubicacion;
+  }
+
   function ladoComparacion(rotulo, p) {
     const lado = elemento('div', `lado ${p.tipo}`);
-    lado.append(elemento('div', 'rotulo', rotulo), elemento('strong', '', p.descripcion), elemento('div', 'meta', `${p.categoria} · ${p.ubicacion}`));
+    lado.append(elemento('div', 'rotulo', rotulo), elemento('strong', '', p.descripcion), elemento('div', 'meta', `${p.categoria} · ${lugarCompleto(p)}`));
     return lado;
   }
 
@@ -736,7 +751,7 @@
     if (pub.estado === 'reclamado') tarjeta.classList.add('entregada');
     const fila = elemento('div', 'fila-superior');
     fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), etiquetaEstado(pub.estado));
-    const meta = elemento('div', 'meta', `${pub.categoria} · ${pub.ubicacion} · ${formatearFecha(pub.creadoEn)}`);
+    const meta = elemento('div', 'meta', `${pub.categoria} · ${lugarCompleto(pub)} · ${formatearFecha(pub.creadoEn)}`);
     const acciones = elemento('div', 'acciones');
     const boton = elemento('button', 'secundario', 'Ver coincidencias');
     boton.type = 'button';
@@ -763,12 +778,11 @@
     return tarjeta;
   }
 
-  let temporizadorBusqueda;
   async function buscar() {
     const parametros = new URLSearchParams({ limite: '20' });
     if (filtroTipo.value) parametros.set('tipo', filtroTipo.value);
     if (filtroCategoria.value) parametros.set('categoria', filtroCategoria.value);
-    if (filtroUbicacion.value.trim()) parametros.set('ubicacion', filtroUbicacion.value.trim());
+    if (filtroUbicacion.value) parametros.set('ubicacion', filtroUbicacion.value);
     const hayFiltros = [...parametros].length > 1;
     try {
       const respuesta = await fetch(`/publicaciones?${parametros}`);
@@ -791,14 +805,9 @@
     }
   }
 
-  function buscarConRetraso() {
-    clearTimeout(temporizadorBusqueda);
-    temporizadorBusqueda = setTimeout(buscar, 300);
-  }
-
   filtroTipo.addEventListener('change', buscar);
   filtroCategoria.addEventListener('change', buscar);
-  filtroUbicacion.addEventListener('input', buscarConRetraso);
+  filtroUbicacion.addEventListener('change', buscar);
 
   /*
    * Modos de fallo del lado del cliente (docs/modos-de-fallo.md):
@@ -822,9 +831,43 @@
       : 'Describe lo que se ve. Guarda los detalles íntimos: con ellos el dueño probará que es suyo.';
   }
   for (const opcion of formCrear.elements.tipo) opcion.addEventListener('change', ajustarFormularioPorTipo);
+  const campoPiso = document.getElementById('campo-piso');
+  const etiquetaPiso = document.getElementById('etiqueta-piso');
+  /** Catálogo de lugares con sus pisos (GET /lugares); la lista fija del formulario es el respaldo. */
+  let lugares = [];
+
+  /** Submenú: si el lugar elegido tiene pisos, se ofrecen; si no, se oculta. */
+  function mostrarPisos() {
+    const lugar = lugares.find((l) => l.nombre === campoLugar.value);
+    const niveles = lugar ? lugar.niveles : [];
+    campoPiso.replaceChildren(new Option('Sin precisar', ''));
+    for (const n of niveles) campoPiso.append(new Option(n, n));
+    etiquetaPiso.hidden = niveles.length === 0;
+  }
+
+  async function cargarLugares() {
+    try {
+      const r = await fetch('/lugares');
+      if (!r.ok) return;
+      lugares = await r.json();
+    } catch {
+      return;
+    }
+    const otra = campoLugar.querySelector('option[value="otra"]');
+    campoLugar.replaceChildren(new Option('Selecciona un lugar', ''));
+    const filtro = document.getElementById('filtro-ubicacion');
+    filtro.replaceChildren(new Option('Todos', ''));
+    for (const l of lugares) {
+      campoLugar.append(new Option(l.nombre, l.nombre));
+      filtro.append(new Option(l.nombre, l.nombre));
+    }
+    campoLugar.append(otra);
+  }
+
   campoLugar.addEventListener('change', () => {
     etiquetaOtroLugar.hidden = campoLugar.value !== 'otra';
     document.getElementById('campo-otro-lugar').required = campoLugar.value === 'otra';
+    mostrarPisos();
   });
   // Siempre con el generador criptográfico del navegador (randomUUID solo existe en contextos seguros).
   const nuevaClave = () =>
@@ -845,6 +888,7 @@
       descripcion: campos.descripcion,
       categoria: campos.categoria,
       ubicacion: campos.lugar === 'otra' ? (campos.otroLugar || '').trim() : campos.lugar,
+      detalleUbicacion: [campos.piso, (campos.referencia || '').trim()].filter(Boolean).join(' · ') || undefined,
     };
     if (!datos.ubicacion) {
       mensajeCrear.textContent = 'Dinos dónde fue.';
@@ -881,6 +925,7 @@
       formCrear.reset();
       ajustarFormularioPorTipo();
       etiquetaOtroLugar.hidden = true;
+      etiquetaPiso.hidden = true;
       inputFoto.value = '';
       vistaPreviaFoto.hidden = true;
       vistaPreviaFoto.src = '';
@@ -1307,7 +1352,7 @@
     tarjeta.append(
       fila,
       elemento('div', 'descripcion', pub.ok ? pub.cuerpo.descripcion : 'Publicación'),
-      elemento('div', 'meta', [pub.ok ? pub.cuerpo.ubicacion : '', `Enviada el ${formatearFecha(reclamo.creadoEn)}`].filter(Boolean).join(' · ')),
+      elemento('div', 'meta', [pub.ok ? lugarCompleto(pub.cuerpo) : '', `Enviada el ${formatearFecha(reclamo.creadoEn)}`].filter(Boolean).join(' · ')),
     );
     if (reclamo.estado === 'rechazada') tarjeta.append(elemento('div', 'meta', `Motivo: “${reclamo.motivoRechazo || 'sin motivo'}”`));
     if (reclamo.contactoQuienEncontro) {
@@ -1457,6 +1502,7 @@
     if (document.visibilityState === 'visible') cargarAvisos();
   });
 
+  cargarLugares();
   pintarSesion();
   verificarSalud();
 </script>

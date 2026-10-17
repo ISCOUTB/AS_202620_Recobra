@@ -2,21 +2,23 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../api/recobra_api.dart';
 import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 import 'acceso.dart';
 import 'inicio.dart';
 
-const ubicacionesPredefinidas = [
-  'Bloque A1',
-  'Bloque A2',
-  'Bloque A3',
-  'Bloque A4',
-  'Bloque A5',
-  'Entrada principal',
-  'Biblioteca',
-  'Cafetería central',
+/// Se usa solo si `GET /lugares` no responde: la fuente es el catálogo del servidor.
+const lugaresDeRespaldo = [
+  LugarCampus('Bloque A1', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
+  LugarCampus('Bloque A2', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
+  LugarCampus('Bloque A3', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
+  LugarCampus('Bloque A4', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
+  LugarCampus('Bloque A5', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
+  LugarCampus('Biblioteca', ['Piso 1', 'Piso 2', 'Piso 3']),
+  LugarCampus('Entrada principal', []),
+  LugarCampus('Cafetería central', []),
 ];
 
 /// Publicar un objeto perdido o encontrado. Exige sesión (ADR-0013).
@@ -34,9 +36,13 @@ class PublicarPantallaState extends State<PublicarPantalla> {
   final _descripcion = TextEditingController();
   final _otraCategoria = TextEditingController();
   final _otraUbicacion = TextEditingController();
+  final _referencia = TextEditingController();
   String _tipo = 'perdido';
   String? _categoria;
   String? _ubicacion;
+  String? _piso;
+  List<LugarCampus> _lugares = lugaresDeRespaldo;
+  bool _lugaresPedidos = false;
   bool _ocupado = false;
 
   /// Clave de idempotencia de la creación en curso: se reutiliza si el envío
@@ -58,12 +64,35 @@ class PublicarPantallaState extends State<PublicarPantalla> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_lugaresPedidos) return;
+    _lugaresPedidos = true;
+    AlcanceSesion.de(context).api.lugares().then((lista) {
+      if (mounted && lista.isNotEmpty) setState(() => _lugares = lista);
+    }).catchError((_) {
+      // Sin catálogo del servidor se usa la lista de respaldo.
+    });
+  }
+
+  @override
   void dispose() {
     _descripcion.dispose();
     _otraCategoria.dispose();
     _otraUbicacion.dispose();
+    _referencia.dispose();
     super.dispose();
   }
+
+  List<String> get _niveles {
+    for (final l in _lugares) {
+      if (l.nombre == _ubicacion) return l.niveles;
+    }
+    return const [];
+  }
+
+  /// "Piso 2 · Salón 204": el piso elegido en el submenú y la referencia escrita.
+  String get _detalle => [_piso, _referencia.text.trim()].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
 
   Future<void> _publicar() async {
     if (!_formKey.currentState!.validate()) return;
@@ -78,6 +107,7 @@ class PublicarPantallaState extends State<PublicarPantalla> {
             ? _otraCategoria.text.trim()
             : _categoria!,
         ubicacion: _ubicacion == null ? _otraUbicacion.text.trim() : _ubicacion!,
+        detalleUbicacion: _detalle,
         claveIdempotencia: _claveIdempotencia,
       );
       _claveIdempotencia = _nuevaClave();
@@ -85,9 +115,11 @@ class PublicarPantallaState extends State<PublicarPantalla> {
       _descripcion.clear();
       _otraCategoria.clear();
       _otraUbicacion.clear();
+      _referencia.clear();
       setState(() {
         _categoria = null;
         _ubicacion = null;
+        _piso = null;
       });
       mensajero.showSnackBar(
         const SnackBar(content: Text('Publicación creada. Te avisamos si aparece una coincidencia.')),
@@ -180,10 +212,13 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                     prefixIcon: const Icon(Icons.place_outlined),
                   ),
                   items: [
-                    for (final u in ubicacionesPredefinidas) DropdownMenuItem(value: u, child: Text(u)),
+                    for (final l in _lugares) DropdownMenuItem(value: l.nombre, child: Text(l.nombre)),
                     const DropdownMenuItem(value: null, child: Text('Otra…')),
                   ],
-                  onChanged: (v) => setState(() => _ubicacion = v),
+                  onChanged: (v) => setState(() {
+                    _ubicacion = v;
+                    _piso = null;
+                  }),
                 ),
                 if (_ubicacion == null) ...[
                   const SizedBox(height: 12),
@@ -193,6 +228,32 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                     validator: (v) => (_ubicacion == null && (v == null || v.trim().isEmpty)) ? 'Dinos dónde' : null,
                   ),
                 ],
+                if (_niveles.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  const Text('¿En qué piso? (opcional)', style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final n in _niveles)
+                        ChoiceChip(
+                          label: Text(n),
+                          selected: _piso == n,
+                          onSelected: (sel) => setState(() => _piso = sel ? n : null),
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _referencia,
+                  maxLength: 80,
+                  decoration: const InputDecoration(
+                    labelText: 'Salón o referencia (opcional)',
+                    hintText: 'Salón 204, cerca de los baños…',
+                  ),
+                ),
                 const SizedBox(height: 28),
                 FilledButton(
                   onPressed: _ocupado ? null : _publicar,

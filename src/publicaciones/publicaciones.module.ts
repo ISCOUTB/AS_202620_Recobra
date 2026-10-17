@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { PublicacionesController } from './publicaciones.controller';
+import { LugaresController } from './lugares.controller';
 import { CrearPublicacion } from '../application/use-cases/crear-publicacion';
 import { ConsultarPublicacion } from '../application/use-cases/consultar-publicacion';
 import { BuscarPublicaciones } from '../application/use-cases/buscar-publicaciones';
@@ -21,7 +22,7 @@ import {
 
 @Module({
   imports: [ObservabilidadModule, IdentidadModule],
-  controllers: [PublicacionesController],
+  controllers: [PublicacionesController, LugaresController],
   providers: [
     CrearPublicacion,
     ConsultarPublicacion,

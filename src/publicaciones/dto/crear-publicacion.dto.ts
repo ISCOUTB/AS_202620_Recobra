@@ -12,4 +12,5 @@ export interface CrearPublicacionDto {
   descripcion: string;
   categoria: string;
   ubicacion: string;
+  detalleUbicacion?: string | null;
 }
