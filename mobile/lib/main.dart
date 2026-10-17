@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'api/recobra_api.dart';
+import 'estado/avisos.dart';
 import 'estado/sesion.dart';
+import 'pantallas/bienvenida.dart';
 import 'pantallas/inicio.dart';
 import 'pantallas/mis_cosas.dart';
 import 'pantallas/perfil.dart';
@@ -36,9 +38,12 @@ void main() {
 /// Aplicación con el estilo de la app UTB (tema oscuro, encabezados con
 /// degradado azul y barra de navegación flotante).
 class RecobraApp extends StatefulWidget {
-  const RecobraApp({super.key, required this.api});
+  const RecobraApp({super.key, required this.api, this.mostrarBienvenida = true});
 
   final RecobraApi api;
+
+  /// Mostrar la bienvenida al abrir la app sin sesión (las pruebas la omiten).
+  final bool mostrarBienvenida;
 
   @override
   State<RecobraApp> createState() => _RecobraAppState();
@@ -46,9 +51,11 @@ class RecobraApp extends StatefulWidget {
 
 class _RecobraAppState extends State<RecobraApp> {
   late final SesionApp _sesion = SesionApp(widget.api);
+  late final AvisosApp _avisos = AvisosApp(_sesion);
 
   @override
   void dispose() {
+    _avisos.dispose();
     _sesion.dispose();
     super.dispose();
   }
@@ -57,63 +64,100 @@ class _RecobraAppState extends State<RecobraApp> {
   Widget build(BuildContext context) {
     return AlcanceSesion(
       sesion: _sesion,
-      child: MaterialApp(
-        title: 'Recobra',
-        debugShowCheckedModeBanner: false,
-        theme: temaUtb(),
-        home: const Navegacion(),
+      child: AlcanceAvisos(
+        avisos: _avisos,
+        child: MaterialApp(
+          title: 'Recobra',
+          debugShowCheckedModeBanner: false,
+          theme: temaUtb(),
+          home: Navegacion(mostrarBienvenida: widget.mostrarBienvenida),
+        ),
       ),
     );
   }
 }
 
 class Navegacion extends StatefulWidget {
-  const Navegacion({super.key});
+  const Navegacion({super.key, this.mostrarBienvenida = false});
+
+  final bool mostrarBienvenida;
 
   @override
   State<Navegacion> createState() => _NavegacionState();
 }
 
 class _NavegacionState extends State<Navegacion> {
-  int _indice = 0;
-  final _inicio = GlobalKey<InicioPantallaState>();
-  final _misCosas = GlobalKey<MisCosasPantallaState>();
+  static const _inicio = 0;
+  static const _publicar = 1;
+  static const _misCosas = 2;
+  static const _perfil = 3;
+
+  int _indice = _inicio;
+  late bool _bienvenida = widget.mostrarBienvenida;
+  bool _registroPrimero = false;
+  final _claveInicio = GlobalKey<InicioPantallaState>();
+  final _clavePublicar = GlobalKey<PublicarPantallaState>();
+  final _claveMisCosas = GlobalKey<MisCosasPantallaState>();
 
   static const _elementos = [
-    ElementoNavegacion(Icons.home_outlined, Icons.home, 'Inicio'),
-    ElementoNavegacion(Icons.add_circle_outline, Icons.add_circle, 'Publicar'),
-    ElementoNavegacion(Icons.inventory_2_outlined, Icons.inventory_2, 'Mis cosas'),
-    ElementoNavegacion(Icons.person_outline, Icons.person, 'Perfil'),
+    ElementoNavegacion(_inicio, Icons.home_outlined, Icons.home_rounded, 'Inicio'),
+    ElementoNavegacion(_misCosas, Icons.inventory_2_outlined, Icons.inventory_2_rounded, 'Mis cosas'),
+    ElementoNavegacion(_perfil, Icons.person_outline_rounded, Icons.person_rounded, 'Perfil'),
   ];
 
   void _ir(int i) => setState(() => _indice = i);
 
+  void _publicarCon(String tipo, {String? categoria}) {
+    _ir(_publicar);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _clavePublicar.currentState?.preparar(tipo, categoria: categoria));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final sesion = AlcanceSesion.de(context);
+    if (_bienvenida && !sesion.activa) {
+      return BienvenidaPantalla(
+        alTerminar: ({required bool crearCuenta}) => setState(() {
+          _bienvenida = false;
+          _registroPrimero = crearCuenta;
+          _indice = crearCuenta ? _perfil : _inicio;
+        }),
+      );
+    }
     return Scaffold(
       extendBody: true,
       body: IndexedStack(
         index: _indice,
         children: [
           InicioPantalla(
-            key: _inicio,
-            alPedirCuenta: () => _ir(3),
+            key: _claveInicio,
+            alPedirCuenta: () => _ir(_perfil),
             alIrAMisCosas: ({required bool reclame}) {
-              _misCosas.currentState?.mostrar(reclame: reclame);
-              _ir(2);
+              _claveMisCosas.currentState?.mostrar(reclame: reclame);
+              _ir(_misCosas);
             },
+            alPublicar: _publicarCon,
           ),
           PublicarPantalla(
+            key: _clavePublicar,
             alPublicar: () {
-              _inicio.currentState?.recargar();
-              _ir(0);
+              _claveInicio.currentState?.recargar();
+              _ir(_inicio);
             },
           ),
-          MisCosasPantalla(key: _misCosas),
-          const PerfilPantalla(),
+          MisCosasPantalla(key: _claveMisCosas),
+          PerfilPantalla(registroInicial: _registroPrimero),
         ],
       ),
-      bottomNavigationBar: BarraNavegacionUtb(indice: _indice, alCambiar: _ir, elementos: _elementos),
+      bottomNavigationBar: BarraNavegacionUtb(
+        indice: _indice,
+        alCambiar: (i) {
+          if (i == _misCosas) _claveMisCosas.currentState?.mostrar(reclame: false);
+          _ir(i);
+        },
+        elementos: _elementos,
+        alPublicar: () => _ir(_publicar),
+      ),
     );
   }
 }

@@ -1,22 +1,45 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../api/recobra_api.dart';
+import '../estado/avisos.dart';
 import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 import 'avisos.dart';
+import 'detalle.dart';
 
 const categoriasPredefinidas = ['electronica', 'mochilas', 'llaves', 'documentos', 'ropa', 'accesorios', 'otros'];
 
-/// Inicio: buscar publicaciones con filtros (escenario S1) y abrir el detalle.
+const nombresCategoria = {
+  'electronica': 'Electrónica',
+  'mochilas': 'Mochilas',
+  'llaves': 'Llaves',
+  'documentos': 'Documentos',
+  'ropa': 'Ropa',
+  'accesorios': 'Accesorios',
+  'otros': 'Otros',
+};
+
+/// Inicio: accesos rápidos ("Perdí algo / Encontré algo"), la coincidencia
+/// sin leer destacada y lo último del campus con filtros (escenario S1).
 class InicioPantalla extends StatefulWidget {
-  const InicioPantalla({super.key, required this.alPedirCuenta, required this.alIrAMisCosas});
+  const InicioPantalla({
+    super.key,
+    required this.alPedirCuenta,
+    required this.alIrAMisCosas,
+    required this.alPublicar,
+  });
 
   /// Lleva a la pestaña de cuenta cuando hace falta iniciar sesión.
   final VoidCallback alPedirCuenta;
 
   /// Lleva a "Mis cosas": `reclame` elige "Lo que reclamé" en vez de "Lo que publiqué".
   final void Function({required bool reclame}) alIrAMisCosas;
+
+  /// Abre Publicar con el tipo ya elegido ("perdido" o "encontrado").
+  final void Function(String tipo, {String? categoria}) alPublicar;
 
   @override
   State<InicioPantalla> createState() => InicioPantallaState();
@@ -44,13 +67,45 @@ class InicioPantallaState extends State<InicioPantalla> {
     });
   }
 
+  void _quitarFiltros() {
+    _tipo = null;
+    _categoria = null;
+    recargar();
+  }
+
+  /// Una coincidencia abre la publicación encontrada; una reclamación lleva a "Mis cosas".
+  Future<void> _abrirAviso(Notificacion aviso) async {
+    if (aviso.tipo != 'coincidencia') {
+      widget.alIrAMisCosas(reclame: aviso.tipo != 'reclamacion_nueva');
+      return;
+    }
+    final mensajero = ScaffoldMessenger.of(context);
+    try {
+      final publicacion = await _api.consultarPublicacion(aviso.publicacionId);
+      if (mounted) await _abrirDetalle(publicacion);
+    } catch (e) {
+      mensajero.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  Future<void> _abrirDetalle(Publicacion p) async {
+    final reclamo = await abrirDetalle(context, p, alPedirCuenta: widget.alPedirCuenta);
+    if (reclamo == true) {
+      recargar();
+      widget.alIrAMisCosas(reclame: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sesion = AlcanceSesion.de(context);
+    final avisos = AlcanceAvisos.de(context);
+    final destacada = avisos.coincidenciaSinLeer;
     final ahora = DateTime.now();
     return RefreshIndicator(
       onRefresh: () async {
         recargar();
+        await avisos.cargar();
         await _carga;
       },
       child: ListView(
@@ -58,31 +113,70 @@ class InicioPantallaState extends State<InicioPantalla> {
         children: [
           EncabezadoUtb(
             sobretitulo: fechaLarga(ahora),
-            titulo: sesion.activa ? '${saludo(ahora)}, ${sesion.cuenta!.nombre.split(' ').first}' : 'Recobra',
-            subtitulo: 'Objetos perdidos y encontrados en el campus',
+            saludo: sesion.activa ? '${saludo(ahora)},' : null,
+            titulo: sesion.activa ? sesion.cuenta!.nombre.split(' ').first : 'Recobra',
+            subtitulo: sesion.activa ? null : 'Objetos perdidos y encontrados en el campus',
             accion: sesion.activa ? CampanaAvisos(alAbrirAviso: _abrirAviso) : null,
+            inferior: destacada == null
+                ? null
+                : _TarjetaDestacada(
+                    aviso: destacada,
+                    alTocar: () {
+                      // Abrir sin esperar a que se marque como leído.
+                      unawaited(avisos.marcarLeida(destacada));
+                      _abrirAviso(destacada);
+                    },
+                  ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 120),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SegmentedButton<String?>(
-                  segments: const [
-                    ButtonSegment(value: null, label: Text('Todos')),
-                    ButtonSegment(value: 'perdido', label: Text('Perdidos')),
-                    ButtonSegment(value: 'encontrado', label: Text('Encontrados')),
+                const TituloSeccion('¿Qué pasó?'),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _AccesoRapido(
+                          icono: Icons.manage_search_rounded,
+                          color: ColoresUtb.naranja,
+                          titulo: 'Perdí algo',
+                          texto: 'Publícalo y te avisamos si aparece',
+                          alTocar: () => widget.alPublicar('perdido'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _AccesoRapido(
+                          icono: Icons.inventory_2_outlined,
+                          color: ColoresUtb.verde,
+                          titulo: 'Encontré algo',
+                          texto: 'Ayuda a que vuelva a su dueño',
+                          alTocar: () => widget.alPublicar('encontrado'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const TituloSeccion('En el campus', subtitulo: 'Lo último que se perdió y se encontró'),
+                ControlSegmentado<String?>(
+                  opciones: const [
+                    OpcionSegmento(null, 'Todos'),
+                    OpcionSegmento('perdido', 'Perdidos'),
+                    OpcionSegmento('encontrado', 'Encontrados'),
                   ],
-                  selected: {_tipo},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (s) {
-                    _tipo = s.first;
+                  valor: _tipo,
+                  alCambiar: (v) {
+                    _tipo = v;
                     recargar();
                   },
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
-                  height: 38,
+                  height: 48,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     children: [
@@ -90,7 +184,7 @@ class InicioPantallaState extends State<InicioPantalla> {
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
-                            label: Text(c ?? 'Todas'),
+                            label: Text(c == null ? 'Todas' : nombresCategoria[c]!),
                             selected: _categoria == c,
                             onSelected: (_) {
                               _categoria = c;
@@ -101,31 +195,14 @@ class InicioPantallaState extends State<InicioPantalla> {
                     ],
                   ),
                 ),
-                const TituloSeccion('Publicaciones', subtitulo: 'Las más recientes primero'),
+                const SizedBox(height: 12),
                 FutureBuilder<List<Publicacion>>(
                   future: _carga,
                   builder: (context, estado) {
-                    if (estado.connectionState != ConnectionState.done) {
-                      return const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (estado.hasError) {
-                      return EstadoVacio(
-                        icono: Icons.cloud_off,
-                        titulo: 'No se pudo cargar',
-                        texto: '${estado.error}. Desliza hacia abajo para reintentar.',
-                      );
-                    }
+                    if (estado.connectionState != ConnectionState.done) return const EsqueletoTarjetas();
+                    if (estado.hasError) return ErrorConReintento(alReintentar: recargar);
                     final lista = estado.data!;
-                    if (lista.isEmpty) {
-                      return const EstadoVacio(
-                        icono: Icons.search_off,
-                        titulo: 'Sin resultados',
-                        texto: 'No hay publicaciones con esos filtros.',
-                      );
-                    }
+                    if (lista.isEmpty) return _vacio();
                     return Column(
                       children: [
                         for (final p in lista)
@@ -145,187 +222,131 @@ class InicioPantallaState extends State<InicioPantalla> {
     );
   }
 
-  /// Una coincidencia abre la publicación encontrada; una reclamación lleva a "Mis cosas".
-  Future<void> _abrirAviso(Notificacion aviso) async {
-    if (aviso.tipo != 'coincidencia') {
-      widget.alIrAMisCosas(reclame: aviso.tipo != 'reclamacion_nueva');
-      return;
-    }
-    final sesion = AlcanceSesion.de(context);
-    final mensajero = ScaffoldMessenger.of(context);
-    try {
-      final publicacion = await sesion.api.consultarPublicacion(aviso.publicacionId);
-      if (mounted) await _abrirDetalle(publicacion);
-    } catch (e) {
-      mensajero.showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-  }
-
-  Future<void> _abrirDetalle(Publicacion p) async {
-    final reclamado = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: ColoresUtb.fondo,
-      showDragHandle: true,
-      builder: (_) => AlcanceSesion(
-        sesion: AlcanceSesion.de(context),
-        child: DetallePublicacion(publicacion: p, alPedirCuenta: widget.alPedirCuenta),
-      ),
-    );
-    if (reclamado == true) recargar();
-  }
-}
-
-/// Detalle: coincidencias detectadas y, si es un objeto encontrado ajeno, reclamarlo.
-class DetallePublicacion extends StatefulWidget {
-  const DetallePublicacion({super.key, required this.publicacion, required this.alPedirCuenta});
-
-  final Publicacion publicacion;
-  final VoidCallback alPedirCuenta;
-
-  @override
-  State<DetallePublicacion> createState() => _DetallePublicacionState();
-}
-
-class _DetallePublicacionState extends State<DetallePublicacion> {
-  late Future<List<Coincidencia>> _coincidencias;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _coincidencias = AlcanceSesion.de(context).api.listarCoincidencias(widget.publicacion.id);
-  }
-
-  bool _puedeReclamar(SesionApp sesion) {
-    final p = widget.publicacion;
-    return p.tipo == 'encontrado' &&
-        p.estado != 'reclamado' &&
-        p.autorId != null &&
-        sesion.cuenta?.id != p.autorId;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final sesion = AlcanceSesion.de(context);
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.75,
-      maxChildSize: 0.95,
-      builder: (context, scroll) => ListView(
-        controller: scroll,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-        children: [
-          TarjetaPublicacion(publicacion: widget.publicacion),
-          const TituloSeccion('Coincidencias', subtitulo: 'Publicaciones que podrían ser el mismo objeto'),
-          FutureBuilder<List<Coincidencia>>(
-            future: _coincidencias,
-            builder: (context, estado) {
-              if (estado.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final lista = estado.data ?? const [];
-              if (lista.isEmpty) {
-                return const Text(
-                  'Todavía no hay coincidencias para esta publicación.',
-                  style: TextStyle(color: ColoresUtb.textoSuave),
-                );
-              }
-              return Column(
-                children: [
-                  for (final c in lista)
-                    Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.link, color: ColoresUtb.azulClaro),
-                        title: Text('Coincidencia del ${(c.score * 100).round()} %'),
-                        subtitle: const Text('Misma categoría; la ubicación ajusta el puntaje'),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          if (_puedeReclamar(sesion))
-            FilledButton.icon(
-              icon: const Icon(Icons.back_hand_outlined),
-              label: const Text('Es mío: reclamar'),
-              onPressed: () => _reclamar(sesion),
-            )
-          else if (widget.publicacion.tipo == 'encontrado' && !sesion.activa)
-            OutlinedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                widget.alPedirCuenta();
-              },
-              child: const Text('Inicia sesión para reclamar'),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _reclamar(SesionApp sesion) async {
-    if (!sesion.activa) {
-      Navigator.pop(context);
-      widget.alPedirCuenta();
-      return;
-    }
-    final prueba = await showDialog<String>(context: context, builder: (_) => const _DialogoPrueba());
-    if (prueba == null || !mounted) return;
-    final mensajero = ScaffoldMessenger.of(context);
-    try {
-      await sesion.api.reclamar(widget.publicacion.id, prueba);
-      if (!mounted) return;
-      Navigator.pop(context, true);
-      mensajero.showSnackBar(
-        const SnackBar(content: Text('Reclamación enviada. Verás la respuesta en "Mis cosas".')),
+  /// El vacío con filtros convierte la búsqueda fallida en una publicación.
+  Widget _vacio() {
+    final hayFiltros = _tipo != null || _categoria != null;
+    if (!hayFiltros) {
+      return EstadoVacio(
+        icono: Icons.travel_explore_rounded,
+        titulo: 'Todavía no hay publicaciones',
+        texto: 'Sé el primero: publica lo que perdiste o lo que encontraste.',
+        acciones: [FilledButton(onPressed: () => widget.alPublicar('perdido'), child: const Text('Publicar algo'))],
       );
-    } catch (e) {
-      sesion.revisarError(e);
-      mensajero.showSnackBar(SnackBar(content: Text(e.toString())));
     }
+    final nombre = _categoria == null ? 'objetos' : nombresCategoria[_categoria]!.toLowerCase();
+    return EstadoVacio(
+      icono: Icons.search_off_rounded,
+      titulo: 'No hay $nombre con esos filtros',
+      texto: 'Publica lo tuyo como perdido y te avisamos apenas alguien encuentre algo parecido.',
+      acciones: [
+        FilledButton(
+          onPressed: () => widget.alPublicar('perdido', categoria: _categoria),
+          child: Text(_categoria == null ? 'Publicar lo que perdí' : 'Publicar mis $nombre'),
+        ),
+        OutlinedButton(onPressed: _quitarFiltros, child: const Text('Quitar filtros')),
+      ],
+    );
   }
 }
 
-class _DialogoPrueba extends StatefulWidget {
-  const _DialogoPrueba();
+/// Coincidencia sin leer, dentro del degradado: lo primero que se ve.
+class _TarjetaDestacada extends StatelessWidget {
+  const _TarjetaDestacada({required this.aviso, required this.alTocar});
 
-  @override
-  State<_DialogoPrueba> createState() => _DialogoPruebaState();
-}
-
-class _DialogoPruebaState extends State<_DialogoPrueba> {
-  final _texto = TextEditingController();
-
-  @override
-  void dispose() {
-    _texto.dispose();
-    super.dispose();
-  }
+  final Notificacion aviso;
+  final VoidCallback alTocar;
 
   @override
   Widget build(BuildContext context) {
-    final valido = _texto.text.trim().length >= 20;
-    return AlertDialog(
-      backgroundColor: ColoresUtb.superficie,
-      title: const Text('¿Cómo sabemos que es tuyo?'),
-      content: TextField(
-        controller: _texto,
-        maxLines: 4,
-        maxLength: 1000,
-        onChanged: (_) => setState(() {}),
-        decoration: const InputDecoration(
-          hintText: 'Algo que solo el dueño sabría: marca, contenido, señas…',
-          helperText: 'Mínimo 20 caracteres. Quien lo encontró lo leerá.',
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: alTocar,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const BarraLateral(color: ColoresUtb.azulClaro),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 14, 0, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'POSIBLE COINCIDENCIA',
+                        style: TextStyle(
+                          color: ColoresUtb.azulTexto,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(aviso.titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text(
+                        aviso.mensaje,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Icon(Icons.chevron_right_rounded, color: ColoresUtb.textoSuave),
+              ),
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-        TextButton(
-          onPressed: valido ? () => Navigator.pop(context, _texto.text.trim()) : null,
-          child: const Text('Enviar reclamación'),
+    );
+  }
+}
+
+class _AccesoRapido extends StatelessWidget {
+  const _AccesoRapido({
+    required this.icono,
+    required this.color,
+    required this.titulo,
+    required this.texto,
+    required this.alTocar,
+  });
+
+  final IconData icono;
+  final Color color;
+  final String titulo;
+  final String texto;
+  final VoidCallback alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: alTocar,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.16), shape: BoxShape.circle),
+                child: Icon(icono, color: color, size: 22),
+              ),
+              const SizedBox(height: 10),
+              Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(texto, style: const TextStyle(fontSize: 12, color: ColoresUtb.textoSuave, height: 1.4)),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }

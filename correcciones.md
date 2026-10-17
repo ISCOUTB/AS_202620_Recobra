@@ -184,6 +184,13 @@ Fuente de los hallazgos: retroalimentación publicada en
 | ADR-0014 dejaba las reclamaciones sin aviso | Reclamar avisa a quien publicó; aprobar o rechazar avisa a quien reclamó | `notificaciones.spec.ts` |
 | Notificaciones dibujado como sistema externo sin código | Mapa de contextos, tabla de datos, C4, arc42, aspecto A9 y modos de fallo (I4) actualizados | [`docs/context-map.md`](docs/context-map.md), [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md) |
 
+## Avance del proyecto · Rediseño de UI/UX (2026-10-17)
+
+| Pendiente | Qué se hizo | Evidencia |
+|---|---|---|
+| UI/UX señalada como faltante en el mini informe | Propuesta hecha con Claude Design a partir de un brief del equipo, aplicada en la app y en la vitrina: accesos rápidos, coincidencias lado a lado, reclamar explicado, confirmación de entrega, motivos rápidos, bienvenida, vacíos y errores con acción | [`docs/diseno-ui.md`](docs/diseno-ui.md) |
+| Pocas pruebas de la interfaz | Pruebas de widgets de bienvenida, accesos rápidos, reclamar (botón habilitado con 20 caracteres) y confirmación antes de aprobar | `mobile/test/widget_test.dart` (13 pruebas) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

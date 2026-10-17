@@ -27,24 +27,62 @@ String fechaCorta(String iso) {
   return '${f.day} $mes · $hora';
 }
 
+/// Iniciales para el avatar ("Ana Martínez" → "AM").
+String iniciales(String nombre) {
+  final partes = nombre.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).take(2);
+  return partes.map((p) => p[0].toUpperCase()).join();
+}
+
 const textosEstado = {'publicado': 'Publicado', 'en_verificacion': 'En verificación', 'reclamado': 'Entregado'};
+
+/// Qué significa cada estado, dicho para quien no conoce el sistema.
+const ayudaEstado = {
+  'en_verificacion': 'Alguien dijo que es suyo. Quien lo encontró está revisando.',
+  'reclamado': 'Ya volvió a su dueño.',
+};
 
 Color colorTipo(String tipo) => tipo == 'perdido' ? ColoresUtb.naranja : ColoresUtb.verde;
 
 Color colorEstado(String estado) => switch (estado) {
       'en_verificacion' => ColoresUtb.naranja,
       'reclamado' => ColoresUtb.verde,
-      _ => ColoresUtb.textoSuave,
+      _ => ColoresUtb.azulTexto,
     };
 
-/// Encabezado con el degradado azul de la app UTB y título grande.
+IconData iconoEstado(String estado) => switch (estado) {
+      'en_verificacion' => Icons.hourglass_top_rounded,
+      'reclamado' => Icons.check_rounded,
+      _ => Icons.campaign_outlined,
+    };
+
+Color colorEstadoReclamacion(String estado) => switch (estado) {
+      'aprobada' => ColoresUtb.verde,
+      'rechazada' => ColoresUtb.rojoTexto,
+      _ => ColoresUtb.naranja,
+    };
+
+/// Encabezado con el degradado azul de la app UTB: fecha en mayúsculas, título
+/// grande (con un saludo opcional en azul claro), una acción a la derecha y,
+/// si hace falta, una tarjeta destacada dentro del degradado.
 class EncabezadoUtb extends StatelessWidget {
-  const EncabezadoUtb({super.key, required this.titulo, this.sobretitulo, this.subtitulo, this.accion});
+  const EncabezadoUtb({
+    super.key,
+    required this.titulo,
+    this.sobretitulo,
+    this.saludo,
+    this.subtitulo,
+    this.accion,
+    this.inferior,
+  });
 
   final String titulo;
   final String? sobretitulo;
+
+  /// Primera parte del título en azul claro ("Buenas tardes,").
+  final String? saludo;
   final String? subtitulo;
   final Widget? accion;
+  final Widget? inferior;
 
   @override
   Widget build(BuildContext context) {
@@ -54,64 +92,116 @@ class EncabezadoUtb extends StatelessWidget {
         gradient: ColoresUtb.degradado,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
-      padding: EdgeInsets.fromLTRB(20, arriba + 24, 20, 24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      padding: EdgeInsets.fromLTRB(20, arriba + 24, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (sobretitulo != null)
-                  Text(
-                    sobretitulo!,
-                    style: const TextStyle(
-                      color: Color(0xFFCFD8FF),
-                      fontSize: 12,
-                      letterSpacing: 1.4,
-                      fontWeight: FontWeight.w600,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (sobretitulo != null) ...[
+                      Text(
+                        sobretitulo!,
+                        style: const TextStyle(
+                          color: Color(0xCCFFFFFF),
+                          fontSize: 11,
+                          letterSpacing: 1.3,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          if (saludo != null)
+                            TextSpan(text: '$saludo ', style: const TextStyle(color: ColoresUtb.azulSaludo)),
+                          TextSpan(text: titulo),
+                        ],
+                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800, height: 1.15),
                     ),
-                  ),
-                if (sobretitulo != null) const SizedBox(height: 4),
-                Text(
-                  titulo,
-                  style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800),
+                    if (subtitulo != null) ...[
+                      const SizedBox(height: 6),
+                      Text(subtitulo!, style: const TextStyle(color: Color(0xFFDCE3FF), fontSize: 14, height: 1.4)),
+                    ],
+                  ],
                 ),
-                if (subtitulo != null) ...[
-                  const SizedBox(height: 6),
-                  Text(subtitulo!, style: const TextStyle(color: Color(0xFFDCE3FF), fontSize: 14)),
-                ],
-              ],
-            ),
+              ),
+              if (accion != null) ...[const SizedBox(width: 12), accion!],
+            ],
           ),
-          if (accion != null) accion!,
+          if (inferior != null) ...[const SizedBox(height: 18), inferior!],
         ],
       ),
     );
   }
 }
 
-/// Etiqueta pequeña en mayúsculas ("ENCONTRADO", "EN VERIFICACIÓN").
+/// Etiqueta pequeña en mayúsculas ("ENCONTRADO", "EN VERIFICACIÓN"), con el
+/// fondo del mismo color al 16 %, como "IMPORTANTE" en la app UTB.
 class Etiqueta extends StatelessWidget {
-  const Etiqueta(this.texto, {super.key, required this.color});
+  const Etiqueta(this.texto, {super.key, required this.color, this.icono});
 
   final String texto;
   final Color color;
+  final IconData? icono;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(999)),
-      child: Text(
-        texto.toUpperCase(),
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icono != null) ...[Icon(icono, size: 13, color: color), const SizedBox(width: 4)],
+          Text(
+            texto.toUpperCase(),
+            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.7),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Tarjeta oscura de una publicación, con la barra de color del tipo a la izquierda.
+/// Estado de la publicación: siempre ícono y texto, nunca solo color.
+class EtiquetaEstado extends StatelessWidget {
+  const EtiquetaEstado(this.estado, {super.key});
+
+  final String estado;
+
+  @override
+  Widget build(BuildContext context) =>
+      Etiqueta(textosEstado[estado] ?? estado, color: colorEstado(estado), icono: iconoEstado(estado));
+}
+
+/// Barra de color de 4 px dentro de la tarjeta, como "Próxima clase". Es
+/// decorativa: el tipo también va escrito en la etiqueta.
+class BarraLateral extends StatelessWidget {
+  const BarraLateral({super.key, required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Container(
+        width: 4,
+        margin: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+      ),
+    );
+  }
+}
+
+/// Tarjeta oscura de una publicación con la barra de color del tipo.
 class TarjetaPublicacion extends StatelessWidget {
   const TarjetaPublicacion({super.key, required this.publicacion, this.onTap, this.pie});
 
@@ -122,46 +212,52 @@ class TarjetaPublicacion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = publicacion;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(width: 4, color: colorTipo(p.tipo)),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Etiqueta(p.tipo, color: colorTipo(p.tipo)),
-                          const SizedBox(width: 8),
-                          Etiqueta(textosEstado[p.estado] ?? p.estado, color: colorEstado(p.estado)),
+    final ayuda = ayudaEstado[p.estado];
+    return Opacity(
+      opacity: p.estado == 'reclamado' ? 0.6 : 1,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                BarraLateral(color: colorTipo(p.tipo)),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 16, 12, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [Etiqueta(p.tipo, color: colorTipo(p.tipo)), EtiquetaEstado(p.estado)],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(p.descripcion, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.3)),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${p.categoria} · ${p.ubicacion} · ${fechaCorta(p.creadoEn)}',
+                          style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                        if (ayuda != null && pie == null) ...[
+                          const SizedBox(height: 6),
+                          Text(ayuda, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
                         ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(p.descripcion, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 14,
-                        runSpacing: 4,
-                        children: [
-                          _Dato(icono: Icons.sell_outlined, texto: p.categoria),
-                          _Dato(icono: Icons.place_outlined, texto: p.ubicacion),
-                          _Dato(icono: Icons.schedule, texto: fechaCorta(p.creadoEn)),
-                        ],
-                      ),
-                      if (pie != null) ...[const SizedBox(height: 12), pie!],
-                    ],
+                        if (pie != null) ...[const SizedBox(height: 12), pie!],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+                if (onTap != null)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: Icon(Icons.chevron_right_rounded, color: ColoresUtb.textoApagado),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -169,31 +265,14 @@ class TarjetaPublicacion extends StatelessWidget {
   }
 }
 
-class _Dato extends StatelessWidget {
-  const _Dato({required this.icono, required this.texto});
-
-  final IconData icono;
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icono, size: 15, color: ColoresUtb.textoSuave),
-        const SizedBox(width: 4),
-        Text(texto, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
-      ],
-    );
-  }
-}
-
+/// Estado vacío que propone el siguiente paso en vez de solo decir "nada".
 class EstadoVacio extends StatelessWidget {
-  const EstadoVacio({super.key, required this.icono, required this.titulo, required this.texto});
+  const EstadoVacio({super.key, required this.icono, required this.titulo, required this.texto, this.acciones = const []});
 
   final IconData icono;
   final String titulo;
   final String texto;
+  final List<Widget> acciones;
 
   @override
   Widget build(BuildContext context) {
@@ -202,11 +281,20 @@ class EstadoVacio extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Icon(icono, color: ColoresUtb.azulClaro, size: 32),
-            const SizedBox(height: 10),
-            Text(titulo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: ColoresUtb.azulClaro.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icono, color: ColoresUtb.azulClaro, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(titulo, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
-            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: ColoresUtb.textoSuave)),
+            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: ColoresUtb.textoSuave, height: 1.45)),
+            for (final a in acciones) ...[const SizedBox(height: 10), SizedBox(width: double.infinity, child: a)],
           ],
         ),
       ),
@@ -214,7 +302,68 @@ class EstadoVacio extends StatelessWidget {
   }
 }
 
-/// Título de sección con subtítulo, como "Eventos >" en la app UTB.
+/// Error que dice qué pasó y qué hacer, nunca un código.
+class ErrorConReintento extends StatelessWidget {
+  const ErrorConReintento({super.key, required this.alReintentar, this.texto});
+
+  final VoidCallback alReintentar;
+  final String? texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return EstadoVacio(
+      icono: Icons.cloud_off_rounded,
+      titulo: 'No pudimos conectar con Recobra',
+      texto: texto ?? 'Revisa tu conexión o intenta de nuevo en un momento.',
+      acciones: [FilledButton(onPressed: alReintentar, child: const Text('Reintentar'))],
+    );
+  }
+}
+
+/// Esqueleto con la misma forma que las tarjetas reales, sin animación (así
+/// respeta "reducir movimiento" sin más lógica).
+class EsqueletoTarjetas extends StatelessWidget {
+  const EsqueletoTarjetas({super.key, this.cantidad = 3});
+
+  final int cantidad;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget bloque(double ancho, double alto) => Container(
+          width: ancho,
+          height: alto,
+          decoration: BoxDecoration(color: ColoresUtb.superficieAlta, borderRadius: BorderRadius.circular(8)),
+        );
+    return Semantics(
+      label: 'Cargando',
+      child: Column(
+        children: [
+          for (var i = 0; i < cantidad; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [bloque(84, 22), const SizedBox(width: 6), bloque(96, 22)]),
+                      const SizedBox(height: 12),
+                      bloque(220, 16),
+                      const SizedBox(height: 8),
+                      bloque(160, 12),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Título de sección con subtítulo, como "Eventos ›" en la app UTB.
 class TituloSeccion extends StatelessWidget {
   const TituloSeccion(this.titulo, {super.key, this.subtitulo});
 
@@ -228,85 +377,419 @@ class TituloSeccion extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(titulo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-          if (subtitulo != null)
+          Semantics(
+            header: true,
+            child: Text(titulo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          ),
+          if (subtitulo != null) ...[
+            const SizedBox(height: 2),
             Text(subtitulo!, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
+          ],
         ],
       ),
     );
   }
 }
 
-class ElementoNavegacion {
-  const ElementoNavegacion(this.icono, this.iconoActivo, this.etiqueta);
+/// Una opción del control segmentado; `contador` > 0 pinta un círculo naranja
+/// ("Lo que publiqué 1") para lo que requiere acción.
+class OpcionSegmento<T> {
+  const OpcionSegmento(this.valor, this.etiqueta, {this.contador = 0, this.descripcionContador});
 
-  final IconData icono;
-  final IconData iconoActivo;
+  final T valor;
   final String etiqueta;
+  final int contador;
+  final String? descripcionContador;
 }
 
-/// Barra flotante en forma de píldora, como la navegación de la app UTB.
-class BarraNavegacionUtb extends StatelessWidget {
-  const BarraNavegacionUtb({super.key, required this.indice, required this.alCambiar, required this.elementos});
+/// Control segmentado en píldora con la opción activa en azul, como
+/// "Horario / Eventos" en la app UTB.
+class ControlSegmentado<T> extends StatelessWidget {
+  const ControlSegmentado({super.key, required this.opciones, required this.valor, required this.alCambiar});
 
-  final int indice;
-  final ValueChanged<int> alCambiar;
-  final List<ElementoNavegacion> elementos;
+  final List<OpcionSegmento<T>> opciones;
+  final T valor;
+  final ValueChanged<T> alCambiar;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Container(
-        height: 68,
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: const Color(0xF2131417),
-          borderRadius: BorderRadius.circular(34),
-          border: Border.all(color: ColoresUtb.borde),
-          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 24, offset: Offset(0, 8))],
-        ),
-        child: Row(
-          children: [
-            for (var i = 0; i < elementos.length; i++)
-              Expanded(
-                child: Semantics(
-                  selected: i == indice,
-                  button: true,
-                  label: elementos[i].etiqueta,
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: ColoresUtb.superficie,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: ColoresUtb.borde),
+      ),
+      child: Row(
+        children: [
+          for (final o in opciones)
+            Expanded(
+              child: Semantics(
+                button: true,
+                selected: o.valor == valor,
+                label: o.contador > 0 && o.descripcionContador != null
+                    ? '${o.etiqueta}, ${o.descripcionContador}'
+                    : o.etiqueta,
+                excludeSemantics: true,
+                child: Material(
+                  color: o.valor == valor ? ColoresUtb.azul : Colors.transparent,
+                  shape: const StadiumBorder(),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(28),
-                    onTap: () => alCambiar(i),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      decoration: BoxDecoration(
-                        color: i == indice ? ColoresUtb.azul.withValues(alpha: 0.28) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      child: Column(
+                    customBorder: const StadiumBorder(),
+                    onTap: () => alCambiar(o.valor),
+                    child: SizedBox(
+                      height: 42,
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            i == indice ? elementos[i].iconoActivo : elementos[i].icono,
-                            color: i == indice ? ColoresUtb.azulClaro : ColoresUtb.textoSuave,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            elementos[i].etiqueta,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: i == indice ? ColoresUtb.azulClaro : ColoresUtb.textoSuave,
-                              fontWeight: i == indice ? FontWeight.w700 : FontWeight.w500,
+                          Flexible(
+                            child: Text(
+                              o.etiqueta,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: o.valor == valor ? Colors.white : ColoresUtb.textoSuave,
+                              ),
                             ),
                           ),
+                          if (o.contador > 0) ...[const SizedBox(width: 6), Contador(o.contador)],
                         ],
                       ),
                     ),
                   ),
                 ),
               ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Círculo naranja con un número ("2", "9+"); texto oscuro sobre naranja (8:1).
+class Contador extends StatelessWidget {
+  const Contador(this.n, {super.key});
+
+  final int n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 20),
+      height: 20,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: ColoresUtb.naranja, borderRadius: BorderRadius.circular(10)),
+      child: Text(
+        n > 9 ? '9+' : '$n',
+        style: const TextStyle(color: Color(0xFF1A0E02), fontSize: 11, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+}
+
+class ElementoNavegacion {
+  const ElementoNavegacion(this.indice, this.icono, this.iconoActivo, this.etiqueta);
+
+  /// Pantalla a la que lleva dentro de la pila de la navegación.
+  final int indice;
+  final IconData icono;
+  final IconData iconoActivo;
+  final String etiqueta;
+}
+
+/// Barra flotante en píldora (Inicio, Mis cosas, Perfil) y, aparte, la burbuja
+/// redonda de Publicar: el mismo lugar que el asistente en la app UTB, para
+/// que la acción principal esté siempre a un toque.
+class BarraNavegacionUtb extends StatelessWidget {
+  const BarraNavegacionUtb({
+    super.key,
+    required this.indice,
+    required this.alCambiar,
+    required this.elementos,
+    required this.alPublicar,
+  });
+
+  final int indice;
+  final ValueChanged<int> alCambiar;
+  final List<ElementoNavegacion> elementos;
+  final VoidCallback alPublicar;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 68),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+              decoration: BoxDecoration(
+                color: const Color(0xEB0E0F14),
+                borderRadius: BorderRadius.circular(34),
+                border: Border.all(color: ColoresUtb.borde),
+                boxShadow: ColoresUtb.sombra,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [for (final e in elementos) _ItemNavegacion(e, activo: e.indice == indice, alTocar: alCambiar)],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Tooltip(
+            message: 'Publicar',
+            child: Material(
+              color: indice == 1 ? ColoresUtb.azulClaro : ColoresUtb.azul,
+              shape: const CircleBorder(),
+              elevation: 0,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: alPublicar,
+                child: Container(
+                  width: 68,
+                  height: 68,
+                  decoration: const BoxDecoration(shape: BoxShape.circle, boxShadow: ColoresUtb.sombra),
+                  child: Icon(Icons.add_rounded, size: 30, color: indice == 1 ? ColoresUtb.fondo : Colors.white),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemNavegacion extends StatelessWidget {
+  const _ItemNavegacion(this.elemento, {required this.activo, required this.alTocar});
+
+  final ElementoNavegacion elemento;
+  final bool activo;
+  final ValueChanged<int> alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = activo ? ColoresUtb.azulClaro : ColoresUtb.textoSuave;
+    return Semantics(
+      selected: activo,
+      button: true,
+      label: elemento.etiqueta,
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => alTocar(elemento.indice),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 78,
+          constraints: const BoxConstraints(minHeight: 54),
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          decoration: BoxDecoration(
+            color: activo ? ColoresUtb.azul.withValues(alpha: 0.32) : Colors.transparent,
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(activo ? elemento.iconoActivo : elemento.icono, color: color),
+              const SizedBox(height: 2),
+              Text(
+                elemento.etiqueta,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: activo ? ColoresUtb.texto : ColoresUtb.textoSuave,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Anillo con el porcentaje de parecido, como los anillos de Notas en la app UTB.
+class AnilloParecido extends StatelessWidget {
+  const AnilloParecido({super.key, required this.score, this.fondo = ColoresUtb.fondoProfundo});
+
+  /// Entre 0 y 1.
+  final double score;
+  final Color fondo;
+
+  @override
+  Widget build(BuildContext context) {
+    final porcentaje = (score * 100).round();
+    return Semantics(
+      label: '$porcentaje por ciento de parecido',
+      excludeSemantics: true,
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox.expand(
+              child: CircularProgressIndicator(
+                value: score,
+                strokeWidth: 6,
+                color: ColoresUtb.azulClaro,
+                backgroundColor: ColoresUtb.borde,
+              ),
+            ),
+            Text('$porcentaje%', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Título de una hoja inferior con el botón de cerrar siempre visible (no
+/// depender solo del gesto de arrastrar).
+class EncabezadoHoja extends StatelessWidget {
+  const EncabezadoHoja({super.key, required this.titulo, this.subtitulo, this.accion});
+
+  final String titulo;
+  final String? subtitulo;
+  final Widget? accion;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(titulo, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.25)),
+              ),
+              if (subtitulo != null) ...[
+                const SizedBox(height: 2),
+                Text(subtitulo!, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
+              ],
+            ],
+          ),
+        ),
+        if (accion != null) accion!,
+        BotonCerrar(alCerrar: () => Navigator.of(context).pop()),
+      ],
+    );
+  }
+}
+
+class BotonCerrar extends StatelessWidget {
+  const BotonCerrar({super.key, required this.alCerrar});
+
+  final VoidCallback alCerrar;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Cerrar',
+      onPressed: alCerrar,
+      style: IconButton.styleFrom(backgroundColor: ColoresUtb.superficieAlta, fixedSize: const Size(44, 44)),
+      icon: const Icon(Icons.close_rounded, size: 20),
+    );
+  }
+}
+
+/// Caja informativa azul ("Si es tuyo, te pediremos…").
+class CajaInfo extends StatelessWidget {
+  const CajaInfo({super.key, required this.child, this.icono = Icons.info_outline_rounded, this.color = ColoresUtb.azulClaro});
+
+  final Widget child;
+  final IconData icono;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icono, size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: DefaultTextStyle.merge(
+              style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFFD3DCFF)),
+              child: child,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pasos numerados ("Qué pasa después", "Cómo funciona").
+class PasosNumerados extends StatelessWidget {
+  const PasosNumerados({super.key, required this.pasos});
+
+  final List<String> pasos;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < pasos.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: ColoresUtb.azul.withValues(alpha: 0.32),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text('${i + 1}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(pasos[i], style: const TextStyle(fontSize: 14, height: 1.45)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Avatar redondo con iniciales.
+class AvatarIniciales extends StatelessWidget {
+  const AvatarIniciales(this.nombre, {super.key, this.radio = 20});
+
+  final String nombre;
+  final double radio;
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: radio,
+      backgroundColor: ColoresUtb.azul.withValues(alpha: 0.4),
+      child: Text(
+        iniciales(nombre),
+        style: TextStyle(fontSize: radio * 0.7, color: Colors.white, fontWeight: FontWeight.w700),
       ),
     );
   }

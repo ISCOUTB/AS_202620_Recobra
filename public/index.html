@@ -184,6 +184,7 @@
   .tarjeta::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--borde); }
   .tarjeta.perdido::before { background: var(--naranja); }
   .tarjeta.encontrado::before { background: var(--verde); }
+  .tarjeta.entregada { opacity: 0.6; }
   .panel .tarjeta { background: var(--superficie-alta); }
 
   .tarjeta .fila-superior { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
@@ -257,6 +258,68 @@
   .mi-cuenta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; }
   @media (max-width: 800px) { .mi-cuenta { grid-template-columns: minmax(0, 1fr); } }
   .mi-cuenta h3 { margin: 0 0 0.3rem; font-size: 1.05rem; color: var(--texto); }
+
+  /* ---- Propuesta de diseño (Claude Design): saludo, segmentado, comparación, diálogos ---- */
+  header h1 .saludo { color: #b9c8ff; }
+  .oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  fieldset.segmentado {
+    display: flex; gap: 0.25rem; margin: 0; padding: 0.25rem; border-radius: 999px;
+    background: var(--superficie-alta); border: 1px solid var(--borde);
+  }
+  fieldset.segmentado label {
+    flex: 1; flex-direction: row; justify-content: center; align-items: center; min-height: 2.6rem;
+    border-radius: 999px; color: var(--texto-suave); font-size: 0.9rem; cursor: pointer;
+  }
+  fieldset.segmentado label:has(input:checked) { background: var(--azul); color: #ffffff; }
+  fieldset.segmentado label:has(input:focus-visible) { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
+  fieldset.segmentado input { position: absolute; opacity: 0; pointer-events: none; }
+  .ayuda { font-size: 0.78rem; font-weight: 400; color: var(--texto-suave); }
+  .nota-centro { text-align: center; font-size: 0.8rem; color: var(--texto-suave); margin: 0; }
+  .comparacion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.6rem; margin-top: 0.5rem; }
+  .lado {
+    position: relative; padding: 0.7rem 0.75rem 0.7rem 1.2rem; border-radius: 14px;
+    background: var(--superficie-alta); font-size: 0.85rem; overflow: hidden;
+  }
+  .lado::before { content: ""; position: absolute; left: 0.55rem; top: 0.7rem; bottom: 0.7rem; width: 4px; border-radius: 2px; }
+  .lado.perdido::before { background: var(--naranja); }
+  .lado.encontrado::before { background: var(--verde); }
+  .lado .rotulo { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .lado.perdido .rotulo { color: var(--naranja); }
+  .lado.encontrado .rotulo { color: var(--verde); }
+  .lado strong { display: block; margin: 0.25rem 0; }
+  .parecido { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.6rem; font-size: 0.85rem; }
+  .anillo {
+    flex-shrink: 0; width: 3.2rem; height: 3.2rem; border-radius: 50%; display: grid; place-items: center;
+    background: conic-gradient(var(--azul-claro) var(--p), var(--borde) 0);
+  }
+  .anillo span { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: grid; place-items: center; background: var(--superficie); font-weight: 800; font-size: 0.8rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .bloque .chips button, .chips button {
+    padding: 0.4rem 0.8rem; font-size: 0.8rem; font-weight: 500; border-radius: 999px;
+    background: var(--superficie); border: 1px solid var(--borde); color: var(--texto);
+  }
+  .bloque textarea { width: 100%; margin-top: 0.4rem; }
+  .rotulo-chico { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; color: var(--texto-suave); margin: 0.6rem 0 0.2rem; }
+  .contador-prueba { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--texto-suave); }
+  .contador-prueba.ok { color: var(--verde); }
+  ol.pasos { margin: 0.3rem 0 0; padding-left: 1.2rem; font-size: 0.85rem; color: var(--texto-suave); }
+  ol.pasos li { margin-bottom: 0.25rem; }
+  .cita { border-left: 2px solid var(--azul-claro); padding-left: 0.7rem; margin: 0.2rem 0 0.4rem; }
+  .aviso-privacidad { border-color: rgba(242, 140, 40, 0.4); color: #ffd2a8; }
+  .contacto { margin-top: 0.6rem; padding: 0.8rem 0.9rem; border-radius: 14px; background: rgba(60, 203, 110, 0.1); border: 1px solid rgba(60, 203, 110, 0.3); font-size: 0.88rem; }
+  .contacto strong { color: var(--verde); display: block; margin: 0.3rem 0; }
+  .progreso { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; margin-top: 0.6rem; font-size: 0.75rem; color: var(--texto-suave); }
+  .progreso span { border-top: 4px solid var(--borde); padding-top: 0.3rem; }
+  .progreso span.hecho { border-color: var(--verde); color: var(--texto); }
+  .progreso span.actual { border-color: var(--naranja); color: var(--texto); font-weight: 700; }
+  dialog {
+    width: min(420px, calc(100vw - 2rem)); padding: 1.3rem; border-radius: 24px;
+    background: var(--superficie); color: var(--texto); border: 1px solid var(--borde);
+  }
+  dialog::backdrop { background: rgba(0, 0, 0, 0.62); }
+  dialog h2 { margin: 0 0 0.8rem; font-size: 1.2rem; }
+  dialog ul { margin: 0.3rem 0 1rem; padding-left: 1.1rem; font-size: 0.9rem; line-height: 1.5; }
+  dialog form { gap: 0.5rem; }
 
   /* ---- Avisos (ADR-0015): campana con contador y bandeja desplegable ---- */
   #zona-sesion { position: relative; }
@@ -403,29 +466,43 @@
     <h2 id="titulo-crear">Publicar un objeto</h2>
     <p class="aviso" id="aviso-publicar">Inicia sesión para publicar.</p>
     <form id="form-crear">
-      <label>Tipo
-        <select name="tipo" required>
-          <option value="perdido">Perdido</option>
-          <option value="encontrado">Encontrado</option>
-        </select>
-      </label>
-      <label>Descripción
-        <input type="text" name="descripcion" placeholder="Mochila azul con laptop" required />
+      <fieldset class="segmentado">
+        <legend class="oculto">¿Lo perdiste o lo encontraste?</legend>
+        <label><input type="radio" name="tipo" value="perdido" checked /> Lo perdí</label>
+        <label><input type="radio" name="tipo" value="encontrado" /> Lo encontré</label>
+      </fieldset>
+      <label>¿Qué es? Descríbelo
+        <input type="text" name="descripcion" placeholder="Audífonos negros, estuche gris" maxlength="200" required aria-describedby="ayuda-descripcion" />
+        <span class="ayuda" id="ayuda-descripcion">Cuéntalo como lo buscarías: color, marca, algo que lo distinga.</span>
       </label>
       <label>Categoría
         <select name="categoria" required>
           <option value="">Selecciona una categoría</option>
           <option value="electronica">Electrónica</option>
-          <option value="mochilas">Mochilas y bolsos</option>
-          <option value="documentos">Documentos e identificación</option>
+          <option value="mochilas">Mochilas</option>
           <option value="llaves">Llaves</option>
-          <option value="ropa">Ropa y accesorios</option>
-          <option value="utiles">Útiles y libros</option>
+          <option value="documentos">Documentos</option>
+          <option value="ropa">Ropa</option>
+          <option value="accesorios">Accesorios</option>
           <option value="otros">Otros</option>
         </select>
       </label>
-      <label>Ubicación
-        <input type="text" name="ubicacion" placeholder="Bloque 5, UTB" required />
+      <label><span id="rotulo-lugar">¿Dónde lo perdiste?</span>
+        <select name="lugar" id="campo-lugar" required>
+          <option value="">Selecciona un lugar</option>
+          <option>Bloque A1</option>
+          <option>Bloque A2</option>
+          <option>Bloque A3</option>
+          <option>Bloque A4</option>
+          <option>Bloque A5</option>
+          <option>Entrada principal</option>
+          <option>Biblioteca</option>
+          <option>Cafetería central</option>
+          <option value="otra">Otra…</option>
+        </select>
+      </label>
+      <label id="etiqueta-otro-lugar" hidden>Escribe el lugar
+        <input type="text" name="otroLugar" id="campo-otro-lugar" maxlength="120" />
       </label>
       <label>Foto (opcional, solo vista previa por ahora)
         <button type="button" class="zona-foto" id="zona-foto">
@@ -434,7 +511,8 @@
         </button>
         <input type="file" id="input-foto" accept="image/*" hidden />
       </label>
-      <button type="submit">Publicar</button>
+      <button type="submit" id="boton-publicar">Publicar objeto perdido</button>
+      <p class="nota-centro">Al publicar buscamos coincidencias y te avisamos.</p>
       <output id="mensaje-crear"></output>
     </form>
   </section>
@@ -486,6 +564,17 @@
     </div>
   </section>
 </main>
+
+<dialog id="dialogo-entrega" aria-labelledby="titulo-entrega">
+  <h2 id="titulo-entrega"></h2>
+  <p class="meta" id="prueba-entrega"></p>
+  <p class="rotulo-chico">AL CONFIRMAR</p>
+  <ul id="consecuencias-entrega"></ul>
+  <form method="dialog">
+    <button type="submit" value="si" id="boton-confirmar-entrega">Sí, entregar</button>
+    <button type="submit" value="no" class="secundario">Todavía no</button>
+  </form>
+</dialog>
 
 <script>
   const estadoSalud = document.getElementById('estado-salud');
@@ -588,21 +677,17 @@
         caja.textContent = 'Sin coincidencias por ahora.';
       } else {
         caja.append(elemento('strong', '', `${coincidencias.length} posible(s) coincidencia(s)`));
-        const lista = document.createElement('ul');
         for (const c of coincidencias) {
           const otroId = c.publicacionOrigenId === pub.id ? c.publicacionCoincidenteId : c.publicacionOrigenId;
-          const item = elemento('li', '', 'Cargando…');
-          lista.append(item);
+          const zona = elemento('div', 'meta', 'Cargando…');
+          caja.append(zona);
           fetch(`/publicaciones/${encodeURIComponent(otroId)}`)
             .then((r) => r.json())
-            .then((otra) => {
-              item.textContent = `${otra.descripcion} (${otra.tipo}, ${otra.ubicacion})`;
-            })
+            .then((otra) => zona.replaceWith(comparacion(pub, otra, c.score)))
             .catch(() => {
-              item.textContent = 'No se pudo cargar la publicación coincidente.';
+              zona.textContent = 'No se pudo cargar la publicación coincidente.';
             });
         }
-        caja.append(lista);
       }
       contenedor.append(caja);
     } catch {
@@ -612,8 +697,43 @@
     }
   }
 
+  const AYUDA_ESTADO = { en_verificacion: 'Alguien dijo que es suyo. Quien lo encontró está revisando.' };
+
+  function ladoComparacion(rotulo, p) {
+    const lado = elemento('div', `lado ${p.tipo}`);
+    lado.append(elemento('div', 'rotulo', rotulo), elemento('strong', '', p.descripcion), elemento('div', 'meta', `${p.categoria} · ${p.ubicacion}`));
+    return lado;
+  }
+
+  /** Lo perdido y lo encontrado lado a lado, con el parecido en un anillo. */
+  function comparacion(pub, otra, score) {
+    const perdido = pub.tipo === 'perdido' ? pub : otra;
+    const encontrado = pub.tipo === 'perdido' ? otra : pub;
+    const esMio = Boolean(sesion && perdido.autorId === sesion.cuenta.id);
+    const caja = elemento('div');
+    const grid = elemento('div', 'comparacion');
+    grid.append(ladoComparacion(esMio ? 'Lo que perdiste' : 'Perdido', perdido), ladoComparacion('Lo que encontraron', encontrado));
+    const porcentaje = Math.round(score * 100);
+    const parecido = elemento('div', 'parecido');
+    const anillo = elemento('div', 'anillo');
+    anillo.style.setProperty('--p', `${porcentaje}%`);
+    anillo.setAttribute('role', 'img');
+    anillo.setAttribute('aria-label', `${porcentaje} por ciento de parecido`);
+    anillo.append(elemento('span', '', `${porcentaje}%`));
+    const mismoLugar = perdido.ubicacion.toLowerCase() === encontrado.ubicacion.toLowerCase();
+    const razones = elemento('div');
+    razones.append(
+      elemento('div', '', '✓ Misma categoría'),
+      elemento('div', 'meta', mismoLugar ? 'Mismo lugar' : `Lugares distintos (${perdido.ubicacion} y ${encontrado.ubicacion})`),
+    );
+    parecido.append(anillo, razones);
+    caja.append(grid, parecido);
+    return caja;
+  }
+
   function tarjetaPublicacion(pub) {
     const tarjeta = elemento('div', `tarjeta ${pub.tipo}`);
+    if (pub.estado === 'reclamado') tarjeta.classList.add('entregada');
     const fila = elemento('div', 'fila-superior');
     fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), etiquetaEstado(pub.estado));
     const meta = elemento('div', 'meta', `${pub.categoria} · ${pub.ubicacion} · ${formatearFecha(pub.creadoEn)}`);
@@ -637,7 +757,9 @@
       });
       acciones.append(reclamar);
     }
-    tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion), meta, acciones, resultado);
+    tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion), meta);
+    if (AYUDA_ESTADO[pub.estado]) tarjeta.append(elemento('div', 'meta', AYUDA_ESTADO[pub.estado]));
+    tarjeta.append(acciones, resultado);
     return tarjeta;
   }
 
@@ -686,7 +808,24 @@
    *   que ni el doble clic ni el reintento crean una publicación repetida.
    * La clave se renueva solo cuando la publicación se crea con éxito.
    */
-  const botonPublicar = formCrear.querySelector('button[type="submit"]');
+  const botonPublicar = document.getElementById('boton-publicar');
+  const campoLugar = document.getElementById('campo-lugar');
+  const etiquetaOtroLugar = document.getElementById('etiqueta-otro-lugar');
+
+  /** El texto del botón, la ayuda y el rótulo del lugar siguen al tipo elegido. */
+  function ajustarFormularioPorTipo() {
+    const perdido = formCrear.elements.tipo.value === 'perdido';
+    botonPublicar.textContent = perdido ? 'Publicar objeto perdido' : 'Publicar objeto encontrado';
+    document.getElementById('rotulo-lugar').textContent = perdido ? '¿Dónde lo perdiste?' : '¿Dónde lo encontraste?';
+    document.getElementById('ayuda-descripcion').textContent = perdido
+      ? 'Cuéntalo como lo buscarías: color, marca, algo que lo distinga.'
+      : 'Describe lo que se ve. Guarda los detalles íntimos: con ellos el dueño probará que es suyo.';
+  }
+  for (const opcion of formCrear.elements.tipo) opcion.addEventListener('change', ajustarFormularioPorTipo);
+  campoLugar.addEventListener('change', () => {
+    etiquetaOtroLugar.hidden = campoLugar.value !== 'otra';
+    document.getElementById('campo-otro-lugar').required = campoLugar.value === 'otra';
+  });
   // Siempre con el generador criptográfico del navegador (randomUUID solo existe en contextos seguros).
   const nuevaClave = () =>
     crypto.randomUUID
@@ -700,7 +839,18 @@
     mensajeCrear.textContent = '';
     mensajeCrear.className = '';
 
-    const datos = Object.fromEntries(new FormData(formCrear).entries());
+    const campos = Object.fromEntries(new FormData(formCrear).entries());
+    const datos = {
+      tipo: campos.tipo,
+      descripcion: campos.descripcion,
+      categoria: campos.categoria,
+      ubicacion: campos.lugar === 'otra' ? (campos.otroLugar || '').trim() : campos.lugar,
+    };
+    if (!datos.ubicacion) {
+      mensajeCrear.textContent = 'Dinos dónde fue.';
+      mensajeCrear.className = 'error';
+      return;
+    }
     botonPublicar.disabled = true;
     const controlador = new AbortController();
     const limite = setTimeout(() => controlador.abort(), 10000);
@@ -729,6 +879,8 @@
       mensajeCrear.className = 'ok';
       claveIdempotencia = nuevaClave();
       formCrear.reset();
+      ajustarFormularioPorTipo();
+      etiquetaOtroLugar.hidden = true;
       inputFoto.value = '';
       vistaPreviaFoto.hidden = true;
       vistaPreviaFoto.src = '';
@@ -816,9 +968,12 @@
     let saludoHora = 'Buenas noches';
     if (hoy.getHours() < 12) saludoHora = 'Buenos días';
     else if (hoy.getHours() < 19) saludoHora = 'Buenas tardes';
-    document.getElementById('titulo-principal').textContent = sesion
-      ? `${saludoHora}, ${sesion.cuenta.nombre.split(' ')[0]}`
-      : 'Recobra';
+    const titulo = document.getElementById('titulo-principal');
+    if (sesion) {
+      titulo.replaceChildren(elemento('span', 'saludo', `${saludoHora}, `), sesion.cuenta.nombre.split(' ')[0]);
+    } else {
+      titulo.textContent = 'Recobra';
+    }
   }
 
   function pintarSesion() {
@@ -890,12 +1045,38 @@
     contenedor.replaceChildren();
     const caja = elemento('div', 'bloque');
     const form = document.createElement('form');
-    const etiqueta = elemento('label', '', 'Cuenta algo que solo el dueño sabría (marca, contenido, señas). Quien lo encontró lo leerá.');
+    const explicacion = elemento('p');
+    explicacion.append('Algo que ', elemento('strong', '', 'solo el dueño sabría'), ' y que no se ve en la publicación. Toca una idea para empezar:');
+    const ideas = elemento('div', 'chips');
+    const etiqueta = elemento('label', '', 'Tu prueba');
     const texto = document.createElement('textarea');
     texto.required = true;
     texto.minLength = 20;
     texto.maxLength = 1000;
     etiqueta.append(texto);
+    for (const [nombre, inicio] of [['Marca o modelo', 'Marca o modelo: '], ['Qué tenía dentro', 'Tenía dentro: '], ['Una seña o raya', 'Tiene una seña: ']]) {
+      const idea = elemento('button', '', nombre);
+      idea.type = 'button';
+      idea.addEventListener('click', () => {
+        const actual = texto.value.trimEnd();
+        texto.value = actual ? `${actual}. ${inicio}` : inicio;
+        texto.focus();
+        actualizarContador();
+      });
+      ideas.append(idea);
+    }
+    const contador = elemento('div', 'contador-prueba');
+    const faltan = elemento('span');
+    const largo = elemento('span');
+    contador.append(faltan, largo);
+    const privacidad = elemento('div', 'aviso aviso-privacidad', 'No escribas contraseñas, números de documento ni de tarjeta.');
+    const pasos = document.createElement('ol');
+    pasos.className = 'pasos';
+    for (const paso of [
+      'Quien lo encontró lee tu prueba. Mientras tanto el objeto queda en verificación.',
+      'Te llega un aviso cuando la apruebe o la rechace.',
+      'Si la aprueba, verás su correo en "Lo que reclamé" para acordar la entrega.',
+    ]) pasos.append(elemento('li', '', paso));
     const filaBotones = elemento('div', 'fila-botones');
     const enviar = elemento('button', '', 'Enviar reclamación');
     enviar.type = 'submit';
@@ -903,8 +1084,29 @@
     cancelar.type = 'button';
     cancelar.addEventListener('click', () => contenedor.replaceChildren());
     const mensaje = elemento('output');
+    function actualizarContador() {
+      const n = texto.value.trim().length;
+      const suficiente = n >= 20;
+      faltan.textContent = suficiente ? 'Suficiente (mínimo 20)' : `Faltan ${20 - n} caracteres (mínimo 20)`;
+      largo.textContent = `${n} / 1000`;
+      contador.className = suficiente ? 'contador-prueba ok' : 'contador-prueba';
+      enviar.disabled = !suficiente;
+    }
+    texto.addEventListener('input', actualizarContador);
+    actualizarContador();
     filaBotones.append(enviar, cancelar);
-    form.append(etiqueta, filaBotones, mensaje);
+    form.append(
+      elemento('p', 'rotulo-chico', '¿QUÉ ES LA PRUEBA?'),
+      explicacion,
+      ideas,
+      etiqueta,
+      contador,
+      privacidad,
+      elemento('p', 'rotulo-chico', 'QUÉ PASA DESPUÉS'),
+      pasos,
+      filaBotones,
+      mensaje,
+    );
     form.addEventListener('submit', async (evento) => {
       evento.preventDefault();
       enviar.disabled = true;
@@ -972,32 +1174,71 @@
       zona.append(elemento('div', 'bloque', 'Nadie lo ha reclamado todavía.'));
       return;
     }
+    const pendientes = r.cuerpo.filter((x) => x.estado === 'pendiente');
     for (const rec of r.cuerpo) {
       const caja = elemento('div', 'bloque');
       caja.append(
-        elemento('strong', '', `${rec.reclamante.nombre} · ${rec.estado}`),
-        elemento('p', '', `«${rec.prueba}»`),
+        elemento('strong', '', `${rec.reclamante.nombre} dice que es suyo · ${rec.estado}`),
+        elemento('p', 'rotulo-chico', 'SU PRUEBA'),
+        elemento('p', 'cita', `“${rec.prueba}”`),
       );
-      if (rec.reclamante.correo) caja.append(elemento('p', '', `Contacto para la entrega: ${rec.reclamante.correo}`));
+      if (rec.reclamante.correo) caja.append(contacto(`Coordina la entrega con ${rec.reclamante.nombre}.`, rec.reclamante.correo));
       if (rec.motivoRechazo) caja.append(elemento('p', 'meta', `Motivo: ${rec.motivoRechazo}`));
-      if (rec.estado === 'pendiente') caja.append(botonesResolver(rec, pub, zona));
+      if (rec.estado === 'pendiente') {
+        caja.append(elemento('p', 'meta', 'Compárala con el objeto que tienes. ¿Coinciden las señas?'));
+        caja.append(botonesResolver(rec, pub, zona, pendientes.filter((x) => x.id !== rec.id)));
+      }
       zona.append(caja);
     }
   }
 
-  function botonesResolver(rec, pub, zona) {
+  /** Aprobar es irreversible: diálogo que dice a quién se entrega y qué pasa con las demás. */
+  function confirmarEntrega(rec, pub, otras) {
+    const nombre = rec.reclamante.nombre.split(' ')[0];
+    const dialogo = document.getElementById('dialogo-entrega');
+    document.getElementById('titulo-entrega').textContent = `¿Entregar «${pub.descripcion}» a ${nombre}?`;
+    document.getElementById('prueba-entrega').textContent = `Su prueba: “${rec.prueba}”`;
+    const lista = document.getElementById('consecuencias-entrega');
+    lista.replaceChildren(
+      elemento('li', '', 'El objeto pasa a Entregado.'),
+      elemento('li', '', `${nombre} verá tu correo para acordar la entrega.`),
+    );
+    if (otras.length === 1) lista.append(elemento('li', '', `La reclamación de ${otras[0].reclamante.nombre.split(' ')[0]} se rechaza automáticamente.`));
+    if (otras.length > 1) lista.append(elemento('li', '', `Las otras ${otras.length} reclamaciones se rechazan automáticamente.`));
+    lista.append(elemento('li', '', 'Esta acción no se puede deshacer.'));
+    document.getElementById('boton-confirmar-entrega').textContent = `Sí, entregar a ${nombre}`;
+    dialogo.returnValue = '';
+    dialogo.showModal();
+    return new Promise((resolver) => {
+      dialogo.addEventListener('close', () => resolver(dialogo.returnValue === 'si'), { once: true });
+    });
+  }
+
+  function botonesResolver(rec, pub, zona, otras) {
     const fila = elemento('div', 'fila-botones');
-    const aprobar = elemento('button', '', 'Es el dueño: aprobar');
+    const aprobar = elemento('button', '', 'Aprobar entrega');
     aprobar.type = 'button';
     const rechazar = elemento('button', 'peligro', 'Rechazar');
     rechazar.type = 'button';
-    const motivo = document.createElement('input');
-    motivo.type = 'text';
-    motivo.placeholder = 'Motivo del rechazo';
-    motivo.hidden = true;
+    const zonaMotivo = elemento('div');
+    zonaMotivo.hidden = true;
+    const motivo = document.createElement('textarea');
+    motivo.maxLength = 300;
+    motivo.setAttribute('aria-label', 'Motivo del rechazo');
+    const rapidos = elemento('div', 'chips');
+    for (const r of ['Las señas no coinciden', 'Falta información', 'Ya apareció su dueño']) {
+      const chip = elemento('button', '', r);
+      chip.type = 'button';
+      chip.addEventListener('click', () => {
+        motivo.value = `${r}: `;
+        motivo.focus();
+      });
+      rapidos.append(chip);
+    }
+    zonaMotivo.append(elemento('p', 'meta', `${rec.reclamante.nombre.split(' ')[0]} verá este motivo. Sé claro y amable.`), rapidos, motivo);
     const mensaje = elemento('output');
     aprobar.addEventListener('click', async () => {
-      if (!confirm('¿Aprobar? El objeto quedará como entregado y se compartirán sus correos.')) return;
+      if (!(await confirmarEntrega(rec, pub, otras))) return;
       const r = await llamar(`/reclamaciones/${encodeURIComponent(rec.id)}/aprobar`, { method: 'POST' });
       if (!r.ok) {
         mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo aprobar';
@@ -1009,9 +1250,15 @@
       buscar();
     });
     rechazar.addEventListener('click', async () => {
-      if (motivo.hidden) {
-        motivo.hidden = false;
+      if (zonaMotivo.hidden) {
+        zonaMotivo.hidden = false;
+        rechazar.textContent = 'Rechazar reclamación';
         motivo.focus();
+        return;
+      }
+      if (motivo.value.trim().length < 3) {
+        mensaje.textContent = 'Escribe el motivo para que sepa qué no coincidió.';
+        mensaje.className = 'error';
         return;
       }
       const r = await llamar(`/reclamaciones/${encodeURIComponent(rec.id)}/rechazar`, {
@@ -1027,21 +1274,51 @@
       cargarMiCuenta();
       buscar();
     });
-    fila.append(aprobar, rechazar, motivo, mensaje);
-    return fila;
+    const caja = elemento('div');
+    fila.append(rechazar, aprobar);
+    caja.append(zonaMotivo, fila, mensaje);
+    return caja;
+  }
+
+  const CLASE_RECLAMO = { pendiente: 'en_verificacion', aprobada: 'reclamado' };
+
+  /** Contacto que aparece solo después de aprobar, con botón para copiarlo. */
+  function contacto(texto, correo) {
+    const caja = elemento('div', 'contacto', texto);
+    const copiar = elemento('button', 'secundario', 'Copiar correo');
+    copiar.type = 'button';
+    copiar.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(correo);
+        copiar.textContent = 'Correo copiado';
+      } catch {
+        copiar.textContent = 'Cópialo a mano';
+      }
+    });
+    caja.append(elemento('strong', '', correo), copiar);
+    return caja;
   }
 
   async function tarjetaReclamoPropio(reclamo) {
     const tarjeta = elemento('div', 'tarjeta');
     const pub = await llamar(`/publicaciones/${encodeURIComponent(reclamo.publicacionId)}`);
+    const fila = elemento('div', 'fila-superior');
+    fila.append(elemento('span', `estado-pub ${CLASE_RECLAMO[reclamo.estado] || ''}`, reclamo.estado));
     tarjeta.append(
+      fila,
       elemento('div', 'descripcion', pub.ok ? pub.cuerpo.descripcion : 'Publicación'),
-      elemento('div', 'meta', `Estado de tu reclamación: ${reclamo.estado} · ${formatearFecha(reclamo.creadoEn)}`),
+      elemento('div', 'meta', [pub.ok ? pub.cuerpo.ubicacion : '', `Enviada el ${formatearFecha(reclamo.creadoEn)}`].filter(Boolean).join(' · ')),
     );
-    if (reclamo.motivoRechazo) tarjeta.append(elemento('div', 'meta', `Motivo: ${reclamo.motivoRechazo}`));
+    if (reclamo.estado === 'rechazada') tarjeta.append(elemento('div', 'meta', `Motivo: “${reclamo.motivoRechazo || 'sin motivo'}”`));
     if (reclamo.contactoQuienEncontro) {
       const c = reclamo.contactoQuienEncontro;
-      tarjeta.append(elemento('div', 'bloque', `Aprobada. Coordina la entrega con ${c.nombre}: ${c.correo}`));
+      tarjeta.append(contacto(`${c.nombre} aprobó tu reclamación. Escríbele para acordar dónde y cuándo te lo entrega.`, c.correo));
+    }
+    if (reclamo.estado === 'pendiente') {
+      const progreso = elemento('div', 'progreso');
+      progreso.setAttribute('aria-label', 'Paso 2 de 3: en revisión');
+      progreso.append(elemento('span', 'hecho', 'Enviada'), elemento('span', 'actual', 'En revisión'), elemento('span', '', 'Entrega'));
+      tarjeta.append(progreso, elemento('div', 'meta', 'Quien lo encontró aún no revisa tu prueba. Te avisamos apenas responda.'));
     }
     return tarjeta;
   }

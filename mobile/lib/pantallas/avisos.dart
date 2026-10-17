@@ -1,9 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../api/recobra_api.dart';
-import '../estado/sesion.dart';
+import '../estado/avisos.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 
@@ -21,67 +19,35 @@ Color colorAviso(String tipo) => switch (tipo) {
       _ => ColoresUtb.azulClaro,
     };
 
+Color _colorTextoAviso(String tipo) => switch (tipo) {
+      'reclamacion_rechazada' => ColoresUtb.rojoTexto,
+      'coincidencia' => ColoresUtb.azulTexto,
+      _ => colorAviso(tipo),
+    };
+
 /// Campana del encabezado con el número de avisos sin leer (escenario S3,
-/// ADR-0015). Consulta la bandeja al aparecer y cada 20 s mientras hay sesión.
-class CampanaAvisos extends StatefulWidget {
+/// ADR-0015). Tocarla abre la hoja de avisos; elegir uno lo devuelve.
+class CampanaAvisos extends StatelessWidget {
   const CampanaAvisos({super.key, required this.alAbrirAviso});
 
   /// Qué hacer al tocar un aviso (abrir la publicación o ir a "Mis cosas").
   final void Function(Notificacion aviso) alAbrirAviso;
 
-  static const intervalo = Duration(seconds: 20);
-
-  @override
-  State<CampanaAvisos> createState() => _CampanaAvisosState();
-}
-
-class _CampanaAvisosState extends State<CampanaAvisos> {
-  BandejaAvisos _bandeja = BandejaAvisos.vacia;
-  Timer? _temporizador;
-  late SesionApp _sesion;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _sesion = AlcanceSesion.de(context);
-    _temporizador ??= Timer.periodic(CampanaAvisos.intervalo, (_) => _cargar());
-    _cargar();
-  }
-
-  @override
-  void dispose() {
-    _temporizador?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _cargar() async {
-    if (!_sesion.activa) return;
-    try {
-      final bandeja = await _sesion.api.notificaciones();
-      if (mounted) setState(() => _bandeja = bandeja);
-    } catch (e) {
-      // Un fallo de los avisos no debe estorbar el resto de la app (S4a).
-      _sesion.revisarError(e);
-    }
-  }
-
-  Future<void> _abrirBandeja() async {
-    await _cargar();
-    if (!mounted) return;
+  Future<void> _abrirBandeja(BuildContext context, AvisosApp avisos) async {
+    await avisos.cargar();
+    if (!context.mounted) return;
     final elegido = await showModalBottomSheet<Notificacion>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: ColoresUtb.fondo,
-      showDragHandle: true,
-      builder: (_) => AlcanceSesion(sesion: _sesion, child: HojaAvisos(inicial: _bandeja)),
+      builder: (_) => AlcanceAvisos(avisos: avisos, child: const HojaAvisos()),
     );
-    await _cargar();
-    if (elegido != null) widget.alAbrirAviso(elegido);
+    if (elegido != null) alAbrirAviso(elegido);
   }
 
   @override
   Widget build(BuildContext context) {
-    final n = _bandeja.noLeidas;
+    final avisos = AlcanceAvisos.de(context);
+    final n = avisos.bandeja.noLeidas;
     return Semantics(
       container: true,
       button: true,
@@ -89,18 +55,20 @@ class _CampanaAvisosState extends State<CampanaAvisos> {
       excludeSemantics: true,
       child: Material(
         color: Colors.white.withValues(alpha: 0.14),
-        shape: const CircleBorder(side: BorderSide(color: Color(0x59FFFFFF))),
+        shape: const CircleBorder(),
         child: InkWell(
           customBorder: const CircleBorder(),
-          onTap: _abrirBandeja,
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Badge(
-              isLabelVisible: n > 0,
-              label: Text(n > 9 ? '9+' : '$n'),
-              backgroundColor: ColoresUtb.naranja,
-              textColor: ColoresUtb.fondo,
-              child: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+          onTap: () => _abrirBandeja(context, avisos),
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                const Icon(Icons.notifications_none_rounded, color: Colors.white),
+                if (n > 0) Positioned(top: 2, right: 0, child: Contador(n)),
+              ],
             ),
           ),
         ),
@@ -109,82 +77,79 @@ class _CampanaAvisosState extends State<CampanaAvisos> {
   }
 }
 
-/// Lista de avisos. Tocar uno lo marca como leído y lo devuelve a quien abrió la hoja.
-class HojaAvisos extends StatefulWidget {
-  const HojaAvisos({super.key, required this.inicial});
-
-  final BandejaAvisos inicial;
-
-  @override
-  State<HojaAvisos> createState() => _HojaAvisosState();
-}
-
-class _HojaAvisosState extends State<HojaAvisos> {
-  late BandejaAvisos _bandeja = widget.inicial;
-
-  Future<void> _abrir(Notificacion aviso) async {
-    final sesion = AlcanceSesion.de(context);
-    final navegador = Navigator.of(context);
-    if (!aviso.leida) {
-      try {
-        await sesion.api.marcarLeida(aviso.id);
-      } catch (e) {
-        sesion.revisarError(e);
-      }
-    }
-    navegador.pop(aviso);
-  }
-
-  Future<void> _leerTodas() async {
-    final sesion = AlcanceSesion.de(context);
-    try {
-      await sesion.api.marcarTodasLeidas();
-      final bandeja = await sesion.api.notificaciones();
-      if (mounted) setState(() => _bandeja = bandeja);
-    } catch (e) {
-      sesion.revisarError(e);
-    }
-  }
+/// Lista de avisos, separada en nuevos y anteriores. Tocar uno lo marca como
+/// leído y lo devuelve a quien abrió la hoja.
+class HojaAvisos extends StatelessWidget {
+  const HojaAvisos({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final avisos = AlcanceAvisos.de(context);
+    final bandeja = avisos.bandeja;
+    final nuevos = bandeja.notificaciones.where((n) => !n.leida).toList();
+    final anteriores = bandeja.notificaciones.where((n) => n.leida).toList();
+
+    Future<void> abrir(Notificacion aviso) async {
+      final navegador = Navigator.of(context);
+      await avisos.marcarLeida(aviso);
+      navegador.pop(aviso);
+    }
+
+    Widget seccion(String titulo, List<Notificacion> lista) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 10),
+              child: Text(
+                titulo,
+                style: const TextStyle(
+                  color: ColoresUtb.textoSuave,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.3,
+                ),
+              ),
+            ),
+            for (final aviso in lista)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: TarjetaAviso(aviso: aviso, onTap: () => abrir(aviso)),
+              ),
+          ],
+        );
+
     return DraggableScrollableSheet(
       expand: false,
-      initialChildSize: 0.7,
+      initialChildSize: 0.75,
       maxChildSize: 0.95,
       builder: (context, scroll) => ListView(
         controller: scroll,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text('Avisos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-              ),
-              if (_bandeja.noLeidas > 0)
-                TextButton(onPressed: _leerTodas, child: const Text('Marcar todo como leído')),
-            ],
+          EncabezadoHoja(
+            titulo: 'Avisos',
+            subtitulo: bandeja.noLeidas == 0 ? 'Todo al día' : '${bandeja.noLeidas} sin leer',
+            accion: bandeja.noLeidas > 0
+                ? TextButton(onPressed: avisos.marcarTodas, child: const Text('Marcar todo como leído'))
+                : null,
           ),
-          const SizedBox(height: 8),
-          if (_bandeja.notificaciones.isEmpty)
+          const SizedBox(height: 12),
+          if (bandeja.notificaciones.isEmpty)
             const EstadoVacio(
               icono: Icons.notifications_off_outlined,
               titulo: 'Sin avisos',
               texto: 'Te contaremos aquí si aparece algo que perdiste o si reclaman lo que publicaste.',
-            )
-          else
-            for (final aviso in _bandeja.notificaciones)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: TarjetaAviso(aviso: aviso, onTap: () => _abrir(aviso)),
-              ),
+            ),
+          if (nuevos.isNotEmpty) seccion('NUEVOS', nuevos),
+          if (anteriores.isNotEmpty) seccion('ANTERIORES', anteriores),
         ],
       ),
     );
   }
 }
 
-/// Tarjeta de un aviso, con la barra de color a la izquierda como en la app UTB.
+/// Tarjeta de un aviso: barra y etiqueta del color de su tipo; sin leer lleva
+/// un punto naranja y el título en negrita, leído se atenúa al 65 %.
 class TarjetaAviso extends StatelessWidget {
   const TarjetaAviso({super.key, required this.aviso, this.onTap});
 
@@ -194,8 +159,9 @@ class TarjetaAviso extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Opacity(
-      opacity: aviso.leida ? 0.6 : 1,
+      opacity: aviso.leida ? 0.65 : 1,
       child: Card(
+        color: aviso.leida ? ColoresUtb.superficie : ColoresUtb.superficieAlta,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -203,35 +169,54 @@ class TarjetaAviso extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(width: 4, color: colorAviso(aviso.tipo)),
+                BarraLateral(color: colorAviso(aviso.tipo)),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.fromLTRB(0, 14, 0, 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${(_chipAviso[aviso.tipo] ?? 'Aviso').toUpperCase()} · ${fechaCorta(aviso.creadoEn)}',
-                          style: const TextStyle(
-                            color: ColoresUtb.textoSuave,
+                          (_chipAviso[aviso.tipo] ?? 'Aviso').toUpperCase(),
+                          style: TextStyle(
+                            color: _colorTextoAviso(aviso.tipo),
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
+                            letterSpacing: 0.9,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(aviso.titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                        Text(
+                          aviso.titulo,
+                          style: TextStyle(fontSize: 15, fontWeight: aviso.leida ? FontWeight.w600 : FontWeight.w700),
+                        ),
                         const SizedBox(height: 2),
-                        Text(aviso.mensaje, style: const TextStyle(color: ColoresUtb.textoSuave)),
+                        Text(aviso.mensaje, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13, height: 1.4)),
                       ],
                     ),
                   ),
                 ),
-                if (!aviso.leida)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 14),
-                    child: Center(child: CircleAvatar(radius: 4, backgroundColor: ColoresUtb.naranja)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 14, 14, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(fechaCorta(aviso.creadoEn).split(' · ').first,
+                          style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
+                      if (!aviso.leida) ...[
+                        const SizedBox(height: 8),
+                        Semantics(
+                          label: 'Sin leer',
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(color: ColoresUtb.naranja, shape: BoxShape.circle),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+                ),
               ],
             ),
           ),

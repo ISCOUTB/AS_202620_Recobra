@@ -39,8 +39,22 @@ final _bandeja = jsonEncode({
 
 http.Response _resp(String cuerpo, int estado) => http.Response.bytes(utf8.encode(cuerpo), estado, headers: _json);
 
-/// Servidor simulado con las rutas que usa la app.
-MockClient _servidor({List<http.Request>? registro}) => MockClient((request) async {
+final _reclamacionPendiente = jsonEncode([
+  {
+    'id': 'r1',
+    'publicacionId': 'abc',
+    'estado': 'pendiente',
+    'prueba': 'Tiene una calcomanía de la UTB por dentro',
+    'creadoEn': '2026-10-17T12:00:00.000Z',
+    'resueltaEn': null,
+    'motivoRechazo': null,
+    'reclamante': {'nombre': 'Bea Ruiz'},
+  },
+]);
+
+/// Servidor simulado con las rutas que usa la app. Con `soyAutor`, la cuenta
+/// es la autora de "Termo azul" y tiene una reclamación pendiente por revisar.
+MockClient _servidor({List<http.Request>? registro, bool soyAutor = false}) => MockClient((request) async {
       registro?.add(request);
       final ruta = request.url.path;
       if (request.method == 'POST' && ruta == '/sesiones') {
@@ -63,7 +77,11 @@ MockClient _servidor({List<http.Request>? registro}) => MockClient((request) asy
       if (request.method == 'GET' && ruta == '/notificaciones') return _resp(_bandeja, 200);
       if (request.method == 'POST' && ruta.startsWith('/notificaciones/')) return http.Response('', 204);
       if (request.method == 'GET' && ruta == '/publicaciones/abc') return _resp(_publicacion(), 200);
-      if (ruta == '/publicaciones/mias' || ruta == '/reclamaciones/mias') return _resp('[]', 200);
+      if (request.method == 'POST' && ruta == '/publicaciones/abc/reclamaciones') return _resp('{}', 201);
+      if (ruta == '/publicaciones/mias') return _resp(soyAutor ? '[${_publicacion(autorId: 'yo')}]' : '[]', 200);
+      if (ruta == '/publicaciones/abc/reclamaciones') return _resp(_reclamacionPendiente, 200);
+      if (request.method == 'POST' && ruta == '/reclamaciones/r1/aprobar') return _resp('{}', 200);
+      if (ruta == '/reclamaciones/mias') return _resp('[]', 200);
       return _resp('{"statusCode":404,"message":"no"}', 404);
     });
 
@@ -170,9 +188,33 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
     }
 
-    testWidgets('Inicio muestra el título y las publicaciones sin pedir cuenta', (tester) async {
+    Widget app(MockClient cliente) =>
+        RecobraApp(api: RecobraApi(baseUrl: 'http://localhost:3000', client: cliente), mostrarBienvenida: false);
+
+    Future<void> entrar(WidgetTester tester) async {
+      await tester.tap(find.text('Perfil').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextFormField, 'Correo institucional'), 'ana@utb.edu.co');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'contrasena-1');
+      await tester.tap(find.text('Entrar'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('La bienvenida explica el recorrido y deja buscar sin cuenta', (tester) async {
       pantallaAlta(tester);
       await tester.pumpWidget(RecobraApp(api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor())));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lo que se pierde en el campus, aparece aquí'), findsOneWidget);
+      await tester.tap(find.text('Solo quiero buscar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Termo azul'), findsOneWidget);
+    });
+
+    testWidgets('Inicio muestra el título y las publicaciones sin pedir cuenta', (tester) async {
+      pantallaAlta(tester);
+      await tester.pumpWidget(app(_servidor()));
       await tester.pumpAndSettle();
 
       expect(find.text('Recobra'), findsOneWidget);
@@ -181,10 +223,10 @@ void main() {
 
     testWidgets('Publicar sin sesión muestra el acceso con correo institucional', (tester) async {
       pantallaAlta(tester);
-      await tester.pumpWidget(RecobraApp(api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor())));
+      await tester.pumpWidget(app(_servidor()));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Publicar').last);
+      await tester.tap(find.byTooltip('Publicar'));
       await tester.pumpAndSettle();
 
       expect(find.text('Tu cuenta'), findsOneWidget);
@@ -194,29 +236,25 @@ void main() {
     testWidgets('Iniciar sesión, publicar y volver a Inicio', (tester) async {
       pantallaAlta(tester);
       final peticiones = <http.Request>[];
-      await tester.pumpWidget(
-        RecobraApp(api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor(registro: peticiones))),
-      );
+      await tester.pumpWidget(app(_servidor(registro: peticiones)));
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.tap(find.text('Inicio').last);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Publicar').last);
+      await tester.tap(find.text('Perdí algo')); // acceso rápido: abre Publicar con "Lo perdí"
       await tester.pumpAndSettle();
-      await tester.enterText(find.widgetWithText(TextFormField, 'Correo institucional'), 'ana@utb.edu.co');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'contrasena-1');
-      await tester.tap(find.text('Entrar'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.widgetWithText(TextFormField, 'Descripción'), 'Termo');
-      await tester.tap(find.widgetWithText(ChoiceChip, 'otros'));
+      await tester.enterText(find.widgetWithText(TextFormField, '¿Qué es? Descríbelo'), 'Termo');
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Otros'));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(DropdownButtonFormField<String?>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Biblioteca').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Publicar'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Publicar objeto perdido'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Publicación creada'), findsOneWidget);
+      expect(find.textContaining('Publicación creada'), findsOneWidget);
       final crear = peticiones.firstWhere((r) => r.method == 'POST' && r.url.path == '/publicaciones');
       expect(crear.headers['Authorization'], 'Bearer tok-123');
       expect(find.textContaining('Ana'), findsWidgets); // saludo en Inicio
@@ -226,29 +264,24 @@ void main() {
       pantallaAlta(tester);
       final semantica = tester.ensureSemantics();
       final peticiones = <http.Request>[];
-      await tester.pumpWidget(
-        RecobraApp(api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor(registro: peticiones))),
-      );
+      await tester.pumpWidget(app(_servidor(registro: peticiones)));
       await tester.pumpAndSettle();
       expect(find.byType(CampanaAvisos), findsNothing); // sin sesión no hay campana
 
-      await tester.tap(find.text('Perfil').last);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.widgetWithText(TextFormField, 'Correo institucional'), 'ana@utb.edu.co');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'contrasena-1');
-      await tester.tap(find.text('Entrar'));
-      await tester.pumpAndSettle();
+      await entrar(tester);
       await tester.tap(find.text('Inicio').last);
       await tester.pumpAndSettle();
 
       expect(find.byType(CampanaAvisos), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.bySemanticsLabel('Avisos, 1 sin leer'), findsOneWidget);
+      // La coincidencia sin leer también se destaca en el encabezado de Inicio.
+      expect(find.text('POSIBLE COINCIDENCIA'), findsOneWidget);
       await tester.tap(find.byType(CampanaAvisos));
       await tester.pumpAndSettle();
-      expect(find.text('Encontraron algo que podría ser tuyo'), findsOneWidget);
+      expect(find.text('NUEVOS'), findsOneWidget);
 
-      await tester.tap(find.text('Encontraron algo que podría ser tuyo'));
+      await tester.tap(find.text('Encontraron algo que podría ser tuyo').last);
       await tester.pumpAndSettle();
 
       expect(
@@ -257,6 +290,58 @@ void main() {
       );
       expect(find.text('Coincidencias'), findsOneWidget); // abrió el detalle de la publicación encontrada
       semantica.dispose();
+    });
+
+    testWidgets('Reclamar explica la prueba y se habilita con 20 caracteres', (tester) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      await tester.pumpWidget(app(_servidor(registro: peticiones)));
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.tap(find.text('Inicio').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Termo azul'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Es mío: reclamar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('¿QUÉ ES LA PRUEBA?'), findsOneWidget);
+      final enviar = find.widgetWithText(FilledButton, 'Enviar reclamación');
+      expect(tester.widget<FilledButton>(enviar).onPressed, isNull);
+
+      await tester.enterText(find.byType(TextField), 'Tiene una calcomanía de la UTB por dentro');
+      await tester.pump();
+      expect(find.textContaining('Suficiente'), findsOneWidget);
+      await tester.tap(enviar);
+      await tester.pumpAndSettle();
+
+      final reclamo = peticiones.singleWhere((r) => r.url.path == '/publicaciones/abc/reclamaciones');
+      expect(jsonDecode(reclamo.body)['prueba'], 'Tiene una calcomanía de la UTB por dentro');
+      expect(find.text('No has reclamado nada'), findsOneWidget); // quedó en "Lo que reclamé"
+    });
+
+    testWidgets('Aprobar pide confirmar a quién se entrega', (tester) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      await tester.pumpWidget(app(_servidor(registro: peticiones, soyAutor: true)));
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.tap(find.text('Mis cosas').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tienes 1 reclamación por revisar'), findsOneWidget);
+      expect(find.text('Bea Ruiz dice que es suyo'), findsOneWidget);
+      await tester.tap(find.text('Aprobar entrega'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('¿Entregar «Termo azul» a Bea?'), findsOneWidget);
+      expect(find.text('Esta acción no se puede deshacer.'), findsOneWidget);
+      expect(peticiones.where((r) => r.url.path.endsWith('/aprobar')), isEmpty);
+
+      await tester.tap(find.text('Sí, entregar a Bea'));
+      await tester.pumpAndSettle();
+      expect(peticiones.where((r) => r.url.path == '/reclamaciones/r1/aprobar'), hasLength(1));
     });
   });
 }
