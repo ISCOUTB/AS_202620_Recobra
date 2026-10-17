@@ -38,8 +38,10 @@ patrones de navegación, nunca datos personales.
 - App Flutter: `mobile/lib/tema/tema_utb.dart` (paleta y tema),
   `mobile/lib/widgets/comunes.dart` (encabezado, tarjetas, etiquetas, barra),
   `mobile/lib/pantallas/` (Inicio, Publicar, Mis cosas, Perfil, Acceso).
-- Vitrina web (`public/index.html`): todavía usa una paleta azul clara; pasarla
-  al mismo tema oscuro es el siguiente paso.
+- Vitrina web (`public/index.html`): mismo tema oscuro con variables CSS
+  (`--fondo`, `--superficie`, `--azul`…), encabezado con fecha y saludo,
+  tarjetas con barra de color por tipo y control segmentado en "Iniciar
+  sesión / Crear cuenta".
 
 ## Accesibilidad
 
