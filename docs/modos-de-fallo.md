@@ -11,6 +11,7 @@ dónde está en el código, qué prueba la cubre y qué queda pendiente.
 | **I1** | **API → PostgreSQL** (integración principal) | `src/infrastructure/persistence/postgres-publicacion.repository.ts` (`pg.Pool`, red interna de Dokploy) | Es la única llamada por red entre dos contenedores del despliegue y toda operación de publicaciones depende de ella |
 | I2 | Cliente → API (HTTP/JSON) | `public/index.html` (`fetch('/publicaciones', …)`) y `mobile/lib/api/recobra_api.dart` (`_client.post`/`get`) | Es por donde el usuario entra; un reintento del cliente puede duplicar una creación |
 | I3 | Publicaciones → Emparejamiento (evento en proceso) | `src/application/use-cases/crear-publicacion.ts` emite `publicacion.creada`; `src/emparejamiento/publicacion-creada.listener.ts` lo consume ([ADR-0004](adr/0004-integracion-sincrona-vs-asincrona.md)) | Es la integración entre contextos; el emparejamiento no debe frenar ni tumbar la publicación |
+| I4 | Emparejamiento y Reclamaciones → Notificaciones (eventos en proceso) | `publicacion-creada.listener.ts` emite `coincidencia.detectada`; `reclamaciones.ts` emite `reclamacion.creada` y `reclamacion.resuelta`; `src/notificaciones/notificaciones.listener.ts` los consume ([ADR-0015](adr/0015-notificaciones-en-la-aplicacion.md)) | Es el sub-escenario S4a: un fallo de Notificaciones no debe tumbar publicar, buscar ni reclamar |
 
 ## Tabla de modos de fallo
 
@@ -41,6 +42,14 @@ declarado con su plan.
 | **No responde** (el cálculo de coincidencias falla, p. ej. la base cae) | Un rechazo no manejado en el manejador del evento podría tumbar el proceso | El manejador captura el error y registra una advertencia; la publicación ya respondió 201 y no se ve afectada. Las coincidencias de esa publicación no se calculan (no hay reintento) | `src/emparejamiento/publicacion-creada.listener.ts` | `src/emparejamiento/publicacion-creada.listener.spec.ts` | Probado. **Pendiente:** el evento perdido no se reprocesa (plan: bandeja de salida o broker en la S12) |
 | **Responde tarde** (emparejamiento lento) | Si fuera síncrono, la publicación esperaría al emparejamiento | El evento se procesa de forma asíncrona (`async: true`, ADR-0004): quien publica no espera. Hoy el cálculo tarda ~2 ms ([`docs/medicion-emparejamiento.md`](medicion-emparejamiento.md)) | `publicacion-creada.listener.ts`; `crear-publicacion.ts` (`notificar`) | `test/emparejamiento.e2e-spec.ts` (consulta con espera: consistencia eventual) | Probado. Si el cálculo se volviera lento, es un criterio de extracción ([ADR-0012](adr/0012-no-extraer-emparejamiento.md)) |
 | **Responde dos veces** (el evento se procesa dos veces) | Coincidencias duplicadas para el mismo par | El id de la coincidencia es determinista por par (`origen__coincidente`) y el repositorio guarda por id, así que repetir el cálculo no duplica. La creación idempotente evita además emitir el evento dos veces | `src/application/use-cases/buscar-coincidencias.ts`; `src/infrastructure/persistence/memoria-coincidencia.repository.ts` | `buscar-coincidencias.spec.ts` («si el evento llega dos veces…»); `test/idempotencia.e2e-spec.ts` («el reintento no duplica la coincidencia») | Probado |
+
+### I4 · Emparejamiento y Reclamaciones → Notificaciones (eventos en proceso)
+
+| Modo | Qué pasaría sin mitigación | Mitigación asignada | Código | Prueba | Estado |
+|---|---|---|---|---|---|
+| **No responde** (guardar el aviso falla, p. ej. la base cae) | Un rechazo no manejado podría tumbar el proceso | El manejador captura el error y registra una advertencia; quien publicó o reclamó ya recibió su respuesta. El aviso se pierde (no hay reintento) | `src/notificaciones/notificaciones.listener.ts` | Sin prueba dedicada del fallo; misma estructura que I3 | Implementado. **Pendiente:** reprocesar el evento (bandeja de salida en la S12) |
+| **Responde tarde** | Si fuera síncrono, publicar o reclamar esperarían al aviso | Eventos asíncronos (ADR-0004); el cliente ve el aviso en su siguiente consulta | `notificaciones.listener.ts` | `test/notificaciones.e2e-spec.ts` (consulta con espera y medida del tiempo frente a los 60 s de S3) | Probado |
+| **Responde dos veces** (el evento se procesa dos veces) | Avisos repetidos | El id del aviso se deriva del evento y se guarda con `ON CONFLICT (id) DO NOTHING` | `src/application/use-cases/notificaciones.ts`; `postgres-notificacion.repository.ts` | `notificaciones.spec.ts` («el mismo evento procesado dos veces no duplica el aviso») | Probado |
 
 ## Diseño de idempotencia
 

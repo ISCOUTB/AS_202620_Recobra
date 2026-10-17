@@ -172,6 +172,11 @@ Con el token, `POST /publicaciones` se llama con `Authorization: Bearer <token>`
 - Quien publicó: `GET /publicaciones/<id>/reclamaciones`, y `POST /reclamaciones/<id>/aprobar` o `/rechazar` con `{"motivo": "..."}`. Aprobar es la única forma de llegar a `reclamado`.
 - Cada cuenta: `GET /publicaciones/mias` y `GET /reclamaciones/mias` (el correo de la otra persona aparece solo cuando se aprueba).
 
+**Avisos** (escenario S3, [ADR-0015](docs/adr/0015-notificaciones-en-la-aplicacion.md))
+
+- `GET /notificaciones` con sesión → `{"noLeidas": n, "notificaciones": [...]}`: coincidencias con lo que perdiste, reclamaciones nuevas de lo que publicaste y la respuesta a tus reclamaciones.
+- `POST /notificaciones/<id>/leida` y `POST /notificaciones/leidas` → `204`. La vitrina y la app muestran una campana con el contador.
+
 **Consultar**
 
 ```bash

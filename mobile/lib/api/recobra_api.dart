@@ -141,6 +141,49 @@ class ReclamacionPropia {
   }
 }
 
+/// Aviso de la bandeja (ADR-0015): coincidencia con algo que perdiste o
+/// novedades de una reclamación.
+class Notificacion {
+  Notificacion({
+    required this.id,
+    required this.tipo,
+    required this.titulo,
+    required this.mensaje,
+    required this.publicacionId,
+    required this.leida,
+    required this.creadoEn,
+  });
+
+  final String id;
+
+  /// coincidencia, reclamacion_nueva, reclamacion_aprobada o reclamacion_rechazada.
+  final String tipo;
+  final String titulo;
+  final String mensaje;
+  final String publicacionId;
+  final bool leida;
+  final String creadoEn;
+
+  factory Notificacion.fromJson(Map<String, dynamic> json) => Notificacion(
+        id: json['id'] as String,
+        tipo: json['tipo'] as String,
+        titulo: json['titulo'] as String,
+        mensaje: json['mensaje'] as String,
+        publicacionId: json['publicacionId'] as String,
+        leida: json['leida'] as bool,
+        creadoEn: json['creadoEn'] as String,
+      );
+}
+
+class BandejaAvisos {
+  const BandejaAvisos({required this.noLeidas, required this.notificaciones});
+
+  static const vacia = BandejaAvisos(noLeidas: 0, notificaciones: []);
+
+  final int noLeidas;
+  final List<Notificacion> notificaciones;
+}
+
 class RecobraApiException implements Exception {
   RecobraApiException(this.message, {this.statusCode});
 
@@ -154,7 +197,7 @@ class RecobraApiException implements Exception {
   String toString() => message;
 }
 
-/// Cliente HTTP de la API de Recobra (contrato 3.0.0). La URL base se inyecta
+/// Cliente HTTP de la API de Recobra (contrato 3.1.0). La URL base se inyecta
 /// para poder apuntar a emulador, web o el despliegue. El token de sesión se
 /// guarda solo en memoria: al cerrar la app hay que volver a iniciar sesión.
 class RecobraApi {
@@ -315,6 +358,29 @@ class RecobraApi {
       body: jsonEncode({'motivo': motivo}),
     ));
     _cuerpoO(r, {200}, 'No se pudo rechazar');
+  }
+
+  // ---------------- Avisos (ADR-0015) ----------------
+
+  Future<BandejaAvisos> notificaciones() async {
+    final r = await _enviar(_client.get(_uri('/notificaciones'), headers: _cabeceras()));
+    final cuerpo = _cuerpoO(r, {200}, 'No se pudieron cargar los avisos') as Map<String, dynamic>;
+    return BandejaAvisos(
+      noLeidas: cuerpo['noLeidas'] as int,
+      notificaciones: (cuerpo['notificaciones'] as List<dynamic>)
+          .map((e) => Notificacion.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Future<void> marcarLeida(String notificacionId) async {
+    final r = await _enviar(_client.post(_uri('/notificaciones/$notificacionId/leida'), headers: _cabeceras()));
+    _cuerpoO(r, {204}, 'No se pudo marcar el aviso');
+  }
+
+  Future<void> marcarTodasLeidas() async {
+    final r = await _enviar(_client.post(_uri('/notificaciones/leidas'), headers: _cabeceras()));
+    _cuerpoO(r, {204}, 'No se pudieron marcar los avisos');
   }
 
   String? _extractError(String body) {

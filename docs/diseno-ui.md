@@ -32,16 +32,22 @@ patrones de navegación, nunca datos personales.
 - **Barra de navegación flotante** en forma de píldora con cuatro secciones:
   Inicio, Publicar, Mis cosas y Perfil.
 - **Perfil** con avatar, nombre, correo y una etiqueta de tipo de cuenta.
+- **Campana de avisos** (ADR-0015) en el encabezado, con un contador naranja de
+  no leídos; los avisos se muestran como tarjetas con barra de color (azul:
+  coincidencia, naranja: reclamación nueva, verde: aprobada, rojo: rechazada) y
+  una etiqueta en mayúsculas con el tipo y la fecha.
 
 ## Dónde está
 
 - App Flutter: `mobile/lib/tema/tema_utb.dart` (paleta y tema),
   `mobile/lib/widgets/comunes.dart` (encabezado, tarjetas, etiquetas, barra),
-  `mobile/lib/pantallas/` (Inicio, Publicar, Mis cosas, Perfil, Acceso).
+  `mobile/lib/pantallas/` (Inicio, Publicar, Mis cosas, Perfil, Acceso y la
+  campana con la hoja de avisos en `avisos.dart`).
 - Vitrina web (`public/index.html`): mismo tema oscuro con variables CSS
   (`--fondo`, `--superficie`, `--azul`…), encabezado con fecha y saludo,
   tarjetas con barra de color por tipo y control segmentado en "Iniciar
-  sesión / Crear cuenta".
+  sesión / Crear cuenta", y la campana con su bandeja desplegable (en
+  pantallas angostas se ancla al ancho del encabezado).
 
 ## Accesibilidad
 
@@ -49,3 +55,5 @@ patrones de navegación, nunca datos personales.
 - Texto principal `#F5F6F8` sobre `#05060B` y `#17181B` (contraste alto).
 - La barra de navegación marca la pestaña activa con fondo, color y peso de
   letra, y declara su estado para lectores de pantalla (`Semantics`).
+- La campana anuncia el número de avisos ("Avisos, 2 sin leer"); en la vitrina
+  la bandeja se cierra con Escape y devuelve el foco a la campana.

@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Reclamacion } from '../../domain/entities/reclamacion';
+import { Publicacion } from '../../domain/entities/publicacion';
 import { ConflictoError, NoEncontradoError, PermisoDenegadoError } from '../../domain/errors/errores-de-dominio';
 import { CuentaRepository } from '../../domain/ports/cuenta-repository';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { ReclamacionRepository } from '../../domain/ports/reclamacion-repository';
 import { CambiarEstadoPublicacion } from './cambiar-estado-publicacion';
+import { RECLAMACION_CREADA, RECLAMACION_RESUELTA } from '../events/eventos-dominio';
 
 /**
  * Contexto Reclamaciones (escenario S2, ADR-0014). Lee publicaciones y cuentas
@@ -18,6 +21,7 @@ export class CrearReclamacion {
     private readonly reclamaciones: ReclamacionRepository,
     private readonly publicaciones: PublicacionRepository,
     private readonly cambiarEstado: CambiarEstadoPublicacion,
+    private readonly eventos: EventEmitter2,
   ) {}
 
   async ejecutar(publicacionId: string, reclamanteId: string, prueba: string): Promise<Reclamacion> {
@@ -52,6 +56,7 @@ export class CrearReclamacion {
       // Si otra reclamación ya la puso en verificación, no hay nada que cambiar.
       await this.cambiarEstado.ejecutar(publicacionId, 'publicado', 'en_verificacion');
     }
+    this.eventos.emit(RECLAMACION_CREADA, { reclamacion, publicacion });
     return reclamacion;
   }
 }
@@ -62,6 +67,7 @@ export class ResolverReclamacion {
     private readonly reclamaciones: ReclamacionRepository,
     private readonly publicaciones: PublicacionRepository,
     private readonly cambiarEstado: CambiarEstadoPublicacion,
+    private readonly eventos: EventEmitter2,
   ) {}
 
   /**
@@ -70,7 +76,7 @@ export class ResolverReclamacion {
    * mismo objeto se rechazan.
    */
   async aprobar(reclamacionId: string, solicitanteId: string): Promise<Reclamacion> {
-    const reclamacion = await this.cargarParaResolver(reclamacionId, solicitanteId);
+    const { reclamacion, publicacion } = await this.cargarParaResolver(reclamacionId, solicitanteId);
     const aprobada = reclamacion.aprobar(new Date().toISOString());
 
     const cambio = await this.cambiarEstado.ejecutar(reclamacion.publicacionId, 'en_verificacion', 'reclamado');
@@ -80,17 +86,21 @@ export class ResolverReclamacion {
     const pendientes = (await this.reclamaciones.listarPorPublicacion(reclamacion.publicacionId)).filter(
       (r) => r.estado === 'pendiente' && r.id !== reclamacion.id,
     );
+    this.eventos.emit(RECLAMACION_RESUELTA, { reclamacion: aprobada, publicacion });
     for (const otra of pendientes) {
-      await this.reclamaciones.guardar(otra.rechazar(aprobada.resueltaEn as string, 'Otra reclamación fue aprobada'));
+      const rechazada = otra.rechazar(aprobada.resueltaEn as string, 'Otra reclamación fue aprobada');
+      await this.reclamaciones.guardar(rechazada);
+      this.eventos.emit(RECLAMACION_RESUELTA, { reclamacion: rechazada, publicacion });
     }
     return aprobada;
   }
 
   /** Rechaza con un motivo; si no quedan pendientes, el objeto vuelve a "publicado". */
   async rechazar(reclamacionId: string, solicitanteId: string, motivo: string): Promise<Reclamacion> {
-    const reclamacion = await this.cargarParaResolver(reclamacionId, solicitanteId);
+    const { reclamacion, publicacion } = await this.cargarParaResolver(reclamacionId, solicitanteId);
     const rechazada = reclamacion.rechazar(new Date().toISOString(), motivo);
     await this.reclamaciones.guardar(rechazada);
+    this.eventos.emit(RECLAMACION_RESUELTA, { reclamacion: rechazada, publicacion });
 
     const quedan = (await this.reclamaciones.listarPorPublicacion(reclamacion.publicacionId)).some(
       (r) => r.estado === 'pendiente',
@@ -99,14 +109,17 @@ export class ResolverReclamacion {
     return rechazada;
   }
 
-  private async cargarParaResolver(reclamacionId: string, solicitanteId: string): Promise<Reclamacion> {
+  private async cargarParaResolver(
+    reclamacionId: string,
+    solicitanteId: string,
+  ): Promise<{ reclamacion: Reclamacion; publicacion: Publicacion }> {
     const reclamacion = await this.reclamaciones.buscarPorId(reclamacionId);
     if (!reclamacion) throw new NoEncontradoError('Reclamación no encontrada');
     const publicacion = await this.publicaciones.buscarPorId(reclamacion.publicacionId);
     if (!publicacion || publicacion.autorId !== solicitanteId) {
       throw new PermisoDenegadoError('solo quien publicó el objeto puede resolver sus reclamaciones');
     }
-    return reclamacion;
+    return { reclamacion, publicacion };
   }
 }
 

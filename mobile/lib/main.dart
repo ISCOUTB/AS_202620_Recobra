@@ -77,6 +77,7 @@ class Navegacion extends StatefulWidget {
 class _NavegacionState extends State<Navegacion> {
   int _indice = 0;
   final _inicio = GlobalKey<InicioPantallaState>();
+  final _misCosas = GlobalKey<MisCosasPantallaState>();
 
   static const _elementos = [
     ElementoNavegacion(Icons.home_outlined, Icons.home, 'Inicio'),
@@ -94,14 +95,21 @@ class _NavegacionState extends State<Navegacion> {
       body: IndexedStack(
         index: _indice,
         children: [
-          InicioPantalla(key: _inicio, alPedirCuenta: () => _ir(3)),
+          InicioPantalla(
+            key: _inicio,
+            alPedirCuenta: () => _ir(3),
+            alIrAMisCosas: ({required bool reclame}) {
+              _misCosas.currentState?.mostrar(reclame: reclame);
+              _ir(2);
+            },
+          ),
           PublicarPantalla(
             alPublicar: () {
               _inicio.currentState?.recargar();
               _ir(0);
             },
           ),
-          const MisCosasPantalla(),
+          MisCosasPantalla(key: _misCosas),
           const PerfilPantalla(),
         ],
       ),

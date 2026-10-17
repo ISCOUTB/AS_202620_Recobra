@@ -176,6 +176,14 @@ Fuente de los hallazgos: retroalimentación publicada en
 | La app Flutter no podía publicar tras ADR-0013 (401 sin sesión) | Inicio de sesión y registro con correo institucional, token en las peticiones, publicar, reclamar y aprobar desde la app | `mobile/lib/`, `mobile/test/widget_test.dart` (8 pruebas) |
 | Diseño provisional, sin identidad de la UTB | Tema oscuro, encabezado con degradado azul, tarjetas y barra flotante tomados de la app UTB | [`docs/diseno-ui.md`](docs/diseno-ui.md) |
 
+## Avance del proyecto · Notificaciones (2026-10-17)
+
+| Pendiente | Qué se hizo | Evidencia |
+|---|---|---|
+| Escenario S3 solo con la mitad del camino (había coincidencias, pero nadie se enteraba) | Bandeja de avisos por cuenta, alimentada por eventos en proceso; campana en la vitrina y en la app | [ADR-0015](docs/adr/0015-notificaciones-en-la-aplicacion.md), `test/notificaciones.e2e-spec.ts` |
+| ADR-0014 dejaba las reclamaciones sin aviso | Reclamar avisa a quien publicó; aprobar o rechazar avisa a quien reclamó | `notificaciones.spec.ts` |
+| Notificaciones dibujado como sistema externo sin código | Mapa de contextos, tabla de datos, C4, arc42, aspecto A9 y modos de fallo (I4) actualizados | [`docs/context-map.md`](docs/context-map.md), [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

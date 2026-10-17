@@ -1,3 +1,4 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PublicacionCreadaListener } from './publicacion-creada.listener';
 import { BuscarCoincidencias } from '../application/use-cases/buscar-coincidencias';
 import { Publicacion } from '../domain/entities/publicacion';
@@ -7,7 +8,7 @@ import { AlmacenamientoNoDisponibleError } from '../domain/errors/almacenamiento
 describe('PublicacionCreadaListener', () => {
   it('si el cálculo de coincidencias falla, el manejador termina sin lanzar', async () => {
     const buscar = { ejecutar: jest.fn().mockRejectedValue(new AlmacenamientoNoDisponibleError()) };
-    const listener = new PublicacionCreadaListener(buscar as unknown as BuscarCoincidencias);
+    const listener = new PublicacionCreadaListener(buscar as unknown as BuscarCoincidencias, new EventEmitter2());
     const publicacion = new Publicacion({
       id: 'p1',
       tipo: 'perdido',

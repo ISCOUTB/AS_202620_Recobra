@@ -21,12 +21,13 @@ flowchart TB
     end
 
     subgraph generico["Dominio genérico / externo"]
-        NOTIF["Notificaciones<br/><i>planeado, sistema externo</i>"]
+        NOTIF["Notificaciones<br/><i>implementado dentro de la API (ADR-0015)</i><br/>bandeja de avisos"]
         AUTH["Identidad<br/><i>implementado dentro de la API (ADR-0013)</i><br/>cuentas y sesiones"]
     end
 
     PUB -->|"Cliente/Proveedor — expone publicaciones vía puerto PublicacionRepository"| MATCH
-    MATCH -->|"Cliente/Proveedor — evento de coincidencia"| NOTIF
+    MATCH -->|"Cliente/Proveedor — evento coincidencia.detectada"| NOTIF
+    REC -->|"Cliente/Proveedor — eventos reclamacion.creada / resuelta"| NOTIF
     REC -->|"Conformista — referencia Publicacion.id; cambia su estado solo vía CambiarEstadoPublicacion"| PUB
     REC -->|"Capa anticorrupción — solo consume identidad verificada"| AUTH
     PUB -->|"Capa anticorrupción — valida usuario autor sin duplicar credenciales"| AUTH
@@ -52,7 +53,7 @@ modelo de datos.
 | **Publicaciones** | Núcleo | Registrar y consultar objetos perdidos/encontrados; dueño del ciclo de vida `publicado → en contacto → reclamado/cerrado` | Implementado (`src/domain`, `src/application`, `src/publicaciones`) |
 | **Reclamaciones** | Núcleo | Verificar que quien reclama un objeto tiene derecho a hacerlo (aspecto A3, escenario S2) | Implementado (`src/reclamaciones/`, `src/application/use-cases/reclamaciones.ts`, ADR-0014) |
 | **Emparejamiento (Matching)** | Soporte | Comparar publicaciones de "perdido" y "encontrado" y producir coincidencias (escenario S3) | Implementado (heurística por categoría + ubicación; ver `src/emparejamiento/` y `src/application/use-cases/buscar-coincidencias.ts`) |
-| **Notificaciones** | Genérico / externo | Enviar avisos de coincidencia por correo o push | Planeado, sistema externo (C4 nivel 1) |
+| **Notificaciones** | Genérico | Avisar a cada cuenta de coincidencias y reclamaciones (escenario S3) | Implementado dentro de la API como bandeja de avisos (`src/notificaciones/`, `src/application/use-cases/notificaciones.ts`, ADR-0015); correo o push quedan como canal futuro |
 | **Identidad** | Genérico | Cuentas con correo institucional y sesiones | Implementado dentro de la API (`src/identidad/`, ADR-0013); un proveedor institucional externo queda como alternativa futura detrás de los mismos puertos |
 
 ## Patrones de relación entre contextos
@@ -63,9 +64,12 @@ modelo de datos.
   y llama a `BuscarCoincidencias`, que lee publicaciones vía el puerto
   `PublicacionRepository` (nunca escribe sobre sus datos) y guarda sus
   propios resultados en `CoincidenciaRepository`.
-- **Emparejamiento → Notificaciones (Cliente/Proveedor):** todavía planeado.
-  Cuando Notificaciones exista, consumirá un evento `CoincidenciaDetectada`
-  sin conocer el modelo interno de `Publicacion`.
+- **Emparejamiento → Notificaciones y Reclamaciones → Notificaciones
+  (Cliente/Proveedor):** implementado (ADR-0015). Emparejamiento emite
+  `coincidencia.detectada` (solo ids y score) y Reclamaciones emite
+  `reclamacion.creada` y `reclamacion.resuelta`; `NotificacionesListener` los
+  consume en proceso y guarda avisos en su propia tabla. Un fallo de
+  Notificaciones no afecta a quien publicó o reclamó (S4a).
 - **Reclamaciones → Publicaciones (Conformista):** Reclamaciones referencia
   una publicación por su `id` y no copia ni reinterpreta sus campos; si
   Publicaciones cambia su modelo, Reclamaciones se ajusta, no al revés.

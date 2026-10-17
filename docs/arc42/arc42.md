@@ -149,14 +149,14 @@ Vista estática del backend, actualizada para el segundo corte (diagramas en
 
 | Bloque | Responsabilidad | Ubicación |
 |--------|-----------------|-----------|
-| Dominio | Entidades `Publicacion` (con su ciclo de vida), `Coincidencia`, `Cuenta` y `Reclamacion`; errores de dominio | `src/domain/entities/`, `src/domain/errors/` |
-| Puertos | `PublicacionRepository` (guardar, guardarSiNoExiste, buscarPorId, listarPorTipo, buscar, cambiarEstado, listarPorAutor, verificarDisponibilidad), `CoincidenciaRepository`, `CuentaRepository`, `SesionRepository`, `ReclamacionRepository`, `HashContrasenas` | `src/domain/ports/` |
-| Aplicación | Publicaciones (crear, crear idempotente, consultar, buscar, cambiar estado, listar las propias), Emparejamiento, Identidad (registrar, iniciar y cerrar sesión, resolver sesión) y Reclamaciones (crear, aprobar, rechazar, consultar) | `src/application/use-cases/` |
+| Dominio | Entidades `Publicacion` (con su ciclo de vida), `Coincidencia`, `Cuenta`, `Reclamacion` y `Notificacion`; errores de dominio | `src/domain/entities/`, `src/domain/errors/` |
+| Puertos | `PublicacionRepository` (guardar, guardarSiNoExiste, buscarPorId, listarPorTipo, buscar, cambiarEstado, listarPorAutor, verificarDisponibilidad), `CoincidenciaRepository`, `CuentaRepository`, `SesionRepository`, `ReclamacionRepository`, `NotificacionRepository`, `HashContrasenas` | `src/domain/ports/` |
+| Aplicación | Publicaciones (crear, crear idempotente, consultar, buscar, cambiar estado, listar las propias), Emparejamiento, Identidad (registrar, iniciar y cerrar sesión, resolver sesión) Reclamaciones (crear, aprobar, rechazar, consultar) y Notificaciones (notificar, consultar, marcar leídas) | `src/application/use-cases/` |
 | Adaptadores de persistencia | `PostgresPublicacionRepository` (con `DATABASE_URL`) y `MemoriaPublicacionRepository` (sin ella); coincidencias solo en memoria | `src/infrastructure/persistence/` |
-| Adaptadores HTTP | Controladores Nest, `AutenticacionGuard`, filtros de error (400, 401, 403, 404, 409, 422 y 503) | `src/publicaciones/`, `src/emparejamiento/`, `src/identidad/`, `src/reclamaciones/`, `src/salud/` |
+| Adaptadores HTTP | Controladores Nest, `AutenticacionGuard`, filtros de error (400, 401, 403, 404, 409, 422 y 503) | `src/publicaciones/`, `src/emparejamiento/`, `src/identidad/`, `src/reclamaciones/`, `src/notificaciones/`, `src/salud/` |
 | Observabilidad | Logs JSON, `GET /metrics` (S5 y S1), `GET /health` y `GET /health/ready` | `src/observabilidad/`, `src/salud/` |
 | Composition root | Cableado de módulos Nest y selección del adaptador | `src/app.module.ts`, `src/publicaciones/publicaciones.module.ts` |
-| Clientes | App Flutter (estilo de la app UTB, `docs/diseno-ui.md`) y vitrina web; ambos con cuentas y reclamaciones | `mobile/`, `public/index.html` |
+| Clientes | App Flutter (estilo de la app UTB, `docs/diseno-ui.md`) y vitrina web; ambos con cuentas, reclamaciones y campana de avisos | `mobile/`, `public/index.html` |
 
 Relación con C4 nivel 2: el contenedor API agrupa dominio, aplicación y
 adaptadores; la persistencia es un contenedor PostgreSQL aparte.
@@ -190,6 +190,14 @@ otra pendiente de la misma cuenta → guarda la reclamación → pide a
 Quien publicó la aprueba (`ResolverReclamacion.aprobar` → `en_verificacion` a
 `reclamado`, solo si sigue en verificación; las demás pendientes se rechazan) o la
 rechaza con motivo (si no quedan pendientes, vuelve a `publicado`).
+
+Flujo **avisar** (escenario S3, ADR-0015): `BuscarCoincidencias` emite
+`coincidencia.detectada` por cada coincidencia nueva; `CrearReclamacion` y
+`ResolverReclamacion` emiten `reclamacion.creada` y `reclamacion.resuelta`.
+`NotificacionesListener` los recibe de forma asíncrona y `Notificar` guarda un
+aviso para la cuenta que corresponde (quien perdió el objeto, quien lo publicó o
+quien reclamó) con un id derivado del evento, así que un evento repetido no
+duplica. Los clientes consultan `GET /notificaciones` y marcan como leído.
 
 Flujo **identidad** (ADR-0013): `POST /cuentas` (correo `@utb.edu.co`, contraseña con
 scrypt) → `POST /sesiones` devuelve un token opaco → las rutas protegidas lo reciben
@@ -279,6 +287,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0012](../adr/0012-no-extraer-emparejamiento.md) | No extraer Emparejamiento como servicio aparte (por ahora), con criterios para revisarlo | Aceptada |
 | [ADR-0013](../adr/0013-cuentas-con-correo-institucional-y-sesiones-opacas.md) | Cuentas propias con correo institucional y sesiones con token opaco | Aceptada |
 | [ADR-0014](../adr/0014-reclamacion-con-prueba-y-aprobacion.md) | Reclamación con prueba del reclamante y aprobación de quien encontró el objeto | Aceptada |
+| [ADR-0015](../adr/0015-notificaciones-en-la-aplicacion.md) | Notificaciones dentro de la aplicación, alimentadas por eventos en proceso | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -287,8 +296,8 @@ Los escenarios de [`escenarios_calidad.md`](../calidad/escenarios_calidad.md) gu
 decisiones:
 
 - **S1 Rendimiento:** búsqueda con filtros implementada y medida (aspecto A6; ADR-0008; `docs/medicion-busqueda.md`). La búsqueda de texto libre sigue fuera de alcance.
-- **S2 Seguridad:** verificación de reclamaciones (futuro; aspecto A3).
-- **S3 Notificaciones:** matching + push (futuro).
+- **S2 Seguridad:** reclamación con prueba y aprobación (aspecto A3; ADR-0014).
+- **S3 Notificaciones:** coincidencia y bandeja de avisos en la app (aspectos A5 y A9; ADR-0015); correo o push, futuro.
 - **S4 / S4a / S4b Disponibilidad:** aislar fallos de infraestructura del
   dominio (aspecto A1; hexagonal).
 - **S5 Mantenibilidad:** ancla del reto de corte 1 (aspecto A2; ADR-0003).
@@ -308,10 +317,11 @@ Detalle completo, con código y pruebas de cada fila, en
 | API → PostgreSQL (principal) | Conexión con límite de 3 s → 503; arranque tolerante; `/health/ready` en 503. **Probado** | `statement_timeout` 2 s y `query_timeout` 2,5 s → 503. **Probado con dobles** | Inserción atómica `ON CONFLICT (id) DO NOTHING` para reintentos. **Probado** |
 | Cliente → API | Reintentos de `/health` y límite de 10 s al crear. **Implementado, sin prueba automática** | El reintento conserva la clave de idempotencia. **Probado en el servidor** | `Idempotency-Key`: 200 con la original o 422 si los datos cambian. **Probado** |
 | Publicaciones → Emparejamiento | El manejador captura el error; la publicación no se afecta. **Probado** | Evento asíncrono, no bloquea. **Probado** | Id determinista por par: no duplica. **Probado** |
+| Emparejamiento y Reclamaciones → Notificaciones | El manejador captura el error; publicar y reclamar no se afectan. **Implementado** | Evento asíncrono, no bloquea. **Probado** | Id del aviso derivado del evento: no duplica. **Probado** |
 
 ### 11.2 Riesgos y deuda
 
-- **Eventos de Emparejamiento perdidos:** si el proceso cae entre guardar la publicación y emitir el evento, o si el cálculo falla, esas coincidencias no se recalculan. Plan: bandeja de salida o broker en la S12.
+- **Eventos de Emparejamiento y Notificaciones perdidos:** si el proceso cae entre guardar la publicación y emitir el evento, o si el cálculo falla, esas coincidencias no se recalculan. Plan: bandeja de salida o broker en la S12.
 - **Sin circuit breaker hacia la base:** con una caída larga, cada petición espera hasta 3 s antes del 503. Plan: agregarlo en el adaptador si una caída real lo justifica.
 - **Vitrina sin pruebas automáticas:** sus reintentos, límites de tiempo y el bloqueo del botón están implementados pero no tienen prueba.
 - **Idempotencia:** la clave ya se compara junto con el autor (una misma clave con otra cuenta responde 422), pero no se acota por cuenta; ver los límites en `docs/modos-de-fallo.md`.
@@ -321,7 +331,7 @@ Detalle completo, con código y pruebas de cada fila, en
 
 
 - Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias aún están solo en memoria.
-- Notificaciones, Reclamaciones e Identidad son solo diseño, sin código todavía (Emparejamiento ya se implementó, ver aspecto A5).
+- Todos los contextos del mapa tienen código (Notificaciones desde ADR-0015). Lo que sigue siendo diseño es el canal de correo o push y el administrador.
 - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
 - **Transporte hacia la base:** con `DATABASE_SSL=false` (base interna de Dokploy) no hay TLS; con TLS activo el adaptador usa `rejectUnauthorized: false`, así que cifra pero **no valida** el certificado del servidor y no debe describirse como verificación de identidad de la base. No se verificó el aislamiento de la red interna.
 - **La plataforma es el servidor del laboratorio (Dokploy), no del equipo:** si deja de estar disponible o cambia su política, hay que redesplegar en otro lado (el `Dockerfile` se reutiliza; ver el costo de revertir en ADR-0010). Un redespliegue deja el dominio sin servicio ~30-50 s. Las copias de seguridad de la base en Dokploy no están configuradas. Lo ya mitigado: los redespliegues de código no requieren cuentas (cada commit a `master` redespliega solo).

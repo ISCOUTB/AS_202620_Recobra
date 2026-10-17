@@ -30,7 +30,10 @@ info:
     ciclo de vida. Es un cambio **incompatible**: `POST /publicaciones` ahora
     exige `Authorization: Bearer <token>` (401 sin sesión), así que sube la
     versión mayor.
-  version: "3.0.0"
+    3.1.0 agrega la bandeja de avisos (`GET /notificaciones`,
+    `POST /notificaciones/{id}/leida`, `POST /notificaciones/leidas`, ADR-0015):
+    cambio compatible.
+  version: "3.1.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
@@ -581,6 +584,78 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /notificaciones:
+    get:
+      operationId: listarNotificaciones
+      summary: Bandeja de avisos de la cuenta (coincidencias y reclamaciones)
+      tags: [Notificaciones]
+      security:
+        - sesion: []
+      responses:
+        "200":
+          description: Los 50 avisos más recientes y cuántos no se han leído
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [noLeidas, notificaciones]
+                properties:
+                  noLeidas:
+                    type: integer
+                  notificaciones:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notificacion"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /notificaciones/leidas:
+    post:
+      operationId: marcarTodasLeidas
+      summary: Marcar todos los avisos como leídos
+      tags: [Notificaciones]
+      security:
+        - sesion: []
+      responses:
+        "204":
+          description: Hecho
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /notificaciones/{id}/leida:
+    post:
+      operationId: marcarLeida
+      summary: Marcar un aviso propio como leído
+      tags: [Notificaciones]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Hecho
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: No existe o no es de esta cuenta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /coincidencias:
     get:
       operationId: listarCoincidencias
@@ -608,6 +683,29 @@ components:
       scheme: bearer
       description: Token opaco devuelto por POST /sesiones (ADR-0013)
   schemas:
+    Notificacion:
+      type: object
+      required: [id, cuentaId, tipo, titulo, mensaje, publicacionId, leida, creadoEn]
+      properties:
+        id:
+          type: string
+        cuentaId:
+          type: string
+        tipo:
+          type: string
+          enum: [coincidencia, reclamacion_nueva, reclamacion_aprobada, reclamacion_rechazada]
+        titulo:
+          type: string
+        mensaje:
+          type: string
+        publicacionId:
+          type: string
+          description: Publicación a la que lleva el aviso
+        leida:
+          type: boolean
+        creadoEn:
+          type: string
+          format: date-time
     Cuenta:
       type: object
       required: [id, correo, nombre]

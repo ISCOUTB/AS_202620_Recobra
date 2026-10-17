@@ -29,8 +29,8 @@ describe('Reclamaciones', () => {
     cuentas = new MemoriaCuentaRepository();
     const cambiar = new CambiarEstadoPublicacion(publicaciones);
     crearPublicacion = new CrearPublicacion(publicaciones, new EventEmitter2());
-    crear = new CrearReclamacion(reclamaciones, publicaciones, cambiar);
-    resolver = new ResolverReclamacion(reclamaciones, publicaciones, cambiar);
+    crear = new CrearReclamacion(reclamaciones, publicaciones, cambiar, new EventEmitter2());
+    resolver = new ResolverReclamacion(reclamaciones, publicaciones, cambiar, new EventEmitter2());
     consultar = new ConsultarReclamaciones(reclamaciones, publicaciones, cuentas);
     for (const [id, nombre] of [
       ['quien-encontro', 'Bea'],

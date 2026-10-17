@@ -12,14 +12,20 @@ class MisCosasPantalla extends StatefulWidget {
   const MisCosasPantalla({super.key});
 
   @override
-  State<MisCosasPantalla> createState() => _MisCosasPantallaState();
+  State<MisCosasPantalla> createState() => MisCosasPantallaState();
 }
 
-class _MisCosasPantallaState extends State<MisCosasPantalla> {
+class MisCosasPantallaState extends State<MisCosasPantalla> {
   bool _reclame = false;
   int _version = 0;
 
   void _recargar() => setState(() => _version++);
+
+  /// Abre una de las dos listas ya recargada (al tocar un aviso de reclamación).
+  void mostrar({required bool reclame}) => setState(() {
+        _reclame = reclame;
+        _version++;
+      });
 
   @override
   Widget build(BuildContext context) {

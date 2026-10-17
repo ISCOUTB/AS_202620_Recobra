@@ -4,15 +4,19 @@ import '../api/recobra_api.dart';
 import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
+import 'avisos.dart';
 
 const categoriasPredefinidas = ['electronica', 'mochilas', 'llaves', 'documentos', 'ropa', 'accesorios', 'otros'];
 
 /// Inicio: buscar publicaciones con filtros (escenario S1) y abrir el detalle.
 class InicioPantalla extends StatefulWidget {
-  const InicioPantalla({super.key, required this.alPedirCuenta});
+  const InicioPantalla({super.key, required this.alPedirCuenta, required this.alIrAMisCosas});
 
   /// Lleva a la pestaña de cuenta cuando hace falta iniciar sesión.
   final VoidCallback alPedirCuenta;
+
+  /// Lleva a "Mis cosas": `reclame` elige "Lo que reclamé" en vez de "Lo que publiqué".
+  final void Function({required bool reclame}) alIrAMisCosas;
 
   @override
   State<InicioPantalla> createState() => InicioPantallaState();
@@ -56,6 +60,7 @@ class InicioPantallaState extends State<InicioPantalla> {
             sobretitulo: fechaLarga(ahora),
             titulo: sesion.activa ? '${saludo(ahora)}, ${sesion.cuenta!.nombre.split(' ').first}' : 'Recobra',
             subtitulo: 'Objetos perdidos y encontrados en el campus',
+            accion: sesion.activa ? CampanaAvisos(alAbrirAviso: _abrirAviso) : null,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
@@ -138,6 +143,22 @@ class InicioPantallaState extends State<InicioPantalla> {
         ],
       ),
     );
+  }
+
+  /// Una coincidencia abre la publicación encontrada; una reclamación lleva a "Mis cosas".
+  Future<void> _abrirAviso(Notificacion aviso) async {
+    if (aviso.tipo != 'coincidencia') {
+      widget.alIrAMisCosas(reclame: aviso.tipo != 'reclamacion_nueva');
+      return;
+    }
+    final sesion = AlcanceSesion.de(context);
+    final mensajero = ScaffoldMessenger.of(context);
+    try {
+      final publicacion = await sesion.api.consultarPublicacion(aviso.publicacionId);
+      if (mounted) await _abrirDetalle(publicacion);
+    } catch (e) {
+      mensajero.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 
   Future<void> _abrirDetalle(Publicacion p) async {

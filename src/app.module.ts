@@ -8,6 +8,7 @@ import { ObservabilidadModule } from './observabilidad/observabilidad.module';
 import { EmparejamientoModule } from './emparejamiento/emparejamiento.module';
 import { IdentidadModule } from './identidad/identidad.module';
 import { ReclamacionesModule } from './reclamaciones/reclamaciones.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ReclamacionesModule } from './reclamaciones/reclamaciones.module';
     EmparejamientoModule,
     IdentidadModule,
     ReclamacionesModule,
+    NotificacionesModule,
   ],
 })
 export class AppModule {}

@@ -257,6 +257,85 @@
   .mi-cuenta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; }
   @media (max-width: 800px) { .mi-cuenta { grid-template-columns: minmax(0, 1fr); } }
   .mi-cuenta h3 { margin: 0 0 0.3rem; font-size: 1.05rem; color: var(--texto); }
+
+  /* ---- Avisos (ADR-0015): campana con contador y bandeja desplegable ---- */
+  #zona-sesion { position: relative; }
+  #zona-sesion button.campana {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+  }
+  #zona-sesion button.campana:hover { background: rgba(255, 255, 255, 0.22); }
+  .campana svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: #ffffff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .contador {
+    position: absolute;
+    top: -0.3rem;
+    right: -0.3rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: var(--naranja);
+    color: #05060b;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1.15rem;
+    text-align: center;
+  }
+  .bandeja {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.6rem);
+    z-index: 10;
+    width: min(380px, calc(100vw - 2.5rem));
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 1rem;
+    border-radius: 20px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+    color: var(--texto);
+    text-align: left;
+  }
+  @media (max-width: 560px) {
+    .cabecera { position: relative; }
+    #zona-sesion { position: static; }
+    .bandeja { left: 1.25rem; right: 1.25rem; top: calc(100% - 0.75rem); width: auto; }
+  }
+  .bandeja .titulo-bandeja { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
+  .bandeja h2 { margin: 0; font-size: 1.05rem; }
+  #zona-sesion .bandeja button.enlace { background: transparent; border: none; color: var(--azul-claro); padding: 0.2rem 0.4rem; }
+  .aviso-item {
+    position: relative;
+    display: block;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    padding: 0.75rem 0.85rem 0.75rem 1.1rem;
+    border-radius: 14px;
+    border: 1px solid var(--borde);
+    background: var(--superficie-alta);
+    color: var(--texto);
+    font-weight: 400;
+    text-align: left;
+    overflow: hidden;
+  }
+  .aviso-item:hover { background: #2a2d35; }
+  .aviso-item::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--azul-claro); }
+  .aviso-item.reclamacion_nueva::before { background: var(--naranja); }
+  .aviso-item.reclamacion_aprobada::before { background: var(--verde); }
+  .aviso-item.reclamacion_rechazada::before { background: var(--error); }
+  .aviso-item.leida { opacity: 0.6; }
+  .aviso-item .chip { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-suave); }
+  .aviso-item strong { display: block; margin: 0.15rem 0; font-size: 0.95rem; }
+  .aviso-item .meta { margin-top: 0; }
 </style>
 </head>
 <body>
@@ -271,7 +350,18 @@
     <div id="zona-sesion">
       <output id="estado-salud">verificando backend…</output>
       <button id="boton-reintentar" type="button" hidden>Reintentar</button>
+      <button id="boton-avisos" type="button" class="campana" aria-label="Avisos" aria-expanded="false" aria-controls="bandeja-avisos" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+        <span class="contador" id="contador-avisos" hidden></span>
+      </button>
       <button id="boton-cerrar-sesion" type="button" class="secundario" hidden>Cerrar sesión</button>
+      <section class="bandeja" id="bandeja-avisos" aria-labelledby="titulo-avisos" hidden>
+        <div class="titulo-bandeja">
+          <h2 id="titulo-avisos">Avisos</h2>
+          <button type="button" class="enlace" id="boton-leer-todas">Marcar todo como leído</button>
+        </div>
+        <div id="lista-avisos"></div>
+      </section>
     </div>
   </div>
 </header>
@@ -741,6 +831,7 @@
     mensajeCrear.textContent = '';
     for (const campo of formCrear.elements) campo.disabled = !conSesion;
     if (conSesion) cargarMiCuenta();
+    programarAvisos(conSesion);
     buscar();
   }
 
@@ -954,6 +1045,140 @@
     }
     return tarjeta;
   }
+
+  /* ================= Avisos (escenario S3, ADR-0015) =================
+   * La campana consulta GET /notificaciones cada 20 s mientras hay sesión y
+   * la pestaña está visible; S3 pide el aviso en 60 s o menos.
+   */
+  const INTERVALO_AVISOS_MS = 20000;
+  const CHIP_AVISO = {
+    coincidencia: 'Posible coincidencia',
+    reclamacion_nueva: 'Reclamación nueva',
+    reclamacion_aprobada: 'Reclamación aprobada',
+    reclamacion_rechazada: 'Reclamación rechazada',
+  };
+  const botonAvisos = document.getElementById('boton-avisos');
+  const contadorAvisos = document.getElementById('contador-avisos');
+  const bandejaAvisos = document.getElementById('bandeja-avisos');
+  const listaAvisos = document.getElementById('lista-avisos');
+  let temporizadorAvisos = null;
+  let ultimaBandeja = { noLeidas: 0, notificaciones: [] };
+
+  function programarAvisos(conSesion) {
+    clearInterval(temporizadorAvisos);
+    temporizadorAvisos = null;
+    botonAvisos.hidden = !conSesion;
+    if (!conSesion) {
+      cerrarBandeja();
+      pintarContador(0);
+      return;
+    }
+    cargarAvisos();
+    temporizadorAvisos = setInterval(() => {
+      if (document.visibilityState === 'visible') cargarAvisos();
+    }, INTERVALO_AVISOS_MS);
+  }
+
+  function pintarContador(noLeidas) {
+    contadorAvisos.hidden = noLeidas === 0;
+    contadorAvisos.textContent = noLeidas > 9 ? '9+' : String(noLeidas);
+    botonAvisos.setAttribute('aria-label', noLeidas === 0 ? 'Avisos' : `Avisos, ${noLeidas} sin leer`);
+  }
+
+  async function cargarAvisos() {
+    if (!sesion) return;
+    const r = await llamar('/notificaciones').catch(() => null);
+    if (!r || !r.ok) return;
+    ultimaBandeja = r.cuerpo;
+    pintarContador(ultimaBandeja.noLeidas);
+    if (!bandejaAvisos.hidden) pintarBandeja();
+  }
+
+  function pintarBandeja() {
+    listaAvisos.replaceChildren();
+    if (ultimaBandeja.notificaciones.length === 0) {
+      listaAvisos.append(elemento('div', 'vacio', 'No tienes avisos. Te contaremos aquí si aparece algo que perdiste.'));
+      return;
+    }
+    for (const aviso of ultimaBandeja.notificaciones) listaAvisos.append(itemAviso(aviso));
+  }
+
+  function itemAviso(aviso) {
+    const item = elemento('button', `aviso-item ${aviso.tipo}${aviso.leida ? ' leida' : ''}`);
+    item.type = 'button';
+    item.append(
+      elemento('span', 'chip', `${CHIP_AVISO[aviso.tipo] || 'Aviso'} · ${formatearFecha(aviso.creadoEn)}`),
+      elemento('strong', '', aviso.titulo),
+      elemento('span', 'meta', aviso.mensaje),
+    );
+    item.addEventListener('click', () => abrirAviso(aviso));
+    return item;
+  }
+
+  async function abrirAviso(aviso) {
+    cerrarBandeja();
+    if (!aviso.leida) {
+      await llamar(`/notificaciones/${encodeURIComponent(aviso.id)}/leida`, { method: 'POST' }).catch(() => null);
+      cargarAvisos();
+    }
+    if (aviso.tipo === 'coincidencia') {
+      await mostrarPublicacionDelAviso(aviso.publicacionId);
+      return;
+    }
+    panelMiCuenta.scrollIntoView({ behavior: 'smooth' });
+    cargarMiCuenta();
+  }
+
+  async function mostrarPublicacionDelAviso(publicacionId) {
+    const r = await llamar(`/publicaciones/${encodeURIComponent(publicacionId)}`);
+    listaPublicaciones.replaceChildren();
+    if (r.ok) {
+      resumen.textContent = 'Esto lo encontró alguien y se parece a lo que perdiste. Si es tuyo, reclámalo.';
+      listaPublicaciones.append(tarjetaPublicacion(r.cuerpo));
+    } else {
+      resumen.textContent = 'La publicación de este aviso ya no está disponible.';
+    }
+    const volver = elemento('button', 'secundario', 'Ver todas las publicaciones');
+    volver.type = 'button';
+    volver.addEventListener('click', buscar);
+    listaPublicaciones.append(volver);
+    listaPublicaciones.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function abrirBandeja() {
+    pintarBandeja();
+    bandejaAvisos.hidden = false;
+    botonAvisos.setAttribute('aria-expanded', 'true');
+    cargarAvisos();
+  }
+
+  function cerrarBandeja() {
+    bandejaAvisos.hidden = true;
+    botonAvisos.setAttribute('aria-expanded', 'false');
+  }
+
+  botonAvisos.addEventListener('click', () => {
+    if (bandejaAvisos.hidden) abrirBandeja();
+    else cerrarBandeja();
+  });
+  document.getElementById('boton-leer-todas').addEventListener('click', async () => {
+    await llamar('/notificaciones/leidas', { method: 'POST' }).catch(() => null);
+    cargarAvisos();
+  });
+  document.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape' && !bandejaAvisos.hidden) {
+      cerrarBandeja();
+      botonAvisos.focus();
+    }
+  });
+  document.addEventListener('click', (evento) => {
+    if (!bandejaAvisos.hidden && !bandejaAvisos.contains(evento.target) && !botonAvisos.contains(evento.target)) {
+      cerrarBandeja();
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') cargarAvisos();
+  });
 
   pintarSesion();
   verificarSalud();
