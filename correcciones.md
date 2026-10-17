@@ -169,6 +169,13 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Publicaciones anónimas | Publicar exige sesión; la publicación guarda su autor (contrato 3.0.0, cambio incompatible) | [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) |
 | Identidad y Reclamaciones solo como diseño | Implementados con su propia tabla y dueño único, reflejados en el mapa de contextos, la tabla de datos, C4 y arc42 | [`docs/context-map.md`](docs/context-map.md), [`docs/modulo-datos.md`](docs/modulo-datos.md) |
 
+## Avance del proyecto · App Flutter y diseño UTB (2026-10-17)
+
+| Pendiente | Qué se hizo | Evidencia |
+|---|---|---|
+| La app Flutter no podía publicar tras ADR-0013 (401 sin sesión) | Inicio de sesión y registro con correo institucional, token en las peticiones, publicar, reclamar y aprobar desde la app | `mobile/lib/`, `mobile/test/widget_test.dart` (8 pruebas) |
+| Diseño provisional, sin identidad de la UTB | Tema oscuro, encabezado con degradado azul, tarjetas y barra flotante tomados de la app UTB | [`docs/diseno-ui.md`](docs/diseno-ui.md) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

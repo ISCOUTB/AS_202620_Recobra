@@ -156,7 +156,7 @@ Vista estática del backend, actualizada para el segundo corte (diagramas en
 | Adaptadores HTTP | Controladores Nest, `AutenticacionGuard`, filtros de error (400, 401, 403, 404, 409, 422 y 503) | `src/publicaciones/`, `src/emparejamiento/`, `src/identidad/`, `src/reclamaciones/`, `src/salud/` |
 | Observabilidad | Logs JSON, `GET /metrics` (S5 y S1), `GET /health` y `GET /health/ready` | `src/observabilidad/`, `src/salud/` |
 | Composition root | Cableado de módulos Nest y selección del adaptador | `src/app.module.ts`, `src/publicaciones/publicaciones.module.ts` |
-| Clientes | App Flutter y vitrina web | `mobile/`, `public/index.html` |
+| Clientes | App Flutter (estilo de la app UTB, `docs/diseno-ui.md`) y vitrina web; ambos con cuentas y reclamaciones | `mobile/`, `public/index.html` |
 
 Relación con C4 nivel 2: el contenedor API agrupa dominio, aplicación y
 adaptadores; la persistencia es un contenedor PostgreSQL aparte.
@@ -318,7 +318,6 @@ Detalle completo, con código y pruebas de cada fila, en
 - **Correo sin verificar por propiedad:** se exige `@utb.edu.co`, pero no hay código por correo (sin proveedor gratuito); lo mitiga que la entrega la aprueba una persona (ADR-0013, ADR-0014).
 - **Seguridad de la cuenta pendiente:** sin límite de intentos de inicio de sesión ni recuperación de contraseña; el token vive en `localStorage` de la vitrina (riesgo ante XSS). Para el modelado de amenazas de la S13.
 - **Consistencia al aprobar una reclamación:** se cambia la publicación y luego la reclamación; si la segunda escritura falla quedan desalineadas. Para la S12 (saga o bandeja de salida).
-- **App Flutter sin sesión:** publicar desde la app responde 401 hasta adaptarla.
 
 
 - Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias aún están solo en memoria.

@@ -46,7 +46,11 @@ flutter run -d chrome          # web contra localhost:3000
 flutter run
 ```
 
-El backend debe estar corriendo. La app permite crear y consultar publicaciones.
+El backend debe estar corriendo. La app sigue el estilo de la app UTB (tema oscuro; ver
+[`docs/diseno-ui.md`](docs/diseno-ui.md)) y tiene cuatro secciones: **Inicio** (buscar y ver
+coincidencias, sin cuenta), **Publicar**, **Mis cosas** (lo que publicaste, con sus
+reclamaciones para aprobar o rechazar, y lo que reclamaste) y **Perfil**. Publicar y reclamar
+piden iniciar sesión con correo `@utb.edu.co`; la sesión dura mientras la app esté abierta.
 
 Para apuntar la app al backend **desplegado** en vez de local (útil para
 demos sin correr nada local):
@@ -210,6 +214,7 @@ La documentación del proyecto se encuentra en la carpeta `docs/`.
 - [`docs/medicion-corte1.md`](docs/medicion-corte1.md) — línea base y resultado del reto de corte 1.
 - [`docs/medicion-s10.md`](docs/medicion-s10.md) — experimento del segundo corte: escenario S1 sobre el despliegue en Dokploy.
 - [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md) — modos de fallo de cada integración, su mitigación, código y prueba (S11).
+- [`docs/diseno-ui.md`](docs/diseno-ui.md) — paleta y patrones de interfaz tomados de la app UTB.
 - [`docs/no-conformidades.md`](docs/no-conformidades.md) — no conformidades detectadas y su plan de corrección.
 - [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).
 - [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md) — estimación de costo del despliegue (ADR-0005).
