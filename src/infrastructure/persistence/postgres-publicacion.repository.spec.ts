@@ -94,6 +94,43 @@ describe('PostgresPublicacionRepository', () => {
     expect(queryMock).toHaveBeenCalledWith('SELECT 1', undefined);
   });
 
+  it('limita cuánto espera a la base: sentencia a 2 s y respuesta a 2,5 s', () => {
+    const PoolMock = Pool as unknown as jest.Mock;
+    PoolMock.mockClear();
+    new PostgresPublicacionRepository();
+    expect(PoolMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ connectionTimeoutMillis: 3000, statement_timeout: 2000, query_timeout: 2500 }),
+    );
+  });
+
+  it.each([
+    ['respuesta que no llega a tiempo', new Error('Query read timeout')],
+    ['sentencia cancelada por statement_timeout', Object.assign(new Error('canceling statement'), { code: '57014' })],
+  ])('una base que responde tarde (%s) se traduce a no disponible', async (_caso, error) => {
+    queryMock.mockRejectedValueOnce(error);
+    const repo = new PostgresPublicacionRepository();
+
+    await expect(repo.buscar({ limite: 20 })).rejects.toBeInstanceOf(AlmacenamientoNoDisponibleError);
+  });
+
+  it('guardarSiNoExiste informa si insertó la fila (rowCount 1) o ya existía (0)', async () => {
+    const repo = new PostgresPublicacionRepository();
+    const publicacion = new Publicacion({
+      id: 'x1',
+      tipo: 'perdido',
+      descripcion: 'd',
+      categoria: 'c',
+      ubicacion: 'u',
+      creadoEn: new Date().toISOString(),
+    });
+
+    queryMock.mockResolvedValueOnce({ rowCount: 1 });
+    await expect(repo.guardarSiNoExiste(publicacion)).resolves.toBe(true);
+    queryMock.mockResolvedValueOnce({ rowCount: 0 });
+    await expect(repo.guardarSiNoExiste(publicacion)).resolves.toBe(false);
+    expect(queryMock).toHaveBeenLastCalledWith(expect.stringContaining('ON CONFLICT (id) DO NOTHING'), expect.any(Array));
+  });
+
   it('onModuleInit crea la tabla si no existe', async () => {
     queryMock.mockResolvedValueOnce({});
     const repo = new PostgresPublicacionRepository();

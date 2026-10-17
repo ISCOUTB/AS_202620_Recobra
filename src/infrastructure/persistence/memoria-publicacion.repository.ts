@@ -11,6 +11,14 @@ export class MemoriaPublicacionRepository extends PublicacionRepository {
     return publicacion;
   }
 
+  // Atómico: el bucle de eventos de Node no intercala otra petición entre la
+  // comprobación y la escritura, porque no hay ningún await en medio.
+  async guardarSiNoExiste(publicacion: Publicacion): Promise<boolean> {
+    if (this.publicaciones.has(publicacion.id)) return false;
+    this.publicaciones.set(publicacion.id, publicacion);
+    return true;
+  }
+
   async buscarPorId(id: string): Promise<Publicacion | null> {
     return this.publicaciones.get(id) ?? null;
   }

@@ -34,6 +34,18 @@ export abstract class PublicacionRepository {
   }
 
   abstract guardar(publicacion: Publicacion): Promise<Publicacion>;
+
+  /**
+   * Inserta solo si no existe otra publicación con el mismo id y dice si la
+   * insertó. Es la base de la creación idempotente (docs/modos-de-fallo.md):
+   * los adaptadores reales lo hacen de forma atómica; esta versión por omisión
+   * (consultar y luego guardar) basta para dobles de prueba.
+   */
+  async guardarSiNoExiste(publicacion: Publicacion): Promise<boolean> {
+    if (await this.buscarPorId(publicacion.id)) return false;
+    await this.guardar(publicacion);
+    return true;
+  }
   abstract buscarPorId(id: string): Promise<Publicacion | null>;
   /**
    * Usado por Emparejamiento (contexto de soporte) para buscar candidatos de

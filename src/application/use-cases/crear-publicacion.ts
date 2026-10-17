@@ -1,15 +1,34 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
+import { Publicacion, PublicacionInvalidaError, TipoPublicacion } from '../../domain/entities/publicacion';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { PUBLICACION_CREADA } from '../events/publicacion-creada.event';
+import { ConflictoIdempotenciaError } from '../errors/conflicto-idempotencia.error';
 
 export interface DatosCrearPublicacion {
   tipo: TipoPublicacion;
   descripcion: string;
   categoria: string;
   ubicacion: string;
+}
+
+export interface ResultadoCreacion {
+  publicacion: Publicacion;
+  /** true si la petición repetía una clave ya procesada y no se creó nada nuevo. */
+  repetida: boolean;
+}
+
+const FORMATO_CLAVE = /^[A-Za-z0-9_-]{8,100}$/;
+
+/**
+ * Deriva un id estable de la clave de idempotencia: el mismo reintento cae
+ * siempre en la misma fila, y la regla `ON CONFLICT (id) DO NOTHING` del
+ * adaptador impide un duplicado sin tablas nuevas (ver docs/modos-de-fallo.md).
+ */
+export function idDesdeClave(clave: string): string {
+  const h = createHash('sha256').update(`recobra:publicacion:${clave}`).digest('hex');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
 /**
@@ -26,22 +45,61 @@ export class CrearPublicacion {
     private readonly eventos: EventEmitter2,
   ) {}
 
-  async ejecutar({ tipo, descripcion, categoria, ubicacion }: DatosCrearPublicacion): Promise<Publicacion> {
-    const publicacion = new Publicacion({
-      id: randomUUID(),
-      tipo,
-      descripcion,
-      categoria,
-      ubicacion,
-      creadoEn: new Date().toISOString(),
-    });
-
+  async ejecutar(datos: DatosCrearPublicacion): Promise<Publicacion> {
+    const publicacion = this.construir(datos, randomUUID());
     await this.publicacionRepository.guardar(publicacion);
+    this.notificar(publicacion);
+    return publicacion;
+  }
 
+  /**
+   * Creación segura ante reintentos: si el cliente repite la petición con la
+   * misma `claveIdempotencia` (porque no recibió la respuesta, o por un doble
+   * clic), se devuelve la publicación ya creada, no se crea otra y el evento
+   * de Emparejamiento no se emite dos veces. Con la misma clave y datos
+   * distintos se rechaza (ConflictoIdempotenciaError).
+   */
+  async ejecutarIdempotente(datos: DatosCrearPublicacion, claveIdempotencia: string): Promise<ResultadoCreacion> {
+    if (!FORMATO_CLAVE.test(claveIdempotencia)) {
+      throw new PublicacionInvalidaError(
+        'Idempotency-Key debe tener entre 8 y 100 caracteres: letras, números, guion o guion bajo',
+      );
+    }
+    const id = idDesdeClave(claveIdempotencia);
+
+    const previa = await this.publicacionRepository.buscarPorId(id);
+    if (previa) return { publicacion: this.mismaPeticion(previa, datos), repetida: true };
+
+    const publicacion = this.construir(datos, id);
+    const insertada = await this.publicacionRepository.guardarSiNoExiste(publicacion);
+    if (!insertada) {
+      // Dos peticiones simultáneas con la misma clave: ganó la otra.
+      const ganadora = await this.publicacionRepository.buscarPorId(id);
+      if (!ganadora) throw new Error('La publicación concurrente no se pudo leer');
+      return { publicacion: this.mismaPeticion(ganadora, datos), repetida: true };
+    }
+
+    this.notificar(publicacion);
+    return { publicacion, repetida: false };
+  }
+
+  private construir({ tipo, descripcion, categoria, ubicacion }: DatosCrearPublicacion, id: string): Publicacion {
+    return new Publicacion({ id, tipo, descripcion, categoria, ubicacion, creadoEn: new Date().toISOString() });
+  }
+
+  private notificar(publicacion: Publicacion): void {
     // Disparo asíncrono, sin esperar (ADR-0004): a Emparejamiento le llega
     // el evento, pero quien crea la publicación no espera su resultado.
     this.eventos.emit(PUBLICACION_CREADA, publicacion);
+  }
 
-    return publicacion;
+  private mismaPeticion(existente: Publicacion, datos: DatosCrearPublicacion): Publicacion {
+    const igual =
+      existente.tipo === datos.tipo &&
+      existente.descripcion === datos.descripcion?.trim() &&
+      existente.categoria === datos.categoria?.trim() &&
+      existente.ubicacion === datos.ubicacion?.trim();
+    if (!igual) throw new ConflictoIdempotenciaError();
+    return existente;
   }
 }

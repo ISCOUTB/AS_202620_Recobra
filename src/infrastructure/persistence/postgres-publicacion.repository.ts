@@ -40,6 +40,12 @@ export class PostgresPublicacionRepository
       ssl: sinTls ? false : { rejectUnauthorized: false },
       // Sin esto una base que no contesta deja las peticiones colgadas.
       connectionTimeoutMillis: 3000,
+      // "Responde tarde": la base corta la sentencia a los 2 s y el cliente
+      // deja de esperar a los 2,5 s. Es 5 veces el presupuesto de S1 (400 ms)
+      // y cientos de veces lo observado (~13 ms en el servidor); ver
+      // docs/modos-de-fallo.md.
+      statement_timeout: 2000,
+      query_timeout: 2500,
     });
   }
 
@@ -108,6 +114,7 @@ export class PostgresPublicacionRepository
         CODIGOS_DE_CONEXION.has(codigo) ||
         codigo.startsWith('08') ||
         codigo.startsWith('57P') ||
+        codigo === '57014' || // sentencia cancelada por statement_timeout
         codigo === '42P01' || // la tabla aún no existe: esquema sin preparar
         /Connection terminated|timeout/i.test(mensaje)
       ) {
@@ -151,6 +158,25 @@ export class PostgresPublicacionRepository
       ],
     );
     return publicacion;
+  }
+
+  /** Atómico gracias a la clave primaria: dos inserciones simultáneas del mismo id dejan una sola fila. */
+  async guardarSiNoExiste(publicacion: Publicacion): Promise<boolean> {
+    const resultado = await this.consultar(
+      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (id) DO NOTHING`,
+      [
+        publicacion.id,
+        publicacion.tipo,
+        publicacion.descripcion,
+        publicacion.categoria,
+        publicacion.ubicacion,
+        publicacion.estado,
+        publicacion.creadoEn,
+      ],
+    );
+    return resultado.rowCount === 1;
   }
 
   async buscarPorId(id: string): Promise<Publicacion | null> {

@@ -4,15 +4,16 @@ import { CoincidenciaRepository } from '../../domain/ports/coincidencia-reposito
 
 @Injectable()
 export class MemoriaCoincidenciaRepository extends CoincidenciaRepository {
-  private readonly coincidencias: Coincidencia[] = [];
+  // Por id: guardar dos veces la misma coincidencia (evento repetido) no la duplica.
+  private readonly coincidencias = new Map<string, Coincidencia>();
 
   async guardar(coincidencia: Coincidencia): Promise<Coincidencia> {
-    this.coincidencias.push(coincidencia);
+    this.coincidencias.set(coincidencia.id, coincidencia);
     return coincidencia;
   }
 
   async listarPorPublicacion(publicacionId: string): Promise<Coincidencia[]> {
-    return this.coincidencias.filter(
+    return [...this.coincidencias.values()].filter(
       (c) => c.publicacionOrigenId === publicacionId || c.publicacionCoincidenteId === publicacionId,
     );
   }

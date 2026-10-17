@@ -31,6 +31,32 @@ void main() {
     expect(pub.estado, 'publicado');
   });
 
+  test('RecobraApi envía la clave de idempotencia y acepta el 200 de un reintento', () async {
+    String? claveRecibida;
+    final client = MockClient((request) async {
+      claveRecibida = request.headers['Idempotency-Key'];
+      return http.Response(
+        '{"id":"abc","tipo":"perdido","descripcion":"Cargador",'
+        '"categoria":"electronica","ubicacion":"Bloque 3",'
+        '"estado":"publicado","creadoEn":"2026-09-05T12:00:00.000Z"}',
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+
+    final api = RecobraApi(baseUrl: 'http://localhost:3000', client: client);
+    final pub = await api.crearPublicacion(
+      tipo: 'perdido',
+      descripcion: 'Cargador',
+      categoria: 'electronica',
+      ubicacion: 'Bloque 3',
+      claveIdempotencia: 'clave-de-prueba-01',
+    );
+
+    expect(claveRecibida, 'clave-de-prueba-01');
+    expect(pub.id, 'abc');
+  });
+
   testWidgets('La pantalla principal muestra el título Recobra', (tester) async {
     final client = MockClient((_) async => http.Response('{}', 500));
     final api = RecobraApi(baseUrl: 'http://localhost:3000', client: client);

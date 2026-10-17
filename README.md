@@ -149,6 +149,8 @@ curl -X POST http://localhost:3000/publicaciones \
 
 `201 Created` con la publicación. Datos inválidos → `400` con `{ "statusCode": 400, "message": "..." }` (esquema de error único, ADR-0009).
 
+Con la cabecera opcional `Idempotency-Key: <clave aleatoria>`, repetir la misma creación no la duplica: el reintento responde `200` con la publicación original, y la misma clave con datos distintos responde `422`. La vitrina y la app la envían. Ver [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md).
+
 **Consultar**
 
 ```bash
@@ -190,6 +192,7 @@ La documentación del proyecto se encuentra en la carpeta `docs/`.
 - [`docs/modulo-datos.md`](docs/modulo-datos.md) — módulo → datos, con dueño único.
 - [`docs/medicion-corte1.md`](docs/medicion-corte1.md) — línea base y resultado del reto de corte 1.
 - [`docs/medicion-s10.md`](docs/medicion-s10.md) — experimento del segundo corte: escenario S1 sobre el despliegue en Dokploy.
+- [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md) — modos de fallo de cada integración, su mitigación, código y prueba (S11).
 - [`docs/no-conformidades.md`](docs/no-conformidades.md) — no conformidades detectadas y su plan de corrección.
 - [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).
 - [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md) — estimación de costo del despliegue (ADR-0005).

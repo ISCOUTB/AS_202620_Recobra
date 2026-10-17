@@ -20,7 +20,11 @@ info:
     2.2.0 agrega `GET /health/ready` (disponibilidad de datos, distinta de la
     vivacidad del proceso) y la respuesta 503 cuando el almacenamiento no
     responde: cambio compatible.
-  version: "2.2.0"
+    2.3.0 agrega la cabecera opcional `Idempotency-Key` en `POST /publicaciones`
+    (un reintento con la misma clave responde 200 con la publicación original,
+    sin crear otra; con datos distintos responde 422): cambio compatible, los
+    clientes que no la envían siguen igual. Ver docs/modos-de-fallo.md.
+  version: "2.3.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
@@ -126,6 +130,16 @@ paths:
       operationId: crearPublicacion
       summary: Crear una publicación (objeto perdido o encontrado)
       tags: [Publicaciones]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: >
+            Clave elegida por el cliente (por ejemplo un UUID) para que un
+            reintento de la misma creación no la duplique.
+          schema:
+            type: string
+            pattern: "^[A-Za-z0-9_-]{8,100}$"
       requestBody:
         required: true
         content:
@@ -139,8 +153,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Publicacion"
+        "200":
+          description: Reintento con una Idempotency-Key ya usada; devuelve la publicación original sin crear otra
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publicacion"
         "400":
-          description: Datos de la publicación inválidos
+          description: Datos de la publicación inválidos o Idempotency-Key con formato inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: La Idempotency-Key ya se usó con datos distintos
           content:
             application/json:
               schema:

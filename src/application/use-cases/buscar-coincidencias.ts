@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
 import { Coincidencia } from '../../domain/entities/coincidencia';
@@ -39,7 +38,9 @@ export class BuscarCoincidencias {
 
       const score = this.calcularScore(publicacion, candidata);
       const coincidencia = new Coincidencia({
-        id: randomUUID(),
+        // Id determinista por par: si el evento llega dos veces, la segunda
+        // escritura sobrescribe la misma coincidencia en vez de duplicarla.
+        id: `${publicacion.id}__${candidata.id}`,
         publicacionOrigenId: publicacion.id,
         publicacionCoincidenteId: candidata.id,
         score,

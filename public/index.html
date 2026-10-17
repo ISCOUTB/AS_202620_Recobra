@@ -499,18 +499,39 @@
   filtroCategoria.addEventListener('change', buscar);
   filtroUbicacion.addEventListener('input', buscarConRetraso);
 
+  /*
+   * Modos de fallo del lado del cliente (docs/modos-de-fallo.md):
+   * - "responde tarde": se deja de esperar a los 10 s;
+   * - "responde dos veces": la misma clave de idempotencia se reutiliza al
+   *   reintentar, y el botón se desactiva mientras hay un envío en curso, así
+   *   que ni el doble clic ni el reintento crean una publicación repetida.
+   * La clave se renueva solo cuando la publicación se crea con éxito.
+   */
+  const botonPublicar = formCrear.querySelector('button[type="submit"]');
+  // Siempre con el generador criptográfico del navegador (randomUUID solo existe en contextos seguros).
+  const nuevaClave = () =>
+    crypto.randomUUID
+      ? crypto.randomUUID()
+      : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+  let claveIdempotencia = nuevaClave();
+
   formCrear.addEventListener('submit', async (evento) => {
     evento.preventDefault();
+    if (botonPublicar.disabled) return;
     mensajeCrear.textContent = '';
     mensajeCrear.className = '';
 
     const datos = Object.fromEntries(new FormData(formCrear).entries());
+    botonPublicar.disabled = true;
+    const controlador = new AbortController();
+    const limite = setTimeout(() => controlador.abort(), 10000);
 
     try {
       const respuesta = await fetch('/publicaciones', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': claveIdempotencia },
         body: JSON.stringify(datos),
+        signal: controlador.signal,
       });
       const cuerpo = await respuesta.json();
 
@@ -520,17 +541,24 @@
         return;
       }
 
-      mensajeCrear.textContent = 'Publicación creada.';
+      mensajeCrear.textContent = respuesta.status === 200 ? 'Ya estaba publicada (reintento).' : 'Publicación creada.';
       mensajeCrear.className = 'ok';
+      claveIdempotencia = nuevaClave();
       formCrear.reset();
       inputFoto.value = '';
       vistaPreviaFoto.hidden = true;
       vistaPreviaFoto.src = '';
       textoZonaFoto.textContent = TEXTO_FOTO;
       buscar();
-    } catch {
-      mensajeCrear.textContent = 'No se pudo contactar al backend.';
+    } catch (error) {
+      mensajeCrear.textContent =
+        error.name === 'AbortError'
+          ? 'El servidor tardó demasiado. Puedes reintentar: no se duplicará.'
+          : 'No se pudo contactar al backend. Puedes reintentar: no se duplicará.';
       mensajeCrear.className = 'error';
+    } finally {
+      clearTimeout(limite);
+      botonPublicar.disabled = false;
     }
   });
 

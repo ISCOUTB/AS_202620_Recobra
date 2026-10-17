@@ -146,6 +146,20 @@ Fuente de los hallazgos: retroalimentación publicada en
 | TLS con `rejectUnauthorized: false` | Se documenta que cifra pero no valida el certificado, y que `DATABASE_SSL=false` es una decisión para red interna no verificada | [`docs/arc42/arc42.md`](docs/arc42/arc42.md) (riesgos) |
 | Quality Gate sin bloqueo efectivo en el pipeline | Job `Quality Gate (SonarCloud)` que falla el pipeline si el Quality Gate público no aprueba el commit; probado en rojo (run `38070271517`) y en verde (run `38070527030`) | `.github/workflows/ci.yml`, `scripts/verificar-quality-gate.js` |
 
+## Semana 11 · S11 (2026-10-16)
+
+| Hallazgo o pedido | Corrección | Evidencia |
+|---|---|---|
+| Tabla de modos de fallo (no responde, tarde, dos veces) de la integración principal | Tres integraciones identificadas en el código (API → PostgreSQL como principal, cliente → API y Publicaciones → Emparejamiento), cada modo con mitigación, código, prueba y estado | [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md) |
+| La base que responde tarde dejaba la petición colgada | `statement_timeout` (2 s) y `query_timeout` (2,5 s) → 503 | `src/infrastructure/persistence/postgres-publicacion.repository.ts` y su spec |
+| Un reintento del cliente duplicaba la publicación | Creación idempotente con `Idempotency-Key` (200 en el reintento, 422 si cambian los datos), inserción atómica por clave primaria; la vitrina y Flutter envían la clave y la reutilizan al reintentar | `src/application/use-cases/crear-publicacion.ts`, `test/idempotencia.e2e-spec.ts`, contrato 2.3.0 |
+| Un evento procesado dos veces duplicaba coincidencias | Id determinista por par y repositorio por id | `buscar-coincidencias.ts`, `memoria-coincidencia.repository.ts` y sus pruebas |
+| ¿Saga? | Argumentado por qué no aplica hoy y cuándo aplicará (reclamación, S12) | [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md#aplica-una-saga) |
+| ADR de extracción con "no extraer" evaluado | ADR-0012: seis criterios medidos, tres alternativas y disparadores para revisarlo | [`docs/adr/0012-no-extraer-emparejamiento.md`](docs/adr/0012-no-extraer-emparejamiento.md) |
+| arc42 sección 11 con los modos de fallo | Subsecciones 11.1 (modos de fallo) y 11.2 (riesgos y deuda) | [`docs/arc42/arc42.md`](docs/arc42/arc42.md#11-riesgos-y-deuda-técnica) |
+| Sugerencia de la revisión S10: matizar "aplicación sin framework" | arc42 4.4 precisa que los casos de uso importan `@Injectable()` y `EventEmitter2`, como adopta ADR-0004 | [`docs/arc42/arc42.md`](docs/arc42/arc42.md) |
+| Aspectos afectados por la integración | A5 actualizado y A8 nuevo | [`docs/aspectos.md`](docs/aspectos.md) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

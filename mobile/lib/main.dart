@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -185,6 +187,16 @@ class _PublicacionPageState extends State<PublicacionPage> {
   Publicacion? _ultima;
   List<Coincidencia> _coincidencias = const [];
 
+  /// Clave de idempotencia de la creación en curso: se reutiliza si el envío
+  /// falla y se reintenta, y se renueva solo tras crear con éxito, para que un
+  /// reintento no duplique la publicación (docs/modos-de-fallo.md).
+  String _claveIdempotencia = _nuevaClave();
+
+  static String _nuevaClave() {
+    final azar = Random.secure();
+    return List.generate(16, (_) => azar.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+  }
+
   @override
   void dispose() {
     _descripcionCtrl.dispose();
@@ -218,8 +230,10 @@ class _PublicacionPageState extends State<PublicacionPage> {
         descripcion: _descripcionCtrl.text,
         categoria: _categoriaCtrl.text,
         ubicacion: _ubicacionCtrl.text,
+        claveIdempotencia: _claveIdempotencia,
       );
       setState(() {
+        _claveIdempotencia = _nuevaClave();
         _ultima = creada;
         _idCtrl.text = creada.id;
         _mensaje = 'Publicación creada';

@@ -97,4 +97,24 @@ describe('BuscarCoincidencias', () => {
     expect(encontradas).toHaveLength(1);
     expect(encontradas[0].score).toBe(0.3);
   });
+
+  it('si el evento llega dos veces, la coincidencia no se duplica', async () => {
+    const coincidencias = new MemoriaCoincidenciaRepository();
+    const publicaciones = new MemoriaPublicacionRepository();
+    const crearLocal = new CrearPublicacion(publicaciones, new EventEmitter2());
+    const buscarLocal = new BuscarCoincidencias(publicaciones, coincidencias);
+
+    await crearLocal.ejecutar({ tipo: 'perdido', descripcion: 'Casco', categoria: 'otros', ubicacion: 'A2' });
+    const encontrado = await crearLocal.ejecutar({
+      tipo: 'encontrado',
+      descripcion: 'Casco negro',
+      categoria: 'otros',
+      ubicacion: 'A2',
+    });
+
+    await buscarLocal.ejecutar(encontrado);
+    await buscarLocal.ejecutar(encontrado); // entrega repetida del mismo evento
+
+    expect(await coincidencias.listarPorPublicacion(encontrado.id)).toHaveLength(1);
+  });
 });

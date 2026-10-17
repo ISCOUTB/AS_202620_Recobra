@@ -9,6 +9,7 @@ import { MemoriaPublicacionRepository } from '../infrastructure/persistence/memo
 import { PostgresPublicacionRepository } from '../infrastructure/persistence/postgres-publicacion.repository';
 import { PublicacionInvalidaFilter } from './publicacion-invalida.filter';
 import { AlmacenamientoNoDisponibleFilter } from './almacenamiento-no-disponible.filter';
+import { ConflictoIdempotenciaFilter } from './conflicto-idempotencia.filter';
 import { ObservabilidadModule } from '../observabilidad/observabilidad.module';
 import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
 import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda.interceptor';
@@ -30,6 +31,7 @@ import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda
     },
     { provide: APP_FILTER, useClass: PublicacionInvalidaFilter },
     { provide: APP_FILTER, useClass: AlmacenamientoNoDisponibleFilter },
+    { provide: APP_FILTER, useClass: ConflictoIdempotenciaFilter },
     LatenciaPublicacionesInterceptor,
     LatenciaBusquedaInterceptor,
   ],

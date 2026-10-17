@@ -118,8 +118,12 @@ ADR-0001 queda como histórico reemplazado.
 1. El paquete `domain/` no importa nada de `infrastructure/` ni de Nest HTTP.
    Solo define entidades y puertos.
 2. `application/use-cases/` orquesta el dominio y depende únicamente de
-   puertos, nunca de adaptadores concretos. `@Injectable()` es metadato de DI,
-   no acoplamiento a transporte.
+   puertos, nunca de adaptadores concretos. **Precisión (S10):** no está libre
+   de framework: importa `@Injectable()` de `@nestjs/common` (metadato de
+   inyección) y, en `CrearPublicacion`, `EventEmitter2` de
+   `@nestjs/event-emitter` para emitir `publicacion.creada`, un acoplamiento
+   que ADR-0004 adopta a propósito. Lo que sí se mantiene es que no conoce HTTP
+   ni la base de datos.
 3. Los adaptadores viven fuera del dominio: `src/publicaciones/` (entrada HTTP
    Nest) y `src/infrastructure/persistence/` (salida de datos). Ambos son
    reemplazables sin tocar el dominio.
@@ -260,6 +264,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0009](../adr/0009-versionado-del-contrato-y-error-unico.md) | Versionado del contrato y esquema de error único (sucesor de lo que ADR-0004 no cubría) | Aceptada |
 | [ADR-0010](../adr/0010-despliegue-en-dokploy-servidor-del-laboratorio.md) | Despliegue en Dokploy (servidor del laboratorio) en lugar de Render y Neon | Aceptada |
 | [ADR-0011](../adr/0011-registro-de-enmiendas-a-adrs-aceptados.md) | Registro de enmiendas a ADR aceptados y regla de inmutabilidad | Aceptada |
+| [ADR-0012](../adr/0012-no-extraer-emparejamiento.md) | No extraer Emparejamiento como servicio aparte (por ahora), con criterios para revisarlo | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -278,6 +283,25 @@ decisiones:
  
 
 ## 11. Riesgos y deuda técnica
+
+### 11.1 Modos de fallo de las integraciones (S11)
+
+Detalle completo, con código y pruebas de cada fila, en
+[`docs/modos-de-fallo.md`](../modos-de-fallo.md). Resumen:
+
+| Integración | No responde | Responde tarde | Responde dos veces |
+|---|---|---|---|
+| API → PostgreSQL (principal) | Conexión con límite de 3 s → 503; arranque tolerante; `/health/ready` en 503. **Probado** | `statement_timeout` 2 s y `query_timeout` 2,5 s → 503. **Probado con dobles** | Inserción atómica `ON CONFLICT (id) DO NOTHING` para reintentos. **Probado** |
+| Cliente → API | Reintentos de `/health` y límite de 10 s al crear. **Implementado, sin prueba automática** | El reintento conserva la clave de idempotencia. **Probado en el servidor** | `Idempotency-Key`: 200 con la original o 422 si los datos cambian. **Probado** |
+| Publicaciones → Emparejamiento | El manejador captura el error; la publicación no se afecta. **Probado** | Evento asíncrono, no bloquea. **Probado** | Id determinista por par: no duplica. **Probado** |
+
+### 11.2 Riesgos y deuda
+
+- **Eventos de Emparejamiento perdidos:** si el proceso cae entre guardar la publicación y emitir el evento, o si el cálculo falla, esas coincidencias no se recalculan. Plan: bandeja de salida o broker en la S12.
+- **Sin circuit breaker hacia la base:** con una caída larga, cada petición espera hasta 3 s antes del 503. Plan: agregarlo en el adaptador si una caída real lo justifica.
+- **Vitrina sin pruebas automáticas:** sus reintentos, límites de tiempo y el bloqueo del botón están implementados pero no tienen prueba.
+- **Idempotencia sin usuario:** las claves no están ligadas a una cuenta porque aún no hay cuentas; ver los límites en `docs/modos-de-fallo.md`.
+
 
 - Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias aún están solo en memoria.
 - Notificaciones, Reclamaciones e Identidad son solo diseño, sin código todavía (Emparejamiento ya se implementó, ver aspecto A5).

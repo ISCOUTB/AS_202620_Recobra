@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -78,24 +79,43 @@ class RecobraApi {
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
 
+  /// Tiempo máximo de espera de una creación ("responde tarde"; ver
+  /// docs/modos-de-fallo.md).
+  static const tiempoMaximo = Duration(seconds: 10);
+
+  /// Con [claveIdempotencia], reintentar la misma creación no la duplica: el
+  /// backend responde 200 con la publicación original.
   Future<Publicacion> crearPublicacion({
     required String tipo,
     required String descripcion,
     required String categoria,
     required String ubicacion,
+    String? claveIdempotencia,
   }) async {
-    final response = await _client.post(
-      _uri('/publicaciones'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'tipo': tipo,
-        'descripcion': descripcion,
-        'categoria': categoria,
-        'ubicacion': ubicacion,
-      }),
-    );
+    final http.Response response;
+    try {
+      response = await _client
+          .post(
+            _uri('/publicaciones'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (claveIdempotencia != null) 'Idempotency-Key': claveIdempotencia,
+            },
+            body: jsonEncode({
+              'tipo': tipo,
+              'descripcion': descripcion,
+              'categoria': categoria,
+              'ubicacion': ubicacion,
+            }),
+          )
+          .timeout(tiempoMaximo);
+    } on TimeoutException {
+      throw RecobraApiException(
+        'El servidor tardó demasiado. Puedes reintentar sin duplicar la publicación.',
+      );
+    }
 
-    if (response.statusCode != 201) {
+    if (response.statusCode != 201 && response.statusCode != 200) {
       throw RecobraApiException(
         _extractError(response.body) ?? 'No se pudo crear la publicación',
         statusCode: response.statusCode,
