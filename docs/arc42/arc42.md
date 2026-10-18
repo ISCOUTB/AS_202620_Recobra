@@ -344,7 +344,7 @@ Detalle completo, con código y pruebas de cada fila, en
 
 ### 11.2 Riesgos y deuda
 
-- **Eventos de Emparejamiento y Notificaciones perdidos:** si el proceso cae entre guardar la publicación y emitir el evento, o si el cálculo falla, esas coincidencias no se recalculan. Plan: bandeja de salida o broker en la S12.
+- **Eventos perdidos:** los avisos que se pierdan se recrean solos (cada 5 minutos, últimos 3 días; [ADR-0024](../adr/0024-conciliacion-de-avisos.md)). Lo que sigue sin repararse: si el proceso cae entre guardar la publicación y calcular sus coincidencias, esas coincidencias no se recalculan.
 - **Sin circuit breaker hacia la base:** con una caída larga, cada petición espera hasta 3 s antes del 503. Plan: agregarlo en el adaptador si una caída real lo justifica.
 - **Vitrina sin pruebas automáticas:** sus reintentos, límites de tiempo y el bloqueo del botón están implementados pero no tienen prueba.
 - **Idempotencia:** la clave ya se compara junto con el autor (una misma clave con otra cuenta responde 422), pero no se acota por cuenta; ver los límites en `docs/modos-de-fallo.md`.
@@ -353,11 +353,11 @@ Detalle completo, con código y pruebas de cada fila, en
 - **Moderación ([ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md)):** cualquier cuenta reporta y los administradores (`ADMIN_CORREOS`) ocultan o descartan; no hay roles en base de datos, alertas ni apelación desde la aplicación. Una publicación oculta no se reabre. Pendiente: que la universidad defina un procedimiento propio.
 - **Fotos ([ADR-0023](../adr/0023-fotos-con-privacidad.md)):** la foto completa de un encontrado solo la ven su autor y quien tiene la reclamación aprobada; el público ve una miniatura de 24 px, y el servidor quita el EXIF. Se guardan en PostgreSQL (hasta 1 MB cada una); no se revisa qué hay en la imagen y todavía no hay copias de seguridad que respeten la retención.
 - **Seguridad de la cuenta pendiente:** hay límite de intentos de inicio de sesión (5 por correo en 15 minutos, en memoria del proceso, ADR-0021) pero no recuperación de contraseña; el token vive en `localStorage` de la vitrina y en las preferencias del dispositivo en la app (riesgo ante XSS o ante alguien con el dispositivo desbloqueado; el token vence a los 7 días y se revoca al cerrar sesión). Para el modelado de amenazas de la S13.
-- **Consistencia al aprobar o entregar:** se escriben dos tablas sin transacción; resuelto con pasos retomables y un reconciliador ([ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md)). Queda un margen de minutos de consistencia eventual y los avisos perdidos no se reenvían (haría falta una bandeja de salida).
+- **Consistencia al aprobar o entregar:** se escriben dos tablas sin transacción; resuelto con pasos retomables y un reconciliador ([ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md)). Queda un margen de minutos de consistencia eventual; los avisos perdidos los recrea la conciliación (ADR-0024).
 
 
 - Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias también se guardan en PostgreSQL desde ADR-0018.
-- Todos los contextos del mapa tienen código (Notificaciones desde ADR-0015). Lo que sigue siendo diseño es el canal de correo o push y el administrador.
+- Todos los contextos del mapa tienen código (Notificaciones desde ADR-0015). Lo que sigue siendo diseño es el canal de correo o push.
 - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
 - **Transporte hacia la base:** con `DATABASE_SSL=false` (base interna de Dokploy) no hay TLS; con TLS activo el adaptador usa `rejectUnauthorized: false`, así que cifra pero **no valida** el certificado del servidor y no debe describirse como verificación de identidad de la base. No se verificó el aislamiento de la red interna.
 - **La plataforma es el servidor del laboratorio (Dokploy), no del equipo:** si deja de estar disponible o cambia su política, hay que redesplegar en otro lado (el `Dockerfile` se reutiliza; ver el costo de revertir en ADR-0010). Un redespliegue deja el dominio sin servicio ~30-50 s. Las copias de seguridad de la base en Dokploy no están configuradas. Lo ya mitigado: los redespliegues de código no requieren cuentas (cada commit a `master` redespliega solo).
