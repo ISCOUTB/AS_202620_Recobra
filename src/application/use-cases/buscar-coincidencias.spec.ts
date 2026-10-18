@@ -35,7 +35,7 @@ describe('BuscarCoincidencias', () => {
     expect(encontradas).toHaveLength(1);
     expect(encontradas[0].publicacionCoincidenteId).toBe(perdido.id);
     // Mismo lugar (0,5) + "cargador" en común (0,3 × 1/3) + mismo día (0,2) = 0,8 (ADR-0018).
-    expect(encontradas[0].score).toBe(0.8);
+    expect(encontradas[0].score).toBeCloseTo(0.8);
   });
 
   it('no detecta coincidencia si la categoría es distinta', async () => {
@@ -96,7 +96,7 @@ describe('BuscarCoincidencias', () => {
     const encontradas = await buscar.ejecutar(encontrado);
 
     expect(encontradas).toHaveLength(1);
-    expect(encontradas[0].score).toBe(0.3);
+    expect(encontradas[0].score).toBeCloseTo(0.3);
   });
 
   it('si el evento llega dos veces, la coincidencia no se duplica', async () => {

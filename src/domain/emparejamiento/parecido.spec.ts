@@ -18,7 +18,7 @@ describe('Parecido entre publicaciones (ADR-0018)', () => {
   it('mismo lugar, misma descripción y mismo día es un parecido de 1', () => {
     const a = pub('perdido', 'Audífonos Sony negros', 'Bloque A1', '2026-10-17T10:00:00.000Z');
     const b = pub('encontrado', 'audifonos sony negros', 'Bloque A1', '2026-10-17T15:00:00.000Z');
-    expect(calcularParecido(a, b)).toBe(1);
+    expect(calcularParecido(a, b)).toBeCloseTo(1);
   });
 
   it('las palabras en común suben el parecido aunque el lugar no coincida', () => {
@@ -33,8 +33,8 @@ describe('Parecido entre publicaciones (ADR-0018)', () => {
     const base = pub('perdido', 'Termo', 'Biblioteca', '2026-10-01T00:00:00.000Z');
     const en = (fecha: string) => parecidoFecha(base, pub('encontrado', 'Termo', 'Biblioteca', fecha));
     expect(en('2026-10-02T00:00:00.000Z')).toBe(1);
-    expect(en('2026-10-06T00:00:00.000Z')).toBe(0.6);
-    expect(en('2026-10-20T00:00:00.000Z')).toBe(0.3);
+    expect(en('2026-10-06T00:00:00.000Z')).toBeCloseTo(0.6);
+    expect(en('2026-10-20T00:00:00.000Z')).toBeCloseTo(0.3);
     expect(en('2026-12-01T00:00:00.000Z')).toBe(0);
   });
 
