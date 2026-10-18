@@ -76,6 +76,19 @@ export class Notificar {
     );
   }
 
+  /** Un administrador ocultó una publicación: avisa a su autor (ADR-0022). */
+  async porModeracion(publicacion: Publicacion): Promise<Notificacion[]> {
+    if (!publicacion.autorId) return [];
+    return this.guardar(
+      `moderacion:${publicacion.id}`,
+      publicacion.autorId,
+      'publicacion_ocultada',
+      'Ocultamos una publicación tuya',
+      `«${recortar(publicacion.descripcion)}» no cumple las normas de uso y ya no aparece en la búsqueda. Si crees que fue un error, escríbenos.`,
+      publicacion.id,
+    );
+  }
+
   private async guardar(
     id: string,
     cuentaId: string,

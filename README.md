@@ -110,6 +110,7 @@ repositorio; ver [`.env.example`](.env.example)):
 | `DATABASE_URL` | Conexión a PostgreSQL | La API usa el adaptador en memoria: los datos se pierden en cada despliegue |
 | `DATABASE_SSL` | `false` para una base interna sin TLS (el compose lo trae en `false`) | Exige TLS, como una base externa |
 | `CONTACTO_PRIVACIDAD` | Texto con el canal de contacto que muestra el aviso de privacidad (por ejemplo, un correo del equipo) | Indica abrir una solicitud en el repositorio |
+| `ADMIN_CORREOS` | Correos `@utb.edu.co` (separados por comas) de quienes pueden resolver reportes de abuso | Nadie es administrador: se puede reportar, pero nadie resuelve |
 | `DIAS_VIGENCIA_PUBLICACION` | Días sin movimiento antes de cerrar una publicación sola | 60 |
 
 **Recrear el entorno:**
@@ -197,6 +198,11 @@ Con el token, `POST /publicaciones` se llama con `Authorization: Bearer <token>`
 - Crear la cuenta exige `"aceptoPrivacidad": true`; el aviso se lee en `GET /privacidad` (público, versionado).
 - `GET /cuentas/yo/datos` descarga todo lo que se guarda de la cuenta; `DELETE /cuentas/yo` con `{"contrasena": "..."}` la elimina (anonimiza) si no hay reclamaciones ni entregas en curso.
 - `POST /sesiones` responde `429` con `Retry-After` tras 5 intentos fallidos por correo en 15 minutos.
+
+**Moderación mínima** ([ADR-0022](docs/adr/0022-moderacion-minima-reportes-y-ocultar.md))
+
+- Cualquier cuenta reporta una publicación ajena con `POST /publicaciones/<id>/reportar` y `{"motivo": "falso|spam|inapropiado|datos_personales|otro", "detalle"?}` (una vez por cuenta).
+- Los administradores (`ADMIN_CORREOS`) ven `GET /moderacion/reportes` y resuelven con `POST /moderacion/reportes/<id>/resolver` y `{"decision": "ocultar"|"descartar", "nota"?}`. Ocultar cierra la publicación con motivo `moderado` y avisa a su autor; no se oculta mientras haya una reclamación o entrega en curso.
 
 **Avisos** (escenario S3, [ADR-0015](docs/adr/0015-notificaciones-en-la-aplicacion.md))
 

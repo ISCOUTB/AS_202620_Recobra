@@ -10,6 +10,7 @@ import { IdentidadModule } from './identidad/identidad.module';
 import { ReclamacionesModule } from './reclamaciones/reclamaciones.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { PrivacidadModule } from './privacidad/privacidad.module';
+import { ModeracionModule } from './moderacion/moderacion.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { PrivacidadModule } from './privacidad/privacidad.module';
     ReclamacionesModule,
     NotificacionesModule,
     PrivacidadModule,
+    ModeracionModule,
   ],
 })
 export class AppModule {}

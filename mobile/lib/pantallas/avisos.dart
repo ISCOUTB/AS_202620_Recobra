@@ -10,17 +10,18 @@ const _chipAviso = {
   'reclamacion_nueva': 'Reclamación nueva',
   'reclamacion_aprobada': 'Reclamación aprobada',
   'reclamacion_rechazada': 'Reclamación rechazada',
+  'publicacion_ocultada': 'Publicación ocultada',
 };
 
 Color colorAviso(String tipo) => switch (tipo) {
       'reclamacion_nueva' => ColoresUtb.naranja,
       'reclamacion_aprobada' => ColoresUtb.verde,
-      'reclamacion_rechazada' => ColoresUtb.rojo,
+      'reclamacion_rechazada' || 'publicacion_ocultada' => ColoresUtb.rojo,
       _ => ColoresUtb.azulClaro,
     };
 
 Color _colorTextoAviso(String tipo) => switch (tipo) {
-      'reclamacion_rechazada' => ColoresUtb.rojoTexto,
+      'reclamacion_rechazada' || 'publicacion_ocultada' => ColoresUtb.rojoTexto,
       'coincidencia' => ColoresUtb.azulTexto,
       _ => colorAviso(tipo),
     };

@@ -3,6 +3,8 @@ import { Cuenta } from '../../domain/entities/cuenta';
 import { Publicacion } from '../../domain/entities/publicacion';
 import { Reclamacion } from '../../domain/entities/reclamacion';
 import { Notificacion } from '../../domain/entities/notificacion';
+import { Reporte } from '../../domain/entities/reporte';
+import { ReporteRepository } from '../../domain/ports/reporte-repository';
 import { ConflictoError, PermisoDenegadoError } from '../../domain/errors/errores-de-dominio';
 import { CuentaRepository } from '../../domain/ports/cuenta-repository';
 import { HashContrasenas } from '../../domain/ports/hash-contrasenas';
@@ -28,6 +30,7 @@ export interface DatosPersonales {
   publicaciones: Publicacion[];
   reclamaciones: Reclamacion[];
   avisos: Notificacion[];
+  reportes: Reporte[];
 }
 
 /**
@@ -41,13 +44,15 @@ export class ExportarDatosPersonales {
     private readonly publicaciones: PublicacionRepository,
     private readonly reclamaciones: ReclamacionRepository,
     private readonly notificaciones: NotificacionRepository,
+    private readonly reportes: ReporteRepository,
   ) {}
 
   async ejecutar(cuenta: Cuenta): Promise<DatosPersonales> {
-    const [publicaciones, reclamaciones, avisos] = await Promise.all([
+    const [publicaciones, reclamaciones, avisos, reportes] = await Promise.all([
       this.publicaciones.listarPorAutor(cuenta.id),
       this.reclamaciones.listarPorReclamante(cuenta.id),
       this.notificaciones.listarPorCuenta(cuenta.id, 500),
+      this.reportes.listarPorReportante(cuenta.id),
     ]);
     return {
       generadoEn: new Date().toISOString(),
@@ -62,6 +67,7 @@ export class ExportarDatosPersonales {
       publicaciones,
       reclamaciones,
       avisos,
+      reportes,
     };
   }
 }
@@ -72,7 +78,8 @@ export class ExportarDatosPersonales {
  * pendiente o aprobada sin entrega, o un objeto propio en verificación o por
  * entregar), para no dejarla esperando. Al eliminar: retira las publicaciones
  * propias que siguen publicadas, borra los avisos y las sesiones, reemplaza el
- * texto de las pruebas escritas y quita el nombre, el correo y la contraseña.
+ * texto de las pruebas y de los reportes escritos y quita el nombre, el correo
+ * y la contraseña.
  * Lo ya registrado (publicaciones cerradas, reclamaciones) queda apuntando a
  * una cuenta anónima, para conservar el historial sin datos personales.
  */
@@ -84,6 +91,7 @@ export class EliminarCuenta {
     private readonly publicaciones: PublicacionRepository,
     private readonly reclamaciones: ReclamacionRepository,
     private readonly notificaciones: NotificacionRepository,
+    private readonly reportes: ReporteRepository,
     private readonly hash: HashContrasenas,
   ) {}
 
@@ -106,6 +114,7 @@ export class EliminarCuenta {
       }
     }
     await this.reclamaciones.anonimizarPruebasDe(cuenta.id);
+    await this.reportes.anonimizarDetallesDe(cuenta.id);
     await this.notificaciones.eliminarDeCuenta(cuenta.id);
     await this.sesiones.eliminarDeCuenta(cuenta.id);
     await this.cuentas.anonimizar(cuenta.id, ahora);

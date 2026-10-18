@@ -10,6 +10,8 @@ import { Reclamacion } from '../../domain/entities/reclamacion';
 export const COINCIDENCIA_DETECTADA = 'coincidencia.detectada';
 export const RECLAMACION_CREADA = 'reclamacion.creada';
 export const RECLAMACION_RESUELTA = 'reclamacion.resuelta';
+/** Un administrador ocultó una publicación (ADR-0022); el evento lleva la publicación. */
+export const PUBLICACION_MODERADA = 'publicacion.moderada';
 
 export type CoincidenciaDetectada = Coincidencia;
 

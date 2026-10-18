@@ -40,6 +40,7 @@ export function avisoDePrivacidad(contacto: string): AvisoPrivacidad {
         texto:
           'Tu correo institucional y tu nombre; tu contraseña, solo como un resumen cifrado (nunca la contraseña); ' +
           'lo que publicas (descripción, categoría, lugar y fechas); las pruebas que escribes al reclamar un objeto; ' +
+          'los reportes que haces de una publicación; ' +
           'los avisos que te generamos; y un identificador de tu sesión (también cifrado). ' +
           'No guardamos tu ubicación, tus contactos ni fotos.',
       },
@@ -62,7 +63,7 @@ export function avisoDePrivacidad(contacto: string): AvisoPrivacidad {
           'Tu cuenta, mientras la tengas. Las sesiones duran 7 días. Los avisos se borran a los ' +
           `${DIAS_RETENCION_AVISOS} días. Una publicación sin movimiento se cierra sola a los 60 días. Las publicaciones ` +
           'cerradas o entregadas se conservan sin tus datos personales, solo para el historial. Si eliminas tu cuenta, ' +
-          'borramos tus avisos y tus sesiones, y quitamos tu nombre, tu correo y el texto de tus pruebas.',
+          'borramos tus avisos y tus sesiones, y quitamos tu nombre, tu correo y el texto de tus pruebas y reportes.',
       },
       {
         titulo: 'Tus derechos',

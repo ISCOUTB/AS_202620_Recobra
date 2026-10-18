@@ -438,7 +438,7 @@
   .aviso-item::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--azul-claro); }
   .aviso-item.reclamacion_nueva::before { background: var(--naranja); }
   .aviso-item.reclamacion_aprobada::before { background: var(--verde); }
-  .aviso-item.reclamacion_rechazada::before { background: var(--error); }
+  .aviso-item.reclamacion_rechazada::before, .aviso-item.publicacion_ocultada::before { background: var(--error); }
   .aviso-item.leida { opacity: 0.6; }
   .aviso-item .chip { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-suave); }
   .aviso-item strong { display: block; margin: 0.15rem 0; font-size: 0.95rem; }
@@ -664,6 +664,11 @@
         <div id="lista-mis-reclamaciones"></div>
       </div>
     </div>
+    <div class="privacidad-datos" id="panel-moderacion" hidden>
+      <h3>Reportes por revisar</h3>
+      <p class="meta">Solo lo ves porque eres administrador. Ocultar cierra la publicación y le avisa a su autor; descartar la deja como está.</p>
+      <div id="lista-reportes"></div>
+    </div>
     <div class="privacidad-datos">
       <h3>Mis datos</h3>
       <p class="meta">Tus datos son tuyos: puedes ver todo lo que Recobra guarda de tu cuenta o eliminarla.</p>
@@ -849,6 +854,14 @@
     recuperado: 'Su dueño ya lo recuperó.',
     retirado: 'Quien la publicó la retiró.',
     vencido: 'Se cerró sola tras 60 días sin movimiento.',
+    moderado: 'Un administrador la ocultó por no cumplir las normas.',
+  };
+  const MOTIVOS_REPORTE = {
+    falso: 'Parece falsa o una broma',
+    spam: 'Es spam o publicidad',
+    inapropiado: 'Contenido ofensivo o inapropiado',
+    datos_personales: 'Muestra datos personales de alguien',
+    otro: 'Otro motivo',
   };
   /** Estados en los que todavía se puede reclamar un objeto encontrado (ADR-0017). */
   const RECLAMABLE = new Set(['publicado', 'en_verificacion']);
@@ -1010,6 +1023,52 @@
     contenedor.append(caja);
   }
 
+  /** Reportar una publicación (ADR-0022): motivo + detalle opcional, una vez por cuenta. */
+  function mostrarFormularioReporte(pub, contenedor) {
+    contenedor.replaceChildren();
+    const caja = elemento('div', 'bloque');
+    caja.append(elemento('strong', null, 'Reportar esta publicación'));
+    caja.append(elemento('p', 'meta', 'Recobra es para devolver objetos: no se permiten publicaciones falsas, spam, contenido ofensivo ni datos personales de otras personas.'));
+    const form = elemento('form');
+    const motivo = elemento('select');
+    motivo.append(new Option('Elige un motivo', ''));
+    for (const [valor, texto] of Object.entries(MOTIVOS_REPORTE)) motivo.append(new Option(texto, valor));
+    motivo.required = true;
+    motivo.setAttribute('aria-label', 'Motivo del reporte');
+    const detalle = elemento('textarea');
+    detalle.rows = 2;
+    detalle.maxLength = 300;
+    detalle.placeholder = 'Detalle (obligatorio si eliges "Otro motivo")';
+    detalle.setAttribute('aria-label', 'Detalle del reporte');
+    const enviar = elemento('button', null, 'Enviar reporte');
+    enviar.type = 'submit';
+    const cancelar = elemento('button', 'secundario', 'Cancelar');
+    cancelar.type = 'button';
+    cancelar.addEventListener('click', () => contenedor.replaceChildren());
+    const mensaje = elemento('output');
+    mensaje.setAttribute('role', 'alert');
+    form.append(motivo, detalle, elemento('div', 'fila-botones', null), mensaje);
+    form.querySelector('.fila-botones').append(enviar, cancelar);
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      enviar.disabled = true;
+      const r = await llamar(`/publicaciones/${encodeURIComponent(pub.id)}/reportar`, {
+        method: 'POST',
+        body: JSON.stringify({ motivo: motivo.value, detalle: detalle.value.trim() || undefined }),
+      });
+      enviar.disabled = false;
+      if (!r.ok) {
+        mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo enviar el reporte';
+        mensaje.className = 'error';
+        return;
+      }
+      contenedor.replaceChildren(elemento('div', 'bloque', 'Gracias, un administrador lo revisará.'));
+      cargarModeracion();
+    });
+    caja.append(form);
+    contenedor.append(caja);
+  }
+
   function tarjetaPublicacion(pub) {
     const tarjeta = elemento('div', `tarjeta ${pub.tipo}`);
     if (pub.estado === 'reclamado' || pub.estado === 'cerrado') tarjeta.classList.add('entregada');
@@ -1049,6 +1108,19 @@
         mostrarFormularioLoTengo(pub, resultado);
       });
       acciones.append(loTengo);
+    }
+    if (pub.estado !== 'cerrado' && ajena) {
+      const reportar = elemento('button', 'secundario', 'Reportar');
+      reportar.type = 'button';
+      reportar.style.marginLeft = '0.5rem';
+      reportar.addEventListener('click', () => {
+        if (!sesion) {
+          pedirSesion('reportar', tarjeta);
+          return;
+        }
+        mostrarFormularioReporte(pub, resultado);
+      });
+      acciones.append(reportar);
     }
     tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion), meta);
     if (pub.tipo === 'encontrado') tarjeta.append(elemento('div', 'meta', textoCustodia(pub)));
@@ -1260,6 +1332,7 @@
     publicar: 'Para publicar necesitas una cuenta. Puedes seguir mirando sin ella; la pedimos solo para enviar la publicación.',
     reclamar: 'Para reclamar necesitas una cuenta. Puedes ver todo lo publicado sin ella; la pedimos solo para reclamar.',
     avisar: 'Para avisar que lo tienes necesitas una cuenta. Puedes ver todo lo publicado sin ella; la pedimos solo para avisarle a su dueño.',
+    reportar: 'Para reportar necesitas una cuenta. Puedes ver todo lo publicado sin ella; la pedimos solo para reportar y evitar reportes falsos.',
   };
   /** A dónde volver cuando la persona inicie sesión (el formulario o el objeto que quería reclamar). */
   let volverA = null;
@@ -1504,8 +1577,65 @@
     contenedor.append(caja);
   }
 
+  /** Reportes abiertos (solo administradores; el servidor lo verifica con 403). */
+  async function cargarModeracion() {
+    const panel = document.getElementById('panel-moderacion');
+    const lista = document.getElementById('lista-reportes');
+    panel.hidden = !(sesion && sesion.cuenta.esAdministrador);
+    if (panel.hidden) return;
+    const r = await llamar('/moderacion/reportes');
+    lista.replaceChildren();
+    if (!r.ok) {
+      lista.append(elemento('div', 'vacio', 'No se pudieron cargar los reportes.'));
+      return;
+    }
+    if (r.cuerpo.length === 0) lista.append(elemento('div', 'vacio', 'No hay reportes por revisar.'));
+    for (const item of r.cuerpo) lista.append(tarjetaReporte(item));
+  }
+
+  function tarjetaReporte({ reporte, publicacion, reportesDeLaPublicacion }) {
+    const tarjeta = elemento('div', 'tarjeta');
+    const titulo = publicacion
+      ? `${publicacion.tipo} · ${publicacion.descripcion} (${publicacion.ubicacion})`
+      : 'Publicación no disponible';
+    tarjeta.append(elemento('div', 'descripcion', titulo));
+    tarjeta.append(elemento('div', 'meta', `${MOTIVOS_REPORTE[reporte.motivo] || reporte.motivo} · ${formatearFecha(reporte.creadoEn)} · ${reportesDeLaPublicacion} reporte(s) sobre esta publicación`));
+    if (reporte.detalle) tarjeta.append(elemento('div', 'meta', reporte.detalle));
+    const mensaje = elemento('output');
+    mensaje.setAttribute('role', 'alert');
+    const fila = elemento('div', 'acciones');
+    for (const [decision, texto, clase] of [['ocultar', 'Ocultar publicación', 'peligro'], ['descartar', 'Descartar reporte', 'secundario']]) {
+      const boton = elemento('button', clase, texto);
+      boton.type = 'button';
+      boton.addEventListener('click', async () => {
+        boton.disabled = true;
+        const r = await llamar(`/moderacion/reportes/${encodeURIComponent(reporte.id)}/resolver`, {
+          method: 'POST',
+          body: JSON.stringify({ decision }),
+        });
+        if (!r.ok) {
+          boton.disabled = false;
+          mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo resolver el reporte';
+          mensaje.className = 'error';
+          return;
+        }
+        cargarModeracion();
+        buscar();
+      });
+      fila.append(boton);
+    }
+    tarjeta.append(fila, mensaje);
+    return tarjeta;
+  }
+
   async function cargarMiCuenta() {
     if (!sesion) return;
+    if (sesion.cuenta.esAdministrador === undefined) {
+      // Sesión guardada antes de que existiera la moderación: se consulta una vez.
+      const yo = await llamar('/cuentas/yo');
+      if (yo.ok && sesion) sesion.cuenta.esAdministrador = Boolean(yo.cuerpo.esAdministrador);
+    }
+    cargarModeracion();
     const listaMias = document.getElementById('lista-mias');
     const listaReclamos = document.getElementById('lista-mis-reclamaciones');
     const [mias, propias] = await Promise.all([llamar('/publicaciones/mias'), llamar('/reclamaciones/mias')]);
@@ -1822,6 +1952,7 @@
     reclamacion_nueva: 'Reclamación nueva',
     reclamacion_aprobada: 'Reclamación aprobada',
     reclamacion_rechazada: 'Reclamación rechazada',
+    publicacion_ocultada: 'Publicación ocultada',
   };
   const botonAvisos = document.getElementById('boton-avisos');
   const contadorAvisos = document.getElementById('contador-avisos');

@@ -53,6 +53,7 @@ const textosCierre = {
   'recuperado': 'Su dueño ya lo recuperó.',
   'retirado': 'Quien la publicó la retiró.',
   'vencido': 'Se cerró sola tras 60 días sin movimiento.',
+  'moderado': 'Un administrador la ocultó por no cumplir las normas.',
 };
 
 /// Estados en los que todavía se puede reclamar un objeto encontrado.

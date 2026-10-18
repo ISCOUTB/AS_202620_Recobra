@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Notificar } from '../application/use-cases/notificaciones';
+import { Publicacion } from '../domain/entities/publicacion';
 import {
   COINCIDENCIA_DETECTADA,
   CoincidenciaDetectada,
+  PUBLICACION_MODERADA,
   EventoReclamacion,
   RECLAMACION_CREADA,
   RECLAMACION_RESUELTA,
@@ -33,6 +35,11 @@ export class NotificacionesListener {
   @OnEvent(RECLAMACION_RESUELTA, { async: true })
   async alResolverReclamacion({ reclamacion, publicacion }: EventoReclamacion): Promise<void> {
     await this.seguro(() => this.notificar.porReclamacionResuelta(reclamacion, publicacion));
+  }
+
+  @OnEvent(PUBLICACION_MODERADA, { async: true })
+  async alModerar(publicacion: Publicacion): Promise<void> {
+    await this.seguro(() => this.notificar.porModeracion(publicacion));
   }
 
   private async seguro(tarea: () => Promise<unknown>): Promise<void> {

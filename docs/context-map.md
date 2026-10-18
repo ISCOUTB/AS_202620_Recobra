@@ -23,6 +23,7 @@ flowchart TB
     subgraph generico["Dominio genérico / externo"]
         NOTIF["Notificaciones<br/><i>implementado dentro de la API (ADR-0015)</i><br/>bandeja de avisos"]
         AUTH["Identidad<br/><i>implementado dentro de la API (ADR-0013)</i><br/>cuentas y sesiones"]
+        MOD["Moderación<br/><i>implementado dentro de la API (ADR-0022)</i><br/>reportes y ocultar"]
     end
 
     PUB -->|"Cliente/Proveedor — expone publicaciones vía puerto PublicacionRepository"| MATCH
@@ -54,6 +55,7 @@ modelo de datos.
 | **Reclamaciones** | Núcleo | Verificar que quien reclama un objeto tiene derecho a hacerlo (aspecto A3, escenario S2) | Implementado (`src/reclamaciones/`, `src/application/use-cases/reclamaciones.ts`, ADR-0014) |
 | **Emparejamiento (Matching)** | Soporte | Comparar publicaciones de "perdido" y "encontrado" y producir coincidencias (escenario S3) | Implementado (misma categoría y parecido ponderado de lugar, palabras y fecha con umbral 0,3, ADR-0018; ver `src/emparejamiento/`, `src/domain/emparejamiento/parecido.ts` y `src/application/use-cases/buscar-coincidencias.ts`) |
 | **Notificaciones** | Genérico | Avisar a cada cuenta de coincidencias y reclamaciones (escenario S3) | Implementado dentro de la API como bandeja de avisos (`src/notificaciones/`, `src/application/use-cases/notificaciones.ts`, ADR-0015); correo o push quedan como canal futuro |
+| **Moderación** | Genérico | Permitir que la comunidad señale abusos y que un administrador oculte publicaciones | Implementado dentro de la API (`src/moderacion/`, ADR-0022); cierra la publicación por el puerto de Publicaciones y avisa a su autor con un evento |
 | **Identidad** | Genérico | Cuentas con correo institucional y sesiones | Implementado dentro de la API (`src/identidad/`, ADR-0013); un proveedor institucional externo queda como alternativa futura detrás de los mismos puertos |
 
 ## Patrones de relación entre contextos

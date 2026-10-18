@@ -50,7 +50,12 @@ info:
     `GET /privacidad`, `GET /cuentas/yo/datos` y `DELETE /cuentas/yo`.
     `POST /sesiones` responde 429 tras 5 intentos fallidos por correo en 15
     minutos.
-  version: "5.0.0"
+    5.1.0 agrega la moderación mínima (ADR-0022): `POST /publicaciones/{id}/reportar`,
+    `GET /moderacion/reportes` y `POST /moderacion/reportes/{id}/resolver` (solo
+    administradores), el motivo de cierre `moderado`, el aviso
+    `publicacion_ocultada` y el campo `esAdministrador` de la cuenta: cambio
+    compatible.
+  version: "5.1.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
@@ -358,6 +363,167 @@ paths:
                 $ref: "#/components/schemas/Error"
         "409":
           description: No es un objeto perdido, ya está cerrado o entregado, es tuyo o ya respondiste
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /publicaciones/{id}/reportar:
+    post:
+      operationId: reportarPublicacion
+      summary: Reportar una publicación (abuso, spam, datos de terceros…)
+      description: Una cuenta reporta una publicación una sola vez; no la propia ni una cerrada.
+      tags: [Moderación]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motivo]
+              properties:
+                motivo:
+                  type: string
+                  enum: [falso, spam, inapropiado, datos_personales, otro]
+                detalle:
+                  type: string
+                  maxLength: 300
+                  description: Obligatorio (mínimo 5 caracteres) con motivo "otro"
+      responses:
+        "201":
+          description: Reporte recibido
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, publicacionId, estado]
+                properties:
+                  id:
+                    type: string
+                  publicacionId:
+                    type: string
+                  estado:
+                    type: string
+                    enum: [abierto]
+        "400":
+          description: Motivo inválido o detalle faltante
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La publicación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Es tu publicación, ya está cerrada o ya la reportaste
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /moderacion/reportes:
+    get:
+      operationId: listarReportesAbiertos
+      summary: Reportes abiertos, los más antiguos primero (solo administradores)
+      tags: [Moderación]
+      security:
+        - sesion: []
+      responses:
+        "200":
+          description: Reportes abiertos con un resumen de la publicación
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReporteParaModerar"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La cuenta no es administradora
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /moderacion/reportes/{id}/resolver:
+    post:
+      operationId: resolverReporte
+      summary: Ocultar la publicación o descartar el reporte (solo administradores)
+      tags: [Moderación]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  enum: [ocultar, descartar]
+                nota:
+                  type: string
+                  maxLength: 300
+      responses:
+        "200":
+          description: Reporte resuelto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reporte"
+        "400":
+          description: Decisión inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La cuenta no es administradora
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: El reporte no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: El reporte ya estaba resuelto o la publicación tiene una reclamación o entrega en curso
           content:
             application/json:
               schema:
@@ -1065,7 +1231,7 @@ components:
           type: string
         tipo:
           type: string
-          enum: [coincidencia, reclamacion_nueva, reclamacion_aprobada, reclamacion_rechazada]
+          enum: [coincidencia, reclamacion_nueva, reclamacion_aprobada, reclamacion_rechazada, publicacion_ocultada]
         titulo:
           type: string
         mensaje:
@@ -1136,6 +1302,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Notificacion"
+        reportes:
+          type: array
+          description: Los reportes de publicaciones que hizo la cuenta
+          items:
+            $ref: "#/components/schemas/Reporte"
     Cuenta:
       type: object
       required: [id, correo, nombre]
@@ -1146,6 +1317,65 @@ components:
           type: string
         nombre:
           type: string
+        esAdministrador:
+          type: boolean
+          description: Solo en `POST /sesiones` y `GET /cuentas/yo`; true si el correo está en la lista de administradores
+    Reporte:
+      type: object
+      required: [id, publicacionId, reportanteId, motivo, estado, creadoEn]
+      properties:
+        id:
+          type: string
+        publicacionId:
+          type: string
+        reportanteId:
+          type: string
+        motivo:
+          type: string
+          enum: [falso, spam, inapropiado, datos_personales, otro]
+        detalle:
+          type: string
+          nullable: true
+        estado:
+          type: string
+          enum: [abierto, ocultada, descartado]
+        creadoEn:
+          type: string
+          format: date-time
+        resueltoEn:
+          type: string
+          format: date-time
+          nullable: true
+        resueltoPor:
+          type: string
+          nullable: true
+        nota:
+          type: string
+          nullable: true
+    ReporteParaModerar:
+      type: object
+      required: [reporte, publicacion, reportesDeLaPublicacion]
+      properties:
+        reporte:
+          $ref: "#/components/schemas/Reporte"
+        publicacion:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            tipo:
+              $ref: "#/components/schemas/TipoPublicacion"
+            descripcion:
+              type: string
+            categoria:
+              type: string
+            ubicacion:
+              type: string
+            estado:
+              type: string
+        reportesDeLaPublicacion:
+          type: integer
     Reclamacion:
       type: object
       required: [id, publicacionId, reclamanteId, prueba, estado, creadoEn]
@@ -1329,7 +1559,7 @@ components:
         motivoCierre:
           type: string
           nullable: true
-          enum: [recuperado, retirado, vencido, null]
+          enum: [recuperado, retirado, vencido, moderado, null]
         custodia:
           type: string
           nullable: true

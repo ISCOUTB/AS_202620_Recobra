@@ -121,6 +121,7 @@ MockClient _servidor({
       if (request.method == 'POST' && ruta.startsWith('/notificaciones/')) return http.Response('', 204);
       if (request.method == 'GET' && ruta == '/publicaciones/abc') return _resp(_publicacion(), 200);
       if (request.method == 'POST' && ruta == '/publicaciones/abc/reclamaciones') return _resp('{}', 201);
+      if (request.method == 'POST' && ruta == '/publicaciones/abc/reportar') return _resp('{}', 201);
       if (ruta == '/publicaciones/mias') {
         return _resp(mias ?? (soyAutor ? '[${_publicacion(autorId: 'yo')}]' : '[]'), 200);
       }
@@ -475,6 +476,44 @@ void main() {
       await tester.tap(find.text('Seguir explorando'));
       await tester.pumpAndSettle();
       expect(find.text('Es mío: reclamar'), findsOneWidget); // el detalle sigue abierto
+    });
+
+    testWidgets('Sin cuenta, reportar explica por qué hace falta una cuenta', (tester) async {
+      pantallaAlta(tester);
+      await tester.pumpWidget(app(_servidor()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Termo azul'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reportar esta publicación'));
+      await tester.pumpAndSettle();
+      expect(find.text('Para reportar necesitas una cuenta'), findsOneWidget);
+    });
+
+    testWidgets('Con cuenta, reportar pide un motivo y lo envía', (tester) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      await tester.pumpWidget(app(_servidor(registro: peticiones)));
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.tap(find.text('Inicio').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Termo azul'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reportar esta publicación'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Enviar reporte')).onPressed, isNull);
+
+      await tester.tap(find.text('Es spam o publicidad'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Enviar reporte'));
+      await tester.pumpAndSettle();
+
+      final reporte = peticiones.singleWhere((r) => r.url.path == '/publicaciones/abc/reportar');
+      expect(jsonDecode(reporte.body), containsPair('motivo', 'spam'));
+      expect(reporte.headers['Authorization'], 'Bearer tok-123');
+      expect(find.text('Gracias, un administrador lo revisará.'), findsOneWidget);
     });
 
     testWidgets('Los accesos rápidos son botones de color con la palabra Publicar', (tester) async {

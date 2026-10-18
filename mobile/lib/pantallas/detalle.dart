@@ -6,6 +6,7 @@ import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 import 'custodia.dart';
 import 'reclamar.dart';
+import 'reportar.dart';
 import 'requiere_cuenta.dart';
 
 /// Lo que pasó en el detalle: se envió una reclamación o un "Lo tengo yo".
@@ -75,6 +76,18 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
       ),
     );
     if (enviada == true && mounted) navegador.pop(ResultadoDetalle.reclamo);
+  }
+
+  /// Reportar: cualquier publicación ajena que no esté cerrada.
+  bool _puedeReportar(SesionApp sesion) =>
+      widget.publicacion.estado != 'cerrado' && sesion.cuenta?.id != widget.publicacion.autorId;
+
+  Future<void> _reportar(SesionApp sesion) async {
+    if (!sesion.activa) {
+      await _pedirCuenta(AccionConCuenta.reportar);
+      return;
+    }
+    await abrirReporte(context, widget.publicacion);
   }
 
   /// "Lo tengo yo": solo sobre un perdido ajeno que todavía no apareció.
@@ -199,6 +212,15 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
                     );
                   },
                 ),
+                if (_puedeReportar(sesion))
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.flag_outlined, size: 18),
+                      label: const Text('Reportar esta publicación'),
+                      onPressed: () => _reportar(sesion),
+                    ),
+                  ),
                 if (_puedeReclamar(sesion) || (esEncontradoAjeno && !sesion.activa)) ...[
                   const SizedBox(height: 16),
                   const CajaInfo(

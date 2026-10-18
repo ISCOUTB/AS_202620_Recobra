@@ -2,7 +2,8 @@ export type TipoNotificacion =
   | 'coincidencia'
   | 'reclamacion_nueva'
   | 'reclamacion_aprobada'
-  | 'reclamacion_rechazada';
+  | 'reclamacion_rechazada'
+  | 'publicacion_ocultada';
 
 export interface DatosNotificacion {
   /** Determinista por evento y destinatario: el mismo evento repetido no la duplica. */

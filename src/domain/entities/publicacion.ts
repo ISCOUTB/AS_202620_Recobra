@@ -29,7 +29,7 @@ export const CUSTODIAS = ['quien_lo_encontro', 'punto_de_entrega'] as const;
 export type Custodia = (typeof CUSTODIAS)[number];
 const PUNTO_MAXIMO = 120;
 
-export const MOTIVOS_CIERRE = ['recuperado', 'retirado', 'vencido'] as const;
+export const MOTIVOS_CIERRE = ['recuperado', 'retirado', 'vencido', 'moderado'] as const;
 export type MotivoCierre = (typeof MOTIVOS_CIERRE)[number];
 
 const ESTADO_INICIAL: EstadoPublicacion = 'publicado';

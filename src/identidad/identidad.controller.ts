@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { Cuenta } from '../domain/entities/cuenta';
 import { CerrarSesion, IniciarSesion, RegistrarCuenta } from '../application/use-cases/identidad';
+import { esAdministrador } from '../application/use-cases/moderacion';
 import { AutenticacionGuard, CuentaActual, TokenActual } from './autenticacion.guard';
 
 interface CuerpoRegistro {
@@ -40,7 +41,7 @@ export class IdentidadController {
   @HttpCode(201)
   async iniciarSesion(@Body() cuerpo: CuerpoSesion) {
     const { token, expiraEn, cuenta } = await this.iniciar.ejecutar(cuerpo?.correo, cuerpo?.contrasena);
-    return { token, expiraEn, cuenta: cuenta.vistaPublica() };
+    return { token, expiraEn, cuenta: { ...cuenta.vistaPublica(), esAdministrador: esAdministrador(cuenta) } };
   }
 
   @Delete('sesiones')
@@ -53,6 +54,6 @@ export class IdentidadController {
   @Get('cuentas/yo')
   @UseGuards(AutenticacionGuard)
   yo(@CuentaActual() cuenta: Cuenta) {
-    return cuenta.vistaPublica();
+    return { ...cuenta.vistaPublica(), esAdministrador: esAdministrador(cuenta) };
   }
 }

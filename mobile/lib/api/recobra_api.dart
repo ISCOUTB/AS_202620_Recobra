@@ -120,14 +120,21 @@ class AvisoPrivacidad {
 }
 
 class Cuenta {
-  Cuenta({required this.id, required this.correo, required this.nombre});
+  Cuenta({required this.id, required this.correo, required this.nombre, this.esAdministrador = false});
 
   final String id;
   final String correo;
   final String nombre;
 
-  factory Cuenta.fromJson(Map<String, dynamic> json) =>
-      Cuenta(id: json['id'] as String, correo: json['correo'] as String, nombre: json['nombre'] as String);
+  /// Solo informativo: los administradores resuelven reportes en la vitrina web (ADR-0022).
+  final bool esAdministrador;
+
+  factory Cuenta.fromJson(Map<String, dynamic> json) => Cuenta(
+        id: json['id'] as String,
+        correo: json['correo'] as String,
+        nombre: json['nombre'] as String,
+        esAdministrador: json['esAdministrador'] as bool? ?? false,
+      );
 }
 
 /// Reclamación vista por quien publicó el objeto: el correo solo llega si se aprobó.
@@ -259,7 +266,7 @@ class RecobraApiException implements Exception {
   String toString() => message;
 }
 
-/// Cliente HTTP de la API de Recobra (contrato 5.0.0). La URL base se inyecta
+/// Cliente HTTP de la API de Recobra (contrato 5.1.0). La URL base se inyecta
 /// para poder apuntar a emulador, web o el despliegue. El token de sesión se
 /// guarda solo en memoria: al cerrar la app hay que volver a iniciar sesión.
 class RecobraApi {
@@ -331,6 +338,16 @@ class RecobraApi {
     final cuerpo = _cuerpoO(r, {201}, 'No se pudo iniciar sesión') as Map<String, dynamic>;
     token = cuerpo['token'] as String;
     return Cuenta.fromJson(cuerpo['cuenta'] as Map<String, dynamic>);
+  }
+
+  /// Reportar una publicación (abuso, spam, datos de terceros…); una vez por cuenta.
+  Future<void> reportarPublicacion(String id, String motivo, {String? detalle}) async {
+    final r = await _enviar(_client.post(
+      _uri('/publicaciones/$id/reportar'),
+      headers: _cabeceras(json: true),
+      body: jsonEncode({'motivo': motivo, if (detalle != null && detalle.isNotEmpty) 'detalle': detalle}),
+    ));
+    _cuerpoO(r, {201}, 'No se pudo enviar el reporte');
   }
 
   /// El aviso de privacidad vigente (público).

@@ -11,6 +11,10 @@ enum AccionConCuenta {
     'Para avisar que lo tienes necesitas una cuenta',
     'Puedes ver todo lo publicado sin cuenta; la necesitamos solo para avisarle a su dueño.',
   ),
+  reportar(
+    'Para reportar necesitas una cuenta',
+    'Puedes ver todo lo publicado sin cuenta; la necesitamos solo para reportar y evitar reportes falsos.',
+  ),
   seguimiento('Inicia sesión para ver tus cosas', 'Aquí aparece lo que publicaste y lo que reclamaste, y tus avisos.');
 
   const AccionConCuenta(this.titulo, this.subtitulo);
