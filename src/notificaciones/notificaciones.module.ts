@@ -25,6 +25,6 @@ import { NotificacionesListener } from './notificaciones.listener';
     ConsultarNotificaciones,
     NotificacionesListener,
   ],
-  exports: [NotificacionRepository],
+  exports: [NotificacionRepository, Notificar],
 })
 export class NotificacionesModule {}

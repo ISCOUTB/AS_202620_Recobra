@@ -3,6 +3,7 @@ import { ConsultarNotificaciones, Notificar } from './notificaciones';
 import { CrearPublicacion } from './crear-publicacion';
 import { MemoriaPublicacionRepository } from '../../infrastructure/persistence/memoria-publicacion.repository';
 import { MemoriaNotificacionRepository } from '../../infrastructure/persistence/memoria-notificacion.repository';
+import { MemoriaCuentaRepository } from '../../infrastructure/persistence/memoria-cuenta.repository';
 import { Coincidencia } from '../../domain/entities/coincidencia';
 import { Reclamacion } from '../../domain/entities/reclamacion';
 import { NoEncontradoError } from '../../domain/errors/errores-de-dominio';
@@ -17,7 +18,7 @@ describe('Notificaciones', () => {
   beforeEach(() => {
     publicaciones = new MemoriaPublicacionRepository();
     notificaciones = new MemoriaNotificacionRepository();
-    notificar = new Notificar(notificaciones, publicaciones);
+    notificar = new Notificar(notificaciones, publicaciones, new MemoriaCuentaRepository());
     consultar = new ConsultarNotificaciones(notificaciones);
     crear = new CrearPublicacion(publicaciones, new EventEmitter2());
   });

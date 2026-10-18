@@ -310,6 +310,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0021](../adr/0021-privacidad-y-datos-personales.md) | Privacidad y datos personales: consentimiento, acceso, supresión y retención | Aceptada |
 | [ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md) | Moderación mínima: reportar una publicación y ocultarla | Aceptada |
 | [ADR-0023](../adr/0023-fotos-con-privacidad.md) | Fotos de las publicaciones con privacidad | Aceptada |
+| [ADR-0024](../adr/0024-conciliacion-de-avisos.md) | Conciliación de avisos en lugar de una tabla de eventos pendientes | Aceptada |
 
 
 ## 10. Requisitos de calidad

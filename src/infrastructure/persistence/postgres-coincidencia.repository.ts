@@ -47,15 +47,24 @@ export class PostgresCoincidenciaRepository extends CoincidenciaRepository imple
        LIMIT 50`,
       [publicacionId],
     );
-    return resultado.rows.map(
-      (fila) =>
-        new Coincidencia({
-          id: fila.id,
-          publicacionOrigenId: fila.publicacion_origen_id,
-          publicacionCoincidenteId: fila.publicacion_coincidente_id,
-          score: Number(fila.score),
-          creadoEn: new Date(fila.creado_en).toISOString(),
-        }),
+    return resultado.rows.map((fila) => this.aEntidad(fila));
+  }
+
+  async listarCreadasDesde(desde: string, limite: number): Promise<Coincidencia[]> {
+    const resultado = await consultarCompartido(
+      'SELECT * FROM coincidencias WHERE creado_en >= $1 ORDER BY creado_en ASC LIMIT $2',
+      [desde, limite],
     );
+    return resultado.rows.map((fila) => this.aEntidad(fila));
+  }
+
+  private aEntidad(fila: Record<string, unknown>): Coincidencia {
+    return new Coincidencia({
+      id: fila.id as string,
+      publicacionOrigenId: fila.publicacion_origen_id as string,
+      publicacionCoincidenteId: fila.publicacion_coincidente_id as string,
+      score: Number(fila.score),
+      creadoEn: new Date(fila.creado_en as string).toISOString(),
+    });
   }
 }

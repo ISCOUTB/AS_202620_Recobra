@@ -15,6 +15,9 @@ export abstract class ReclamacionRepository {
    */
   abstract listarAbiertas(limite: number): Promise<Reclamacion[]>;
 
+  /** Reclamaciones creadas desde `desde` (cualquier estado), las más antiguas primero; las usa la conciliación de avisos (ADR-0024). */
+  abstract listarCreadasDesde(desde: string, limite: number): Promise<Reclamacion[]>;
+
   /** Reemplaza el texto de las pruebas de un reclamante (al eliminar su cuenta) y dice cuántas. */
   abstract anonimizarPruebasDe(reclamanteId: string): Promise<number>;
 }

@@ -12,6 +12,13 @@ export class MemoriaCoincidenciaRepository extends CoincidenciaRepository {
     return coincidencia;
   }
 
+  async listarCreadasDesde(desde: string, limite: number): Promise<Coincidencia[]> {
+    return [...this.coincidencias.values()]
+      .filter((c) => c.creadoEn >= desde)
+      .sort((a, b) => a.creadoEn.localeCompare(b.creadoEn))
+      .slice(0, limite);
+  }
+
   async listarPorPublicacion(publicacionId: string): Promise<Coincidencia[]> {
     return [...this.coincidencias.values()].filter(
       (c) => c.publicacionOrigenId === publicacionId || c.publicacionCoincidenteId === publicacionId,

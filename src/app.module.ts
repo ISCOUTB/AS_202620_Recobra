@@ -12,6 +12,7 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { PrivacidadModule } from './privacidad/privacidad.module';
 import { ModeracionModule } from './moderacion/moderacion.module';
 import { FotosModule } from './fotos/fotos.module';
+import { ConciliacionAvisosModule } from './notificaciones/conciliacion-avisos.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { FotosModule } from './fotos/fotos.module';
     PrivacidadModule,
     ModeracionModule,
     FotosModule,
+    ConciliacionAvisosModule,
   ],
 })
 export class AppModule {}

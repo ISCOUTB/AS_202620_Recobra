@@ -73,6 +73,14 @@ export class PostgresReporteRepository extends ReporteRepository implements OnMo
     return resultado.rows.map((fila) => this.aEntidad(fila));
   }
 
+  async listarOcultadosDesde(desde: string, limite: number): Promise<Reporte[]> {
+    const resultado = await consultarCompartido(
+      "SELECT * FROM reportes WHERE estado = 'ocultada' AND resuelto_en >= $1 ORDER BY resuelto_en ASC LIMIT $2",
+      [desde, limite],
+    );
+    return resultado.rows.map((fila) => this.aEntidad(fila));
+  }
+
   async listarPorReportante(reportanteId: string): Promise<Reporte[]> {
     const resultado = await consultarCompartido(
       'SELECT * FROM reportes WHERE reportante_id = $1 ORDER BY creado_en DESC LIMIT 200',

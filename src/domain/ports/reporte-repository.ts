@@ -10,6 +10,8 @@ export abstract class ReporteRepository {
   /** Los abiertos, los más antiguos primero. */
   abstract listarAbiertos(limite: number): Promise<Reporte[]>;
   abstract listarAbiertosDe(publicacionId: string): Promise<Reporte[]>;
+  /** Los reportes cuya publicación se ocultó desde `desde`, los más antiguos primero (conciliación de avisos, ADR-0024). */
+  abstract listarOcultadosDesde(desde: string, limite: number): Promise<Reporte[]>;
   /** Los reportes que hizo una cuenta (derecho de acceso, ADR-0021). */
   abstract listarPorReportante(reportanteId: string): Promise<Reporte[]>;
   /** Reemplaza el texto del detalle de los reportes de una cuenta (al eliminarla) y dice cuántos. */

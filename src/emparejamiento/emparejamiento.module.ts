@@ -23,5 +23,6 @@ import { HallazgosController } from './hallazgos.controller';
       useClass: process.env.DATABASE_URL ? PostgresCoincidenciaRepository : MemoriaCoincidenciaRepository,
     },
   ],
+  exports: [CoincidenciaRepository],
 })
 export class EmparejamientoModule {}

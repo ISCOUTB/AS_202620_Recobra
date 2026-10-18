@@ -28,6 +28,13 @@ export class MemoriaReporteRepository extends ReporteRepository {
       .slice(0, limite);
   }
 
+  async listarOcultadosDesde(desde: string, limite: number): Promise<Reporte[]> {
+    return [...this.reportes.values()]
+      .filter((r) => r.estado === 'ocultada' && (r.resueltoEn ?? '') >= desde)
+      .sort((a, b) => (a.resueltoEn ?? '').localeCompare(b.resueltoEn ?? ''))
+      .slice(0, limite);
+  }
+
   async listarPorReportante(reportanteId: string): Promise<Reporte[]> {
     return [...this.reportes.values()]
       .filter((r) => r.reportanteId === reportanteId)

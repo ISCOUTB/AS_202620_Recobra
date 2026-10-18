@@ -4,6 +4,7 @@ import { Notificacion, TipoNotificacion } from '../../domain/entities/notificaci
 import { Publicacion } from '../../domain/entities/publicacion';
 import { Reclamacion } from '../../domain/entities/reclamacion';
 import { NoEncontradoError } from '../../domain/errors/errores-de-dominio';
+import { CuentaRepository } from '../../domain/ports/cuenta-repository';
 import { NotificacionRepository } from '../../domain/ports/notificacion-repository';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 
@@ -16,13 +17,15 @@ function recortar(texto: string, maximo = 60): string {
 /**
  * Redacta y guarda los avisos (escenario S3, ADR-0015). El id de cada aviso se
  * deriva del evento y del destinatario, así que un evento procesado dos veces
- * no duplica el aviso (mismo criterio que docs/modos-de-fallo.md).
+ * (o recreado por la conciliación, ADR-0024) no duplica el aviso (mismo criterio
+ * que docs/modos-de-fallo.md).
  */
 @Injectable()
 export class Notificar {
   constructor(
     private readonly notificaciones: NotificacionRepository,
     private readonly publicaciones: PublicacionRepository,
+    private readonly cuentas: CuentaRepository,
   ) {}
 
   /** Coincidencia detectada: avisa a quien publicó el objeto perdido, con enlace al encontrado. */
@@ -97,6 +100,9 @@ export class Notificar {
     mensaje: string,
     publicacionId: string,
   ): Promise<Notificacion[]> {
+    // Una cuenta eliminada ya no recibe avisos (ADR-0021): ni por un evento tardío ni por la conciliación.
+    const destinataria = await this.cuentas.buscarPorId(cuentaId);
+    if (destinataria?.eliminadaEn) return [];
     const notificacion = new Notificacion({
       id,
       cuentaId,
