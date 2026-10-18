@@ -54,7 +54,7 @@ describe('Emparejamiento (e2e)', () => {
     expect(coincidencias.length).toBeGreaterThan(0);
     expect(coincidencias[0].publicacionOrigenId).toBe(encontrado.body.id);
     expect(coincidencias[0].publicacionCoincidenteId).toBe(perdido.body.id);
-    expect(coincidencias[0].score).toBe(1);
+    expect(coincidencias[0].score).toBe(0.8);
   });
 
   it('GET /coincidencias sin publicacionId responde con lista vacía, no error', async () => {

@@ -207,6 +207,13 @@ Fuente de los hallazgos: retroalimentación publicada en
 | "Entregado" al aprobar | Estado "por entregar" y confirmación de la entrega por cualquiera de las dos partes | `test/reclamaciones.e2e-spec.ts`, `mobile/test/widget_test.dart` |
 | La app Flutter solo se podía probar compilándola | Se compila en la imagen y se sirve en https://recobra.iscoutb.dev/app/ | `Dockerfile` (etapa `app-web`) |
 
+## Avance del proyecto · Emparejamiento (2026-10-17)
+
+| Hallazgo de la evaluación | Qué se hizo | Evidencia |
+|---|---|---|
+| Las coincidencias se perdían en cada redespliegue | Tabla `coincidencias` en PostgreSQL | [ADR-0018](docs/adr/0018-coincidencias-persistidas-y-parecido-ponderado.md), `src/infrastructure/persistence/postgres-coincidencia.repository.ts` |
+| El puntaje solo miraba el lugar | Parecido de 0 a 1 con lugar, palabras en común y fechas, y umbral 0,3 | `src/domain/emparejamiento/parecido.spec.ts` |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

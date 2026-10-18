@@ -152,7 +152,7 @@ Vista estática del backend, actualizada para el segundo corte (diagramas en
 | Dominio | Entidades `Publicacion` (con su ciclo de vida), `Coincidencia`, `Cuenta`, `Reclamacion` y `Notificacion`; errores de dominio | `src/domain/entities/`, `src/domain/errors/` |
 | Puertos | `PublicacionRepository` (guardar, guardarSiNoExiste, buscarPorId, listarPorTipo, buscar, cambiarEstado, listarPorAutor, verificarDisponibilidad), `CoincidenciaRepository`, `CuentaRepository`, `SesionRepository`, `ReclamacionRepository`, `NotificacionRepository`, `HashContrasenas` | `src/domain/ports/` |
 | Aplicación | Publicaciones (crear, crear idempotente, consultar, buscar, cambiar estado, listar las propias), Emparejamiento, Identidad (registrar, iniciar y cerrar sesión, resolver sesión) Reclamaciones (crear, aprobar, rechazar, consultar) y Notificaciones (notificar, consultar, marcar leídas) | `src/application/use-cases/` |
-| Adaptadores de persistencia | `PostgresPublicacionRepository` (con `DATABASE_URL`) y `MemoriaPublicacionRepository` (sin ella); coincidencias solo en memoria | `src/infrastructure/persistence/` |
+| Adaptadores de persistencia | `PostgresPublicacionRepository` (con `DATABASE_URL`) y `MemoriaPublicacionRepository` (sin ella); lo mismo para cuentas, sesiones, reclamaciones, avisos y coincidencias (ADR-0018) | `src/infrastructure/persistence/` |
 | Adaptadores HTTP | Controladores Nest, `AutenticacionGuard`, filtros de error (400, 401, 403, 404, 409, 422 y 503) | `src/publicaciones/`, `src/emparejamiento/`, `src/identidad/`, `src/reclamaciones/`, `src/notificaciones/`, `src/salud/` |
 | Observabilidad | Logs JSON, `GET /metrics` (S5 y S1), `GET /health` y `GET /health/ready` | `src/observabilidad/`, `src/salud/` |
 | Composition root | Cableado de módulos Nest y selección del adaptador | `src/app.module.ts`, `src/publicaciones/publicaciones.module.ts` |
@@ -297,6 +297,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0015](../adr/0015-notificaciones-en-la-aplicacion.md) | Notificaciones dentro de la aplicación, alimentadas por eventos en proceso | Aceptada |
 | [ADR-0016](../adr/0016-recobra-semiindependiente-de-la-app-utb.md) | Recobra semiindependiente de la app UTB, con la integración como objetivo potencial | Aceptada |
 | [ADR-0017](../adr/0017-ciclo-de-vida-completo-cierre-vencimiento-y-entrega.md) | Ciclo de vida completo: cierre, vencimiento y entrega confirmada | Aceptada |
+| [ADR-0018](../adr/0018-coincidencias-persistidas-y-parecido-ponderado.md) | Coincidencias persistidas y parecido ponderado (lugar, palabras y fecha) | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -339,7 +340,7 @@ Detalle completo, con código y pruebas de cada fila, en
 - **Consistencia al aprobar una reclamación:** se cambia la publicación y luego la reclamación; si la segunda escritura falla quedan desalineadas. Para la S12 (saga o bandeja de salida).
 
 
-- Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias aún están solo en memoria.
+- Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias también se guardan en PostgreSQL desde ADR-0018.
 - Todos los contextos del mapa tienen código (Notificaciones desde ADR-0015). Lo que sigue siendo diseño es el canal de correo o push y el administrador.
 - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
 - **Transporte hacia la base:** con `DATABASE_SSL=false` (base interna de Dokploy) no hay TLS; con TLS activo el adaptador usa `rejectUnauthorized: false`, así que cifra pero **no valida** el certificado del servidor y no debe describirse como verificación de identidad de la base. No se verificó el aislamiento de la red interna.

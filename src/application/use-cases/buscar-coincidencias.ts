@@ -3,6 +3,7 @@ import { ESTADOS_EMPAREJABLES, Publicacion, TipoPublicacion } from '../../domain
 import { Coincidencia } from '../../domain/entities/coincidencia';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { CoincidenciaRepository } from '../../domain/ports/coincidencia-repository';
+import { UMBRAL_COINCIDENCIA, calcularParecido } from '../../domain/emparejamiento/parecido';
 
 const TIPO_OPUESTO: Record<TipoPublicacion, TipoPublicacion> = {
   perdido: 'encontrado',
@@ -10,11 +11,10 @@ const TIPO_OPUESTO: Record<TipoPublicacion, TipoPublicacion> = {
 };
 
 /**
- * Escenario S3 (notificar coincidencias probables). Heurística simple y
- * determinista, a propósito: misma categoría (obligatorio, sin eso no hay
- * candidato) + similitud de ubicación (gradúa el score). No sustituye un
- * motor de matching más sofisticado; es el mínimo defendible para esta
- * evidencia.
+ * Escenario S3 (notificar coincidencias probables). Heurística determinista,
+ * a propósito (ADR-0007): misma categoría (obligatorio, sin eso no hay
+ * candidato) y un parecido de 0 a 1 que pondera lugar, palabras en común y
+ * cercanía de fechas (ADR-0018). Solo se guarda lo que supera el umbral.
  *
  * Se dispara de forma asíncrona (ver ADR-0004): quien llama a este caso de
  * uso no debe esperar su resultado para responder al usuario que creó la
@@ -38,7 +38,8 @@ export class BuscarCoincidencias {
         continue;
       }
 
-      const score = this.calcularScore(publicacion, candidata);
+      const score = calcularParecido(publicacion, candidata);
+      if (score < UMBRAL_COINCIDENCIA) continue;
       const coincidencia = new Coincidencia({
         // Id determinista por par: si el evento llega dos veces, la segunda
         // escritura sobrescribe la misma coincidencia en vez de duplicarla.
@@ -56,12 +57,4 @@ export class BuscarCoincidencias {
     return encontradas;
   }
 
-  private calcularScore(a: Publicacion, b: Publicacion): number {
-    const ubicacionA = a.ubicacion.trim().toLowerCase();
-    const ubicacionB = b.ubicacion.trim().toLowerCase();
-
-    if (ubicacionA === ubicacionB) return 1;
-    if (ubicacionA.includes(ubicacionB) || ubicacionB.includes(ubicacionA)) return 0.6;
-    return 0.3;
-  }
 }

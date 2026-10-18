@@ -34,7 +34,8 @@ describe('BuscarCoincidencias', () => {
 
     expect(encontradas).toHaveLength(1);
     expect(encontradas[0].publicacionCoincidenteId).toBe(perdido.id);
-    expect(encontradas[0].score).toBe(1);
+    // Mismo lugar (0,5) + "cargador" en común (0,3 × 1/3) + mismo día (0,2) = 0,8 (ADR-0018).
+    expect(encontradas[0].score).toBe(0.8);
   });
 
   it('no detecta coincidencia si la categoría es distinta', async () => {
@@ -77,7 +78,7 @@ describe('BuscarCoincidencias', () => {
     expect(encontradas).toHaveLength(0);
   });
 
-  it('da score parcial (0.3) cuando la ubicación no coincide ni se contiene', async () => {
+  it('sin el mismo lugar el parecido baja: 0 por lugar + palabras + fecha = 0.3', async () => {
     await crear.ejecutar({
       tipo: 'perdido',
       descripcion: 'Cargador de laptop',
