@@ -6,27 +6,41 @@ import '../api/recobra_api.dart';
 import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
-import 'acceso.dart';
 import 'custodia.dart';
 import 'inicio.dart';
+import 'requiere_cuenta.dart';
 
-/// Se usa solo si `GET /lugares` no responde: la fuente es el catálogo del servidor.
+const _cuatroPisos = ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4'];
+
+/// Se usa solo si `GET /lugares` no responde: la fuente es el catálogo del
+/// servidor (`src/domain/lugares/catalogo-lugares.ts`).
 const lugaresDeRespaldo = [
-  LugarCampus('Bloque A1', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
-  LugarCampus('Bloque A2', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
-  LugarCampus('Bloque A3', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
-  LugarCampus('Bloque A4', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
-  LugarCampus('Bloque A5', ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4']),
-  LugarCampus('Biblioteca', ['Piso 1', 'Piso 2', 'Piso 3']),
-  LugarCampus('Entrada principal', []),
+  LugarCampus('Bloque A1', _cuatroPisos),
+  LugarCampus('Bloque A2', [..._cuatroPisos, 'Piso 5']),
+  LugarCampus('Bloque A3', _cuatroPisos),
+  LugarCampus('Bloque A4', _cuatroPisos),
+  LugarCampus('Bloque A5', _cuatroPisos),
+  LugarCampus('Biblioteca', ['Hemeroteca', 'Piso 1', 'Piso 2', 'Piso 3 (sala de estudio)']),
+  LugarCampus('Alcatraz', ['Piso 1', 'Piso 2']),
+  LugarCampus('El Mesón', []),
   LugarCampus('Cafetería central', []),
+  LugarCampus('Panadería', []),
+  LugarCampus('Los Bohíos', []),
+  LugarCampus('Entrada principal', []),
+  LugarCampus('Gimnasio', []),
+  LugarCampus('Canchas', []),
+  LugarCampus('Parqueadero', []),
 ];
 
-/// Publicar un objeto perdido o encontrado. Exige sesión (ADR-0013).
+/// Publicar un objeto perdido o encontrado. Quien no tiene cuenta puede ver y
+/// llenar el formulario para saber cómo funciona; al enviarlo se le explica por
+/// qué hace falta una cuenta (ADR-0013) y, tras iniciar sesión, vuelve aquí con
+/// lo que había escrito.
 class PublicarPantalla extends StatefulWidget {
-  const PublicarPantalla({super.key, required this.alPublicar});
+  const PublicarPantalla({super.key, required this.alPublicar, required this.alPedirCuenta});
 
   final VoidCallback alPublicar;
+  final AlPedirCuenta alPedirCuenta;
 
   @override
   State<PublicarPantalla> createState() => PublicarPantallaState();
@@ -98,7 +112,18 @@ class PublicarPantallaState extends State<PublicarPantalla> {
   /// "Piso 2 · Salón 204": el piso elegido en el submenú y la referencia escrita.
   String get _detalle => [_piso, _referencia.text.trim()].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
 
+  /// Sin sesión no se envía: se explica por qué y se ofrece iniciar sesión o crear la cuenta.
+  Future<void> _pedirCuenta() async {
+    final eleccion = await explicarCuenta(context, AccionConCuenta.publicar);
+    if (eleccion == null || !mounted) return;
+    widget.alPedirCuenta(crearCuenta: eleccion == EleccionCuenta.crearCuenta);
+  }
+
   Future<void> _publicar() async {
+    if (!AlcanceSesion.de(context).activa) {
+      await _pedirCuenta();
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     final sesion = AlcanceSesion.de(context);
     final mensajero = ScaffoldMessenger.of(context);
@@ -145,12 +170,14 @@ class PublicarPantallaState extends State<PublicarPantalla> {
   @override
   Widget build(BuildContext context) {
     final sesion = AlcanceSesion.de(context);
-    if (!sesion.activa) return const AccesoPantalla(motivo: 'Para publicar un objeto necesitas tu cuenta institucional.');
     final perdido = _tipo == 'perdido';
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        const EncabezadoUtb(titulo: 'Publicar', subtitulo: 'Toma menos de un minuto.'),
+        EncabezadoUtb(
+          titulo: 'Publicar',
+          subtitulo: sesion.activa ? 'Toma menos de un minuto.' : 'Así se publica en Recobra.',
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
           child: Form(
@@ -158,6 +185,13 @@ class PublicarPantallaState extends State<PublicarPantalla> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (!sesion.activa) ...[
+                  const AvisoExplorando(
+                    texto: 'Estás explorando sin cuenta. Llena el formulario para ver cómo funciona; '
+                        'para enviarlo te pediremos iniciar sesión y te explicamos por qué.',
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 ControlSegmentado<String>(
                   opciones: const [OpcionSegmento('perdido', 'Lo perdí'), OpcionSegmento('encontrado', 'Lo encontré')],
                   valor: _tipo,
@@ -238,7 +272,10 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                 ],
                 if (_niveles.isNotEmpty) ...[
                   const SizedBox(height: 14),
-                  const Text('¿En qué piso? (opcional)', style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Sugerencias de piso o zona (opcional)',
+                    style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -258,8 +295,8 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                   controller: _referencia,
                   maxLength: 80,
                   decoration: const InputDecoration(
-                    labelText: 'Salón o referencia (opcional)',
-                    hintText: 'Salón 204, cerca de los baños…',
+                    labelText: 'Otro piso, salón o referencia (opcional)',
+                    hintText: 'Piso 5, Salón 204, cerca de los baños…',
                   ),
                 ),
                 if (!perdido) ...[
@@ -272,10 +309,12 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                   child: Text(_ocupado ? 'Publicando…' : (perdido ? 'Publicar objeto perdido' : 'Publicar objeto encontrado')),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Al publicar buscamos coincidencias y te avisamos.',
+                Text(
+                  sesion.activa
+                      ? 'Al publicar buscamos coincidencias y te avisamos.'
+                      : 'Al tocar Publicar te pediremos iniciar sesión.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
+                  style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
                 ),
               ],
             ),

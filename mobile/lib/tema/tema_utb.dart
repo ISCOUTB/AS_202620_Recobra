@@ -29,6 +29,10 @@ class ColoresUtb {
   static const magenta = Color(0xFFB620E0);
   static const rojo = Color(0xFFFF6B6B);
 
+  /// Texto oscuro sobre botones naranja y verde (contraste 8:1 o más).
+  static const textoSobreNaranja = Color(0xFF1A0E02);
+  static const textoSobreVerde = Color(0xFF05260F);
+
   /// Rojo para texto pequeño (más claro, para mantener el contraste).
   static const rojoTexto = Color(0xFFFF8A8A);
 

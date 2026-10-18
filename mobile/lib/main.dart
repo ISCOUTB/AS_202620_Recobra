@@ -101,6 +101,11 @@ class _NavegacionState extends State<Navegacion> {
   int _indice = _inicio;
   late bool _bienvenida = widget.mostrarBienvenida;
   bool _registroPrimero = false;
+
+  /// Qué hacer cuando la persona inicia sesión después de que se le pidió la
+  /// cuenta (volver al formulario de publicar, reabrir el objeto que quería reclamar).
+  VoidCallback? _alVolver;
+  bool _estabaActiva = false;
   final _claveInicio = GlobalKey<InicioPantallaState>();
   final _clavePublicar = GlobalKey<PublicarPantallaState>();
   final _claveMisCosas = GlobalKey<MisCosasPantallaState>();
@@ -113,6 +118,13 @@ class _NavegacionState extends State<Navegacion> {
 
   void _ir(int i) => setState(() => _indice = i);
 
+  /// Lleva a iniciar sesión o crear la cuenta y, al terminar, a donde estaba.
+  void _pedirCuenta({required bool crearCuenta, VoidCallback? alVolver, required int volverA}) {
+    _registroPrimero = crearCuenta;
+    _alVolver = alVolver ?? () => _ir(volverA);
+    _ir(_perfil);
+  }
+
   void _publicarCon(String tipo, {String? categoria}) {
     _ir(_publicar);
     WidgetsBinding.instance.addPostFrameCallback((_) => _clavePublicar.currentState?.preparar(tipo, categoria: categoria));
@@ -121,6 +133,14 @@ class _NavegacionState extends State<Navegacion> {
   @override
   Widget build(BuildContext context) {
     final sesion = AlcanceSesion.de(context);
+    if (sesion.activa && !_estabaActiva && _alVolver != null) {
+      final volver = _alVolver!;
+      _alVolver = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) volver();
+      });
+    }
+    _estabaActiva = sesion.activa;
     if (_bienvenida && !sesion.activa) {
       return BienvenidaPantalla(
         alTerminar: ({required bool crearCuenta}) => setState(() {
@@ -137,7 +157,8 @@ class _NavegacionState extends State<Navegacion> {
         children: [
           InicioPantalla(
             key: _claveInicio,
-            alPedirCuenta: () => _ir(_perfil),
+            alPedirCuenta: ({required bool crearCuenta, VoidCallback? alVolver}) =>
+                _pedirCuenta(crearCuenta: crearCuenta, alVolver: alVolver, volverA: _inicio),
             alIrAMisCosas: ({required bool reclame}) {
               _claveMisCosas.currentState?.mostrar(reclame: reclame);
               _ir(_misCosas);
@@ -146,6 +167,8 @@ class _NavegacionState extends State<Navegacion> {
           ),
           PublicarPantalla(
             key: _clavePublicar,
+            alPedirCuenta: ({required bool crearCuenta, VoidCallback? alVolver}) =>
+                _pedirCuenta(crearCuenta: crearCuenta, alVolver: alVolver, volverA: _publicar),
             alPublicar: () {
               _claveInicio.currentState?.recargar();
               _ir(_inicio);

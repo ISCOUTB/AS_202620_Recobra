@@ -30,6 +30,16 @@ describe('Lugar en dos niveles (lugar + piso o referencia)', () => {
     ).rejects.toBeInstanceOf(ConflictoIdempotenciaError);
   });
 
+  it('el catálogo recoge los pisos y zonas que dio el equipo', () => {
+    const niveles = (nombre: string) => CATALOGO_LUGARES.find((l) => l.nombre === nombre)?.niveles;
+    expect(niveles('Bloque A1')).toHaveLength(4); // los bloques tienen 4 pisos como mínimo
+    expect(niveles('Bloque A2')).toEqual(['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4', 'Piso 5']); // el A2 llega al quinto
+    expect(niveles('Biblioteca')).toEqual(['Hemeroteca', 'Piso 1', 'Piso 2', 'Piso 3 (sala de estudio)']);
+    expect(niveles('Alcatraz')).toEqual(['Piso 1', 'Piso 2']);
+    const sinPisos = ['El Mesón', 'Cafetería central', 'Panadería', 'Los Bohíos', 'Entrada principal', 'Gimnasio', 'Canchas', 'Parqueadero'];
+    for (const nombre of sinPisos) expect(niveles(nombre)).toEqual([]);
+  });
+
   it('el catálogo no repite lugares y cada piso es único dentro de su lugar', () => {
     const nombres = CATALOGO_LUGARES.map((l) => l.nombre);
     expect(new Set(nombres).size).toBe(nombres.length);

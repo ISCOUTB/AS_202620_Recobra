@@ -247,16 +247,65 @@ void main() {
       expect(find.text('Termo azul'), findsOneWidget);
     });
 
-    testWidgets('Publicar sin sesión muestra el acceso con correo institucional', (tester) async {
+    testWidgets('Sin cuenta se ve cómo se publica; al enviar se explica por qué hace falta y se vuelve al formulario', (
+      tester,
+    ) async {
       pantallaAlta(tester);
       await tester.pumpWidget(app(_servidor()));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byTooltip('Publicar'));
       await tester.pumpAndSettle();
+      expect(find.textContaining('Estás explorando sin cuenta'), findsOneWidget);
+      await tester.enterText(find.widgetWithText(TextFormField, '¿Qué es? Descríbelo'), 'Termo azul');
 
+      await tester.tap(find.widgetWithText(FilledButton, 'Publicar objeto perdido'));
+      await tester.pumpAndSettle();
+      expect(find.text('Para publicar necesitas una cuenta'), findsOneWidget);
+      expect(find.text('Cada reclamo tiene un responsable'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Iniciar sesión'));
+      await tester.pumpAndSettle();
       expect(find.text('Tu cuenta'), findsOneWidget);
-      expect(find.text('Entrar'), findsOneWidget);
+      expect(find.text('¿Por qué necesito una cuenta?'), findsOneWidget);
+      await tester.enterText(find.widgetWithText(TextFormField, 'Correo institucional'), 'ana@utb.edu.co');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'contrasena-1');
+      await tester.tap(find.text('Entrar'));
+      await tester.pumpAndSettle();
+
+      // Vuelve al formulario con lo que había escrito, ya con sesión.
+      expect(find.textContaining('Estás explorando sin cuenta'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Publicar objeto perdido'), findsOneWidget);
+      expect(find.text('Termo azul'), findsOneWidget);
+    });
+
+    testWidgets('Sin cuenta, reclamar explica por qué hace falta y deja seguir explorando', (tester) async {
+      pantallaAlta(tester);
+      await tester.pumpWidget(app(_servidor()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Termo azul'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Es mío: reclamar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Para reclamar necesitas una cuenta'), findsOneWidget);
+
+      await tester.tap(find.text('Seguir explorando'));
+      await tester.pumpAndSettle();
+      expect(find.text('Es mío: reclamar'), findsOneWidget); // el detalle sigue abierto
+    });
+
+    testWidgets('Los accesos rápidos son botones de color con la palabra Publicar', (tester) async {
+      pantallaAlta(tester);
+      await tester.pumpWidget(app(_servidor()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('PUBLICAR'), findsNWidgets(2));
+      final perdi = find.ancestor(of: find.text('Perdí algo'), matching: find.byType(Material)).first;
+      expect(tester.widget<Material>(perdi).color, const Color(0xFFF28C28)); // relleno sólido, no solo texto
+      await tester.tap(find.text('Encontré algo'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(FilledButton, 'Publicar objeto encontrado'), findsOneWidget);
     });
 
     testWidgets('Iniciar sesión, publicar y volver a Inicio', (tester) async {
@@ -278,7 +327,7 @@ void main() {
       await tester.tap(find.text('Biblioteca').last);
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(ChoiceChip, 'Piso 2')); // submenú de pisos del lugar elegido
-      await tester.enterText(find.widgetWithText(TextFormField, 'Salón o referencia (opcional)'), 'Sala de estudio');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Otro piso, salón o referencia (opcional)'), 'Sala de estudio');
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Publicar objeto perdido'));
       await tester.pumpAndSettle();

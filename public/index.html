@@ -277,6 +277,34 @@
   fieldset.segmentado label:has(input:focus-visible) { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
   fieldset.segmentado input { position: absolute; opacity: 0; pointer-events: none; }
   .ayuda { font-size: 0.78rem; font-weight: 400; color: var(--texto-suave); }
+
+  /* Accesos rápidos de publicación: botones de color sólido, no texto. */
+  .accesos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .accesos-titulo { margin: 0 0 0.15rem; font-size: 1.2rem; font-weight: 700; }
+  .accesos-sub { margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--texto-suave); }
+  button.acceso {
+    position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;
+    padding: 1rem 1rem 0.9rem; border: none; border-radius: 22px; text-align: left; cursor: pointer;
+  }
+  button.acceso:hover { filter: brightness(1.08); }
+  button.acceso.perdido { background: var(--naranja); color: #1a0e02; }
+  button.acceso.encontrado { background: var(--verde); color: #05260f; }
+  button.acceso .mas {
+    position: absolute; top: 0.8rem; right: 0.8rem; display: grid; place-items: center;
+    width: 2rem; height: 2rem; border-radius: 50%; font-size: 1.4rem; font-weight: 700; line-height: 1;
+  }
+  button.acceso.perdido .mas { background: #1a0e02; color: var(--naranja); }
+  button.acceso.encontrado .mas { background: #05260f; color: var(--verde); }
+  button.acceso strong { margin-top: 1.9rem; font-size: 1.15rem; font-weight: 800; }
+  button.acceso .detalle { font-size: 0.8rem; font-weight: 500; opacity: 0.85; }
+  button.acceso .publicar { margin-top: 0.5rem; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; }
+
+  /* Por qué hace falta una cuenta */
+  ul.razones { list-style: none; margin: 0.7rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+  ul.razones li { font-size: 0.85rem; color: var(--texto-suave); line-height: 1.45; }
+  ul.razones strong { display: block; color: var(--texto); font-size: 0.9rem; }
+  #motivo-sesion { margin: 0 0 0.9rem; padding: 0.75rem 0.9rem; border-radius: 14px; background: rgba(242, 140, 40, 0.12); border: 1px solid rgba(242, 140, 40, 0.4); color: #ffd2a8; font-size: 0.9rem; }
+  #panel-cuenta.resaltado { border-color: var(--azul-claro); box-shadow: 0 0 0 2px rgba(123, 155, 255, 0.35); }
   .columna-form { display: flex; flex-direction: column; gap: 0.6rem; }
   .nota-centro { text-align: center; font-size: 0.8rem; color: var(--texto-suave); margin: 0; }
   .comparacion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.6rem; margin-top: 0.5rem; }
@@ -434,9 +462,29 @@
 
 <main>
   <div class="columna">
+  <section aria-labelledby="titulo-accesos">
+    <h2 class="accesos-titulo" id="titulo-accesos">¿Qué pasó?</h2>
+    <p class="accesos-sub">Toca un botón para publicar en menos de un minuto.</p>
+    <div class="accesos">
+      <button type="button" class="acceso perdido" id="acceso-perdi" aria-label="Perdí algo. Publícalo y te avisamos si aparece. Publicar">
+        <span class="mas" aria-hidden="true">+</span>
+        <strong>Perdí algo</strong>
+        <span class="detalle">Publícalo y te avisamos si aparece</span>
+        <span class="publicar" aria-hidden="true">PUBLICAR →</span>
+      </button>
+      <button type="button" class="acceso encontrado" id="acceso-encontre" aria-label="Encontré algo. Ayuda a que vuelva a su dueño. Publicar">
+        <span class="mas" aria-hidden="true">+</span>
+        <strong>Encontré algo</strong>
+        <span class="detalle">Ayuda a que vuelva a su dueño</span>
+        <span class="publicar" aria-hidden="true">PUBLICAR →</span>
+      </button>
+    </div>
+  </section>
+
   <section class="panel" aria-labelledby="titulo-cuenta" id="panel-cuenta">
     <h2 id="titulo-cuenta">Tu cuenta</h2>
-    <p class="aviso">Para publicar o reclamar un objeto necesitas una cuenta con tu correo institucional (@utb.edu.co).</p>
+    <p id="motivo-sesion" role="status" hidden></p>
+    <p class="aviso">Puedes mirar todo lo publicado sin cuenta. La necesitas para publicar, reclamar y recibir avisos, con tu correo institucional (@utb.edu.co).</p>
     <div class="pestanas" role="tablist">
       <button type="button" role="tab" id="pestana-entrar" aria-selected="true">Iniciar sesión</button>
       <button type="button" role="tab" id="pestana-registro" aria-selected="false">Crear cuenta</button>
@@ -463,11 +511,17 @@
       <button type="submit">Crear cuenta</button>
     </form>
     <output id="mensaje-cuenta"></output>
+    <h3 class="rotulo-chico" style="margin-top:1rem">¿POR QUÉ NECESITO UNA CUENTA?</h3>
+    <ul class="razones">
+      <li><strong>Cada reclamo tiene un responsable</strong>Queda registrado quién reclamó y cuándo. Así nadie se queda con lo de otra persona.</li>
+      <li><strong>Para avisarte</strong>Te contamos cuando aparece algo parecido a lo que perdiste o cuando responden tu reclamo.</li>
+      <li><strong>Solo la comunidad UTB</strong>Entras con tu correo @utb.edu.co. Tu correo solo lo ve la otra persona cuando aprueban una entrega entre ustedes.</li>
+    </ul>
   </section>
 
   <section class="panel" aria-labelledby="titulo-crear">
     <h2 id="titulo-crear">Publicar un objeto</h2>
-    <p class="aviso" id="aviso-publicar">Inicia sesión para publicar.</p>
+    <p class="aviso" id="aviso-publicar">Estás explorando sin cuenta. Llena el formulario para ver cómo funciona; al tocar Publicar te pediremos iniciar sesión y te explicamos por qué.</p>
     <form id="form-crear">
       <fieldset class="segmentado">
         <legend class="oculto">¿Lo perdiste o lo encontraste?</legend>
@@ -498,22 +552,29 @@
           <option>Bloque A3</option>
           <option>Bloque A4</option>
           <option>Bloque A5</option>
-          <option>Entrada principal</option>
           <option>Biblioteca</option>
+          <option>Alcatraz</option>
+          <option>El Mesón</option>
           <option>Cafetería central</option>
+          <option>Panadería</option>
+          <option>Los Bohíos</option>
+          <option>Entrada principal</option>
+          <option>Gimnasio</option>
+          <option>Canchas</option>
+          <option>Parqueadero</option>
           <option value="otra">Otra…</option>
         </select>
       </label>
       <label id="etiqueta-otro-lugar" hidden>Escribe el lugar
         <input type="text" name="otroLugar" id="campo-otro-lugar" maxlength="120" />
       </label>
-      <label id="etiqueta-piso" hidden>¿En qué piso? (opcional)
+      <label id="etiqueta-piso" hidden>Sugerencias de piso o zona (opcional)
         <select name="piso" id="campo-piso">
           <option value="">Sin precisar</option>
         </select>
       </label>
-      <label>Salón o referencia (opcional)
-        <input type="text" name="referencia" maxlength="80" placeholder="Salón 204, cerca de los baños…" />
+      <label>Otro piso, salón o referencia (opcional)
+        <input type="text" name="referencia" maxlength="80" placeholder="Piso 5, Salón 204, cerca de los baños…" />
       </label>
       <div class="columna-form" id="zona-custodia" hidden>
         <p class="rotulo-chico">¿DÓNDE ESTÁ AHORA?</p>
@@ -903,13 +964,13 @@
     boton.addEventListener('click', () => verCoincidencias(pub, resultado, boton));
     acciones.append(boton);
     if (pub.tipo === 'encontrado' && RECLAMABLE.has(pub.estado) && pub.autorId) {
-      const reclamar = elemento('button', 'secundario', sesion ? 'Es mío: reclamar' : 'Inicia sesión para reclamar');
+      const reclamar = elemento('button', 'secundario', 'Es mío: reclamar');
       reclamar.type = 'button';
       reclamar.style.marginLeft = '0.5rem';
       if (sesion && sesion.cuenta.id === pub.autorId) reclamar.hidden = true;
       reclamar.addEventListener('click', () => {
         if (!sesion) {
-          document.getElementById('panel-cuenta').scrollIntoView({ behavior: 'smooth' });
+          pedirSesion('reclamar', tarjeta);
           return;
         }
         mostrarFormularioReclamo(pub, resultado);
@@ -918,12 +979,12 @@
     }
     const ajena = !sesion || sesion.cuenta.id !== pub.autorId;
     if (pub.tipo === 'perdido' && RECLAMABLE.has(pub.estado) && pub.autorId && ajena) {
-      const loTengo = elemento('button', 'secundario', sesion ? 'Lo tengo yo' : 'Inicia sesión para avisar que lo tienes');
+      const loTengo = elemento('button', 'secundario', 'Lo tengo yo');
       loTengo.type = 'button';
       loTengo.style.marginLeft = '0.5rem';
       loTengo.addEventListener('click', () => {
         if (!sesion) {
-          document.getElementById('panel-cuenta').scrollIntoView({ behavior: 'smooth' });
+          pedirSesion('avisar', tarjeta);
           return;
         }
         mostrarFormularioLoTengo(pub, resultado);
@@ -1043,6 +1104,10 @@
   formCrear.addEventListener('submit', async (evento) => {
     evento.preventDefault();
     if (botonPublicar.disabled) return;
+    if (!sesion) {
+      pedirSesion('publicar', formCrear);
+      return;
+    }
     mensajeCrear.textContent = '';
     mensajeCrear.className = '';
 
@@ -1131,6 +1196,30 @@
   const mensajeCuenta = document.getElementById('mensaje-cuenta');
   const botonCerrarSesion = document.getElementById('boton-cerrar-sesion');
   const avisoPublicar = document.getElementById('aviso-publicar');
+  const motivoSesion = document.getElementById('motivo-sesion');
+  const MOTIVOS_SESION = {
+    publicar: 'Para publicar necesitas una cuenta. Puedes seguir mirando sin ella; la pedimos solo para enviar la publicación.',
+    reclamar: 'Para reclamar necesitas una cuenta. Puedes ver todo lo publicado sin ella; la pedimos solo para reclamar.',
+    avisar: 'Para avisar que lo tienes necesitas una cuenta. Puedes ver todo lo publicado sin ella; la pedimos solo para avisarle a su dueño.',
+  };
+  /** A dónde volver cuando la persona inicie sesión (el formulario o el objeto que quería reclamar). */
+  let volverA = null;
+
+  /**
+   * Sin sesión: explica por qué hace falta una cuenta para esa acción, lleva
+   * al panel de cuenta y recuerda a dónde volver cuando termine de entrar.
+   */
+  function pedirSesion(accion, destino) {
+    volverA = destino || null;
+    motivoSesion.textContent = MOTIVOS_SESION[accion];
+    motivoSesion.hidden = false;
+    panelCuenta.hidden = false;
+    panelCuenta.classList.add('resaltado');
+    setTimeout(() => panelCuenta.classList.remove('resaltado'), 2500);
+    panelCuenta.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const correo = formEntrar.elements.correo;
+    if (correo) correo.focus({ preventScroll: true });
+  }
   const pestanaEntrar = document.getElementById('pestana-entrar');
   const pestanaRegistro = document.getElementById('pestana-registro');
   const ESTADOS = {
@@ -1203,8 +1292,16 @@
     botonCerrarSesion.hidden = !conSesion;
     avisoPublicar.hidden = conSesion;
     mensajeCrear.textContent = '';
-    for (const campo of formCrear.elements) campo.disabled = !conSesion;
-    if (conSesion) cargarMiCuenta();
+    if (conSesion) {
+      motivoSesion.hidden = true;
+      cargarMiCuenta();
+      if (volverA) {
+        // Vuelve a lo que estaba haciendo cuando se le pidió la cuenta.
+        const destino = volverA;
+        volverA = null;
+        destino.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
     programarAvisos(conSesion);
     buscar();
   }
@@ -1788,6 +1885,16 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') cargarAvisos();
   });
+
+  /** Los botones "Perdí algo" / "Encontré algo" dejan el formulario listo y llevan a él. */
+  function accesoRapido(tipo) {
+    for (const opcion of formCrear.elements.tipo) opcion.checked = opcion.value === tipo;
+    ajustarFormularioPorTipo();
+    formCrear.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    formCrear.elements.descripcion.focus({ preventScroll: true });
+  }
+  document.getElementById('acceso-perdi').addEventListener('click', () => accesoRapido('perdido'));
+  document.getElementById('acceso-encontre').addEventListener('click', () => accesoRapido('encontrado'));
 
   cargarLugares();
   pintarSesion();

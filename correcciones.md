@@ -221,6 +221,14 @@ Fuente de los hallazgos: retroalimentación publicada en
 | No se sabía dónde estaba un objeto encontrado | Custodia: con quien lo encontró o en un punto de entrega, editable | [ADR-0019](docs/adr/0019-donde-esta-el-objeto-y-lo-tengo-yo.md), `test/hallazgos.e2e-spec.ts` |
 | Quien tenía un objeto perdido no podía decirlo | "Lo tengo yo" crea un encontrado enlazado y avisa al dueño; la reclamación con prueba sigue siendo obligatoria | `reportar-hallazgo.spec.ts`, `mobile/test/widget_test.dart` |
 
+## Avance del proyecto · Lugares reales, visitante y accesos rápidos (2026-10-18)
+
+| Pendiente | Qué se hizo | Evidencia |
+|---|---|---|
+| Pisos del campus sin datos reales | Catálogo con los pisos y zonas dados por el equipo, como sugerencias, más texto libre | `src/domain/lugares/catalogo-lugares.ts`, `publicacion-lugar.spec.ts` |
+| El visitante no podía ver cómo se publica | Ve y llena el formulario; al enviar se le explica por qué hace falta cuenta y vuelve a lo que escribió | `mobile/lib/pantallas/requiere_cuenta.dart`, `mobile/test/widget_test.dart` |
+| "Perdí algo / Encontré algo" parecían texto | Botones de color sólido con "+" y PUBLICAR (app y vitrina) | [`docs/diseno-ui.md`](docs/diseno-ui.md) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

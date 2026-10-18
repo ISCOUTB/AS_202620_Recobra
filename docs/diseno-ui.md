@@ -59,7 +59,10 @@ propuesta.
 
 | Problema | Solución implementada |
 |---|---|
-| Inicio empezaba por la lista | "¿Qué pasó?" con dos accesos rápidos (**Perdí algo / Encontré algo**) que abren Publicar con el tipo elegido; la coincidencia sin leer aparece destacada dentro del encabezado |
+| Inicio empezaba por la lista | "¿Qué pasó?" con dos **botones de acceso rápido** (**Perdí algo / Encontré algo**) que abren Publicar con el tipo elegido; la coincidencia sin leer aparece destacada dentro del encabezado |
+| Los accesos rápidos parecían texto | Botones de **relleno sólido** (naranja para perdido, verde para encontrado, con texto oscuro de contraste 8:1), con un "+" en un círculo y la palabra PUBLICAR con flecha. La vitrina tiene los mismos dos botones arriba de todo |
+| Quien no tenía cuenta no podía ver cómo se publica | El visitante **ve y llena el formulario** de publicar (con un aviso "Estás explorando sin cuenta"); al tocar Publicar se abre una hoja que explica **por qué hace falta una cuenta** (cada reclamo tiene un responsable, para avisarte, solo comunidad UTB) y deja iniciar sesión o crearla. Al entrar vuelve al formulario con lo que había escrito. Lo mismo con "Es mío: reclamar" y "Lo tengo yo", que reabren el objeto al volver. La pantalla de acceso repite las razones |
+| Lugares y pisos | Catálogo con los pisos y zonas reales del campus (A2 hasta el quinto, hemeroteca y sala de estudio en la biblioteca, Alcatraz, Mesón, bohíos, panadería, gimnasio, canchas, parqueadero…) como **sugerencias**; el campo "Otro piso, salón o referencia" es de texto libre y el lugar puede ser "Otra…" |
 | Las coincidencias eran una lista con porcentaje | Comparación **lado a lado** ("Lo que perdiste" / "Lo que encontraron"), con el parecido en un anillo y las razones (misma categoría, lugar) |
 | Reclamar confundía | Pantalla propia que explica qué es la prueba, con ideas tocables ("Marca o modelo", "Qué tenía dentro", "Una seña o raya"), contador "Faltan N caracteres (mínimo 20)", aviso de no escribir datos sensibles y "Qué pasa después" en tres pasos |
 | "En verificación" no se entendía | Texto debajo de la tarjeta: "Alguien dijo que es suyo. Quien lo encontró está revisando." |
@@ -73,7 +76,8 @@ propuesta.
 ## Lo que quedó como propuesta (no implementado)
 
 - **Sesión vencida en una hoja** que deja volver a entrar sin perder lo escrito:
-  hoy la app cierra la sesión y pide entrar de nuevo.
+  hoy la app cierra la sesión y pide entrar de nuevo. (Sí se conserva lo escrito
+  cuando la persona inicia sesión por primera vez desde el formulario.)
 - **"Escribir"** (abrir el correo): necesita un paquete para abrir enlaces
   `mailto:`; hoy está "Copiar correo".
 - Lo que la propia propuesta marcó como "no existe en la API": guardar fotos,
@@ -89,7 +93,8 @@ propuesta.
   segmentado, barra con burbuja, anillo, esqueleto, vacío, error),
   `mobile/lib/estado/avisos.dart` (bandeja compartida por la campana y la
   tarjeta destacada) y `mobile/lib/pantallas/` (bienvenida, inicio, detalle,
-  reclamar, publicar, mis_cosas, perfil, acceso, avisos).
+  reclamar, publicar, mis_cosas, perfil, acceso, avisos y `requiere_cuenta.dart`,
+  la hoja que explica por qué hace falta cuenta).
 - Vitrina web (`public/index.html`): mismas variables CSS; publicar con "Lo
   perdí / Lo encontré" y lista de lugares, comparación lado a lado, reclamar con
   explicación y contador, diálogo de entrega, motivos rápidos, copiar correo y

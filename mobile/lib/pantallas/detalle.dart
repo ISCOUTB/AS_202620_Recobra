@@ -6,12 +6,13 @@ import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 import 'custodia.dart';
 import 'reclamar.dart';
+import 'requiere_cuenta.dart';
 
 /// Lo que pasó en el detalle: se envió una reclamación o un "Lo tengo yo".
 enum ResultadoDetalle { reclamo, hallazgo }
 
 /// Abre el detalle de una publicación en una hoja inferior.
-Future<ResultadoDetalle?> abrirDetalle(BuildContext context, Publicacion p, {required VoidCallback alPedirCuenta}) {
+Future<ResultadoDetalle?> abrirDetalle(BuildContext context, Publicacion p, {required AlPedirCuenta alPedirCuenta}) {
   final sesion = AlcanceSesion.de(context);
   return showModalBottomSheet<ResultadoDetalle>(
     context: context,
@@ -29,7 +30,7 @@ class DetallePublicacion extends StatefulWidget {
   const DetallePublicacion({super.key, required this.publicacion, required this.alPedirCuenta});
 
   final Publicacion publicacion;
-  final VoidCallback alPedirCuenta;
+  final AlPedirCuenta alPedirCuenta;
 
   @override
   State<DetallePublicacion> createState() => _DetallePublicacionState();
@@ -52,10 +53,19 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
         sesion.cuenta?.id != p.autorId;
   }
 
+  /// Sin sesión: explica por qué hace falta y, si la persona acepta, cierra el
+  /// detalle y la lleva a iniciar sesión (volverá a este objeto al terminar).
+  Future<void> _pedirCuenta(AccionConCuenta accion) async {
+    final eleccion = await explicarCuenta(context, accion);
+    if (eleccion == null || !mounted) return;
+    final alPedir = widget.alPedirCuenta;
+    Navigator.pop(context);
+    alPedir(crearCuenta: eleccion == EleccionCuenta.crearCuenta);
+  }
+
   Future<void> _reclamar(SesionApp sesion) async {
     if (!sesion.activa) {
-      Navigator.pop(context);
-      widget.alPedirCuenta();
+      await _pedirCuenta(AccionConCuenta.reclamar);
       return;
     }
     final navegador = Navigator.of(context);
@@ -78,8 +88,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
 
   Future<void> _loTengo(SesionApp sesion) async {
     if (!sesion.activa) {
-      Navigator.pop(context);
-      widget.alPedirCuenta();
+      await _pedirCuenta(AccionConCuenta.avisar);
       return;
     }
     final navegador = Navigator.of(context);
@@ -211,7 +220,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
                 children: [
                   FilledButton(
                     onPressed: () => _reclamar(sesion),
-                    child: Text(sesion.activa ? 'Es mío: reclamar' : 'Inicia sesión para reclamar'),
+                    child: const Text('Es mío: reclamar'),
                   ),
                   TextButton(onPressed: () => Navigator.pop(context), child: const Text('No es mío')),
                 ],
@@ -224,7 +233,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
               child: FilledButton.icon(
                 icon: const Icon(Icons.volunteer_activism_outlined),
                 onPressed: () => _loTengo(sesion),
-                label: Text(sesion.activa ? 'Lo tengo yo' : 'Inicia sesión para avisar que lo tienes'),
+                label: const Text('Lo tengo yo'),
               ),
             ),
         ],

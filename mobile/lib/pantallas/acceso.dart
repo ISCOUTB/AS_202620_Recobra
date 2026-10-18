@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
+import 'requiere_cuenta.dart';
 
 /// Inicio de sesión y registro con correo institucional (ADR-0013). Se
 /// muestra dentro de las pestañas que exigen cuenta.
@@ -137,11 +138,9 @@ class _AccesoPantallaState extends State<AccesoPantalla> {
                   const SizedBox(height: 12),
                   Text(_error!, style: const TextStyle(color: ColoresUtb.rojoTexto)),
                 ],
-                const SizedBox(height: 16),
-                const CajaInfo(
-                  icono: Icons.lock_outline_rounded,
-                  child: Text('Tu correo solo se muestra a otra persona cuando aprueban una entrega entre ustedes.'),
-                ),
+                const SizedBox(height: 12),
+                const TituloSeccion('¿Por qué necesito una cuenta?'),
+                const Card(child: Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 4), child: RazonesCuenta())),
               ],
             ),
           ),

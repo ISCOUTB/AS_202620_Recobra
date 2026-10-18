@@ -9,6 +9,7 @@ import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 import 'avisos.dart';
 import 'detalle.dart';
+import 'requiere_cuenta.dart';
 
 const categoriasPredefinidas = ['electronica', 'mochilas', 'llaves', 'documentos', 'ropa', 'accesorios', 'otros'];
 
@@ -33,7 +34,7 @@ class InicioPantalla extends StatefulWidget {
   });
 
   /// Lleva a la pestaña de cuenta cuando hace falta iniciar sesión.
-  final VoidCallback alPedirCuenta;
+  final AlPedirCuenta alPedirCuenta;
 
   /// Lleva a "Mis cosas": `reclame` elige "Lo que reclamé" en vez de "Lo que publiqué".
   final void Function({required bool reclame}) alIrAMisCosas;
@@ -89,7 +90,13 @@ class InicioPantallaState extends State<InicioPantalla> {
   }
 
   Future<void> _abrirDetalle(Publicacion p) async {
-    final resultado = await abrirDetalle(context, p, alPedirCuenta: widget.alPedirCuenta);
+    final resultado = await abrirDetalle(
+      context,
+      p,
+      // Tras iniciar sesión se vuelve a abrir este mismo objeto.
+      alPedirCuenta: ({required crearCuenta, alVolver}) =>
+          widget.alPedirCuenta(crearCuenta: crearCuenta, alVolver: () => _abrirDetalle(p)),
+    );
     if (resultado == null) return;
     recargar();
     widget.alIrAMisCosas(reclame: resultado == ResultadoDetalle.reclamo);
@@ -132,7 +139,7 @@ class InicioPantallaState extends State<InicioPantalla> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const TituloSeccion('¿Qué pasó?'),
+                const TituloSeccion('¿Qué pasó?', subtitulo: 'Toca un botón para publicar en menos de un minuto'),
                 IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -141,6 +148,7 @@ class InicioPantallaState extends State<InicioPantalla> {
                         child: _AccesoRapido(
                           icono: Icons.manage_search_rounded,
                           color: ColoresUtb.naranja,
+                          colorTexto: ColoresUtb.textoSobreNaranja,
                           titulo: 'Perdí algo',
                           texto: 'Publícalo y te avisamos si aparece',
                           alTocar: () => widget.alPublicar('perdido'),
@@ -151,6 +159,7 @@ class InicioPantallaState extends State<InicioPantalla> {
                         child: _AccesoRapido(
                           icono: Icons.inventory_2_outlined,
                           color: ColoresUtb.verde,
+                          colorTexto: ColoresUtb.textoSobreVerde,
                           titulo: 'Encontré algo',
                           texto: 'Ayuda a que vuelva a su dueño',
                           alTocar: () => widget.alPublicar('encontrado'),
@@ -306,10 +315,13 @@ class _TarjetaDestacada extends StatelessWidget {
   }
 }
 
+/// Botón de acceso rápido para publicar: relleno de color sólido, ícono, un "+"
+/// y la palabra "Publicar", para que se vea como una acción y no como texto.
 class _AccesoRapido extends StatelessWidget {
   const _AccesoRapido({
     required this.icono,
     required this.color,
+    required this.colorTexto,
     required this.titulo,
     required this.texto,
     required this.alTocar,
@@ -317,32 +329,62 @@ class _AccesoRapido extends StatelessWidget {
 
   final IconData icono;
   final Color color;
+  final Color colorTexto;
   final String titulo;
   final String texto;
   final VoidCallback alTocar;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: alTocar,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.16), shape: BoxShape.circle),
-                child: Icon(icono, color: color, size: 22),
-              ),
-              const SizedBox(height: 10),
-              Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text(texto, style: const TextStyle(fontSize: 12, color: ColoresUtb.textoSuave, height: 1.4)),
-            ],
+    return Semantics(
+      button: true,
+      label: '$titulo. $texto. Publicar',
+      excludeSemantics: true,
+      child: Material(
+        color: color,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: alTocar,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(color: colorTexto.withValues(alpha: 0.14), shape: BoxShape.circle),
+                      child: Icon(icono, color: colorTexto, size: 23),
+                    ),
+                    const Spacer(),
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(color: colorTexto, shape: BoxShape.circle),
+                      child: Icon(Icons.add_rounded, color: color, size: 22),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(titulo, style: TextStyle(color: colorTexto, fontSize: 19, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text(texto, style: TextStyle(color: colorTexto.withValues(alpha: 0.85), fontSize: 12.5, height: 1.35)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text(
+                      'PUBLICAR',
+                      style: TextStyle(color: colorTexto, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.3),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_rounded, color: colorTexto, size: 16),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
