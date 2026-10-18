@@ -7,7 +7,8 @@
 FROM ghcr.io/cirruslabs/flutter:3.41.5 AS app-web
 WORKDIR /mobile
 COPY mobile/pubspec.yaml mobile/pubspec.lock ./
-RUN flutter pub get
+# --enforce-lockfile: usa exactamente las versiones de pubspec.lock (Sonar docker:S8550).
+RUN flutter pub get --enforce-lockfile
 COPY mobile ./
 RUN flutter build web --release --base-href /app/ --no-web-resources-cdn
 

@@ -238,7 +238,7 @@
   /* ---- Cuentas y reclamaciones (ADR-0013, ADR-0014) ---- */
   .columna { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
   .ancho-completo { grid-column: 1 / -1; }
-  #zona-sesion { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
+  #zona-sesion { position: relative; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
   #zona-sesion button { padding: 0.3rem 0.9rem; font-size: 0.82rem; border-radius: 999px; }
   #zona-sesion button.secundario { color: #ffffff; border-color: rgba(255, 255, 255, 0.35); }
   #zona-sesion button.secundario:hover { background: rgba(255, 255, 255, 0.12); }
@@ -325,7 +325,6 @@
   dialog form { gap: 0.5rem; }
 
   /* ---- Avisos (ADR-0015): campana con contador y bandeja desplegable ---- */
-  #zona-sesion { position: relative; }
   #zona-sesion button.campana {
     position: relative;
     display: inline-flex;
@@ -579,7 +578,7 @@
 </main>
 
 <dialog id="dialogo-entrega" aria-labelledby="titulo-entrega">
-  <h2 id="titulo-entrega"></h2>
+  <h2 id="titulo-entrega">Confirmar entrega</h2>
   <p class="meta" id="prueba-entrega"></p>
   <p class="rotulo-chico">AL CONFIRMAR</p>
   <ul id="consecuencias-entrega"></ul>
