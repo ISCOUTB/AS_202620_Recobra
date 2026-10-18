@@ -65,6 +65,16 @@ export class PostgresReclamacionRepository extends ReclamacionRepository impleme
     return resultado.rows.map((fila) => this.aEntidad(fila));
   }
 
+  async listarAbiertas(limite: number): Promise<Reclamacion[]> {
+    const resultado = await consultarCompartido(
+      `SELECT * FROM reclamaciones
+       WHERE estado = 'pendiente' OR (estado = 'aprobada' AND entregada_en IS NULL)
+       ORDER BY creado_en ASC LIMIT $1`,
+      [limite],
+    );
+    return resultado.rows.map((fila) => this.aEntidad(fila));
+  }
+
   private aEntidad(fila: Record<string, unknown>): Reclamacion {
     const fecha = (valor: unknown) => (valor ? new Date(valor as string).toISOString() : null);
     return new Reclamacion({

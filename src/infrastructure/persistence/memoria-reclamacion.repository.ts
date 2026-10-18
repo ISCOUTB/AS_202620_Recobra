@@ -23,6 +23,13 @@ export class MemoriaReclamacionRepository extends ReclamacionRepository {
     return this.ordenar([...this.reclamaciones.values()].filter((r) => r.reclamanteId === reclamanteId));
   }
 
+  async listarAbiertas(limite: number): Promise<Reclamacion[]> {
+    return [...this.reclamaciones.values()]
+      .filter((r) => r.estado === 'pendiente' || (r.estado === 'aprobada' && !r.entregadaEn))
+      .sort((a, b) => a.creadoEn.localeCompare(b.creadoEn))
+      .slice(0, limite);
+  }
+
   private ordenar(lista: Reclamacion[]): Reclamacion[] {
     return lista.sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
   }

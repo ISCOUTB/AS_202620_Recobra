@@ -11,6 +11,8 @@ import {
 import { PublicacionesModule } from '../publicaciones/publicaciones.module';
 import { IdentidadModule } from '../identidad/identidad.module';
 import { ReclamacionesController } from './reclamaciones.controller';
+import { ReconciliarReclamaciones } from '../application/use-cases/reconciliar-reclamaciones';
+import { ReconciliadorReclamaciones } from './reconciliador-reclamaciones';
 
 /**
  * Contexto Reclamaciones (ADR-0014). Depende de Publicaciones (lee el objeto
@@ -29,6 +31,8 @@ import { ReclamacionesController } from './reclamaciones.controller';
     ResolverReclamacion,
     ConsultarReclamaciones,
     ConfirmarEntrega,
+    ReconciliarReclamaciones,
+    ReconciliadorReclamaciones,
   ],
 })
 export class ReclamacionesModule {}

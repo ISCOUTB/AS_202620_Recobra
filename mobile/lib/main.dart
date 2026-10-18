@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'api/recobra_api.dart';
+import 'estado/almacen_local.dart';
 import 'estado/avisos.dart';
 import 'estado/sesion.dart';
 import 'pantallas/bienvenida.dart';
@@ -38,15 +39,18 @@ String defaultApiBaseUrl() {
 }
 
 void main() {
-  runApp(RecobraApp(api: RecobraApi(baseUrl: defaultApiBaseUrl())));
+  runApp(RecobraApp(api: RecobraApi(baseUrl: defaultApiBaseUrl()), almacen: AlmacenPreferencias()));
 }
 
 /// Aplicación con el estilo de la app UTB (tema oscuro, encabezados con
 /// degradado azul y barra de navegación flotante).
 class RecobraApp extends StatefulWidget {
-  const RecobraApp({super.key, required this.api, this.mostrarBienvenida = true});
+  const RecobraApp({super.key, required this.api, this.almacen, this.mostrarBienvenida = true});
 
   final RecobraApi api;
+
+  /// Dónde se guarda la sesión en el dispositivo; sin él, solo vive en memoria.
+  final AlmacenLocal? almacen;
 
   /// Mostrar la bienvenida al abrir la app sin sesión (las pruebas la omiten).
   final bool mostrarBienvenida;
@@ -56,8 +60,14 @@ class RecobraApp extends StatefulWidget {
 }
 
 class _RecobraAppState extends State<RecobraApp> {
-  late final SesionApp _sesion = SesionApp(widget.api);
+  late final SesionApp _sesion = SesionApp(widget.api, almacen: widget.almacen);
   late final AvisosApp _avisos = AvisosApp(_sesion);
+
+  @override
+  void initState() {
+    super.initState();
+    _sesion.restaurar();
+  }
 
   @override
   void dispose() {
@@ -99,7 +109,7 @@ class _NavegacionState extends State<Navegacion> {
   static const _perfil = 3;
 
   int _indice = _inicio;
-  late bool _bienvenida = widget.mostrarBienvenida;
+  bool _bienvenidaTerminada = false;
   bool _registroPrimero = false;
 
   /// Qué hacer cuando la persona inicia sesión después de que se le pidió la
@@ -133,6 +143,10 @@ class _NavegacionState extends State<Navegacion> {
   @override
   Widget build(BuildContext context) {
     final sesion = AlcanceSesion.de(context);
+    if (sesion.restaurando) {
+      // Se está leyendo la sesión guardada: evita mostrar un instante la bienvenida o el acceso.
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (sesion.activa && !_estabaActiva && _alVolver != null) {
       final volver = _alVolver!;
       _alVolver = null;
@@ -141,10 +155,12 @@ class _NavegacionState extends State<Navegacion> {
       });
     }
     _estabaActiva = sesion.activa;
-    if (_bienvenida && !sesion.activa) {
+    final verBienvenida = widget.mostrarBienvenida && !_bienvenidaTerminada && !sesion.bienvenidaVista && !sesion.activa;
+    if (verBienvenida) {
       return BienvenidaPantalla(
         alTerminar: ({required bool crearCuenta}) => setState(() {
-          _bienvenida = false;
+          _bienvenidaTerminada = true;
+          sesion.marcarBienvenidaVista();
           _registroPrimero = crearCuenta;
           _indice = crearCuenta ? _perfil : _inicio;
         }),

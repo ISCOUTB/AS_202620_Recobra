@@ -229,6 +229,13 @@ Fuente de los hallazgos: retroalimentación publicada en
 | El visitante no podía ver cómo se publica | Ve y llena el formulario; al enviar se le explica por qué hace falta cuenta y vuelve a lo que escribió | `mobile/lib/pantallas/requiere_cuenta.dart`, `mobile/test/widget_test.dart` |
 | "Perdí algo / Encontré algo" parecían texto | Botones de color sólido con "+" y PUBLICAR (app y vitrina) | [`docs/diseno-ui.md`](docs/diseno-ui.md) |
 
+## Avance del proyecto · Sesión persistente y consistencia (2026-10-18)
+
+| Pendiente | Qué se hizo | Evidencia |
+|---|---|---|
+| La sesión de la app se perdía al cerrarla | Se guarda en el dispositivo, se valida al abrir y se borra al cerrar sesión o si venció; la bienvenida se muestra una sola vez | `mobile/lib/estado/sesion.dart`, `mobile/test/widget_test.dart` |
+| Consistencia al aprobar y entregar (S12) | Pasos retomables y reconciliador | [ADR-0020](docs/adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md), `consistencia-reclamaciones.spec.ts` |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

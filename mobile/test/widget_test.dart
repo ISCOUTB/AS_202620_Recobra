@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:recobra_mobile/api/recobra_api.dart';
+import 'package:recobra_mobile/estado/almacen_local.dart';
 import 'package:recobra_mobile/main.dart';
 import 'package:recobra_mobile/pantallas/avisos.dart';
 
@@ -73,6 +74,11 @@ MockClient _servidor({
           }),
           201,
         );
+      }
+      if (request.method == 'GET' && ruta == '/cuentas/yo') {
+        return request.headers['Authorization'] == 'Bearer tok-123'
+            ? _resp(jsonEncode({'id': 'yo', 'correo': 'ana@utb.edu.co', 'nombre': 'Ana Pérez'}), 200)
+            : _resp('{"statusCode":401,"message":"Debes iniciar sesión"}', 401);
       }
       if (request.method == 'GET' && ruta == '/publicaciones') return _resp(lista ?? '[${_publicacion()}]', 200);
       if (request.method == 'POST' && ruta == '/publicaciones/p5/lo-tengo') {
@@ -225,6 +231,88 @@ void main() {
       await tester.tap(find.text('Entrar'));
       await tester.pumpAndSettle();
     }
+
+    testWidgets('La sesión guardada se restaura al abrir la app', (tester) async {
+      pantallaAlta(tester);
+      final almacen = AlmacenMemoria({'recobra.sesion.token': 'tok-123'});
+      await tester.pumpWidget(
+        RecobraApp(api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor()), almacen: almacen),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Ana', findRichText: true), findsOneWidget);
+      expect(find.text('Lo que se pierde en el campus, aparece aquí'), findsNothing);
+    });
+
+    testWidgets('Una sesión guardada que ya venció se olvida y se entra como visitante', (tester) async {
+      pantallaAlta(tester);
+      final almacen = AlmacenMemoria({'recobra.sesion.token': 'token-viejo'});
+      await tester.pumpWidget(
+        RecobraApp(
+          api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor()),
+          almacen: almacen,
+          mostrarBienvenida: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Recobra'), findsOneWidget); // sin saludo: visitante
+      expect(await almacen.leer('recobra.sesion.token'), isNull);
+    });
+
+    testWidgets('Iniciar sesión guarda el token y cerrar sesión lo borra', (tester) async {
+      pantallaAlta(tester);
+      final almacen = AlmacenMemoria();
+      await tester.pumpWidget(
+        RecobraApp(
+          api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor()),
+          almacen: almacen,
+          mostrarBienvenida: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      expect(await almacen.leer('recobra.sesion.token'), 'tok-123');
+
+      // Otra "apertura" de la app con el mismo almacenamiento: ya hay sesión.
+      await tester.pumpWidget(
+        RecobraApp(
+          key: UniqueKey(),
+          api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor()),
+          almacen: almacen,
+          mostrarBienvenida: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Ana', findRichText: true), findsOneWidget);
+
+      await tester.tap(find.text('Perfil').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cerrar sesión'));
+      await tester.pumpAndSettle();
+      expect(await almacen.leer('recobra.sesion.token'), isNull);
+    });
+
+    testWidgets('La bienvenida se muestra una sola vez', (tester) async {
+      pantallaAlta(tester);
+      final almacen = AlmacenMemoria();
+      Widget abrir() => RecobraApp(
+            key: UniqueKey(),
+            api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor()),
+            almacen: almacen,
+          );
+
+      await tester.pumpWidget(abrir());
+      await tester.pumpAndSettle();
+      expect(find.text('Lo que se pierde en el campus, aparece aquí'), findsOneWidget);
+      await tester.tap(find.text('Solo quiero buscar'));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(abrir()); // la segunda vez ya la vio
+      await tester.pumpAndSettle();
+      expect(find.text('Lo que se pierde en el campus, aparece aquí'), findsNothing);
+      expect(find.text('Termo azul'), findsOneWidget);
+    });
 
     testWidgets('La bienvenida explica el recorrido y deja buscar sin cuenta', (tester) async {
       pantallaAlta(tester);

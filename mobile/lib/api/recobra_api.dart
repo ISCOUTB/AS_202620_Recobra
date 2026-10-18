@@ -300,6 +300,12 @@ class RecobraApi {
     return Cuenta.fromJson(cuerpo['cuenta'] as Map<String, dynamic>);
   }
 
+  /// La cuenta de la sesión actual; falla con 401 si el token venció (se usa al restaurar la sesión).
+  Future<Cuenta> miCuenta() async {
+    final r = await _enviar(_client.get(_uri('/cuentas/yo'), headers: _cabeceras()));
+    return Cuenta.fromJson(_cuerpoO(r, {200}, 'No se pudo comprobar la sesión') as Map<String, dynamic>);
+  }
+
   Future<void> cerrarSesion() async {
     if (token == null) return;
     try {

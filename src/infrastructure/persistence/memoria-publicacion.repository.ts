@@ -26,11 +26,30 @@ export class MemoriaPublicacionRepository extends PublicacionRepository {
     return true;
   }
 
-  async cambiarEstado(id: string, de: EstadoPublicacion, a: EstadoPublicacion): Promise<boolean> {
+  async cambiarEstado(
+    id: string,
+    de: EstadoPublicacion,
+    a: EstadoPublicacion,
+    reclamacionAprobadaId?: string,
+  ): Promise<boolean> {
     const actual = this.publicaciones.get(id);
     if (!actual || actual.estado !== de) return false;
-    this.publicaciones.set(id, new Publicacion({ ...actual, estado: a }));
+    this.publicaciones.set(
+      id,
+      new Publicacion({
+        ...actual,
+        estado: a,
+        reclamacionAprobadaId: reclamacionAprobadaId ?? actual.reclamacionAprobadaId,
+      }),
+    );
     return true;
+  }
+
+  async listarPorEstado(estado: EstadoPublicacion, limite: number): Promise<Publicacion[]> {
+    return [...this.publicaciones.values()]
+      .filter((p) => p.estado === estado)
+      .sort((a, b) => a.creadoEn.localeCompare(b.creadoEn))
+      .slice(0, limite);
   }
 
   async cerrar(id: string, motivo: MotivoCierre, fecha: string): Promise<boolean> {

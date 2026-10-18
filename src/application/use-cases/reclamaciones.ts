@@ -86,12 +86,37 @@ export class ResolverReclamacion {
     const { reclamacion, publicacion } = await this.cargarParaResolver(reclamacionId, solicitanteId);
     const aprobada = reclamacion.aprobar(new Date().toISOString());
 
-    const cambio = await this.cambiarEstado.ejecutar(reclamacion.publicacionId, 'en_verificacion', 'por_entregar');
-    if (!cambio) throw new ConflictoError('el estado del objeto cambió; vuelve a cargar las reclamaciones');
+    // Paso 1 (comparar y fijar): solo una aprobación gana, y la publicación
+    // recuerda cuál (ADR-0020).
+    const cambio = await this.cambiarEstado.ejecutar(
+      reclamacion.publicacionId,
+      'en_verificacion',
+      'por_entregar',
+      reclamacion.id,
+    );
+    if (!cambio) {
+      // ¿Un intento anterior de esta misma reclamación quedó a medias? Entonces se retoma.
+      const actual = await this.publicaciones.buscarPorId(reclamacion.publicacionId);
+      if (actual?.estado !== 'por_entregar' || actual.reclamacionAprobadaId !== reclamacion.id) {
+        throw new ConflictoError('el estado del objeto cambió; vuelve a cargar las reclamaciones');
+      }
+    }
+    // Paso 2: si falla, la excepción sube al cliente; reintentar retoma desde aquí
+    // y, si nadie reintenta, el reconciliador lo termina.
+    await this.completarAprobacion(aprobada, publicacion);
+    return aprobada;
+  }
+
+  /**
+   * Segundo paso de aprobar: guarda la reclamación aprobada y rechaza las demás
+   * pendientes del mismo objeto. Es idempotente: repetirlo no cambia el
+   * resultado (lo usan el reintento y el reconciliador, ADR-0020).
+   */
+  async completarAprobacion(aprobada: Reclamacion, publicacion: Publicacion): Promise<void> {
     await this.reclamaciones.guardar(aprobada);
 
-    const pendientes = (await this.reclamaciones.listarPorPublicacion(reclamacion.publicacionId)).filter(
-      (r) => r.estado === 'pendiente' && r.id !== reclamacion.id,
+    const pendientes = (await this.reclamaciones.listarPorPublicacion(aprobada.publicacionId)).filter(
+      (r) => r.estado === 'pendiente' && r.id !== aprobada.id,
     );
     this.eventos.emit(RECLAMACION_RESUELTA, { reclamacion: aprobada, publicacion });
     for (const otra of pendientes) {
@@ -99,7 +124,6 @@ export class ResolverReclamacion {
       await this.reclamaciones.guardar(rechazada);
       this.eventos.emit(RECLAMACION_RESUELTA, { reclamacion: rechazada, publicacion });
     }
-    return aprobada;
   }
 
   /** Rechaza con un motivo; si no quedan pendientes, el objeto vuelve a "publicado". */
@@ -153,7 +177,13 @@ export class ConfirmarEntrega {
     }
     const entregada = reclamacion.confirmarEntrega(new Date().toISOString());
     const cambio = await this.cambiarEstado.ejecutar(publicacion.id, 'por_entregar', 'reclamado');
-    if (!cambio) throw new ConflictoError('el estado del objeto cambió; vuelve a cargar');
+    if (!cambio) {
+      // ¿Un intento anterior ya pasó el objeto a "reclamado" pero no alcanzó a guardar la entrega?
+      const actual = await this.publicaciones.buscarPorId(publicacion.id);
+      if (actual?.estado !== 'reclamado' || actual.reclamacionAprobadaId !== reclamacion.id) {
+        throw new ConflictoError('el estado del objeto cambió; vuelve a cargar');
+      }
+    }
     await this.reclamaciones.guardar(entregada);
     return entregada;
   }

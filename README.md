@@ -65,7 +65,7 @@ El backend debe estar corriendo. La app sigue el estilo de la app UTB (tema oscu
 [`docs/diseno-ui.md`](docs/diseno-ui.md)) y tiene cuatro secciones: **Inicio** (buscar y ver
 coincidencias, sin cuenta), **Publicar**, **Mis cosas** (lo que publicaste, con sus
 reclamaciones para aprobar o rechazar, y lo que reclamaste) y **Perfil**. Publicar y reclamar
-piden iniciar sesión con correo `@utb.edu.co`; la sesión dura mientras la app esté abierta.
+piden iniciar sesión con correo `@utb.edu.co`; la sesión se guarda en el dispositivo (7 días) y se restaura al abrir la app; se borra al cerrar sesión.
 
 Para apuntar la app al backend **desplegado** en vez de local (útil para
 demos sin correr nada local):

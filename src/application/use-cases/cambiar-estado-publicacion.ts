@@ -13,9 +13,10 @@ import { PublicacionRepository } from '../../domain/ports/publicacion-repository
 export class CambiarEstadoPublicacion {
   constructor(private readonly publicaciones: PublicacionRepository) {}
 
-  async ejecutar(id: string, de: EstadoPublicacion, a: EstadoPublicacion): Promise<boolean> {
+  /** `reclamacionAprobadaId`: al pasar a "por_entregar", qué reclamación se aprobó (ADR-0020). */
+  async ejecutar(id: string, de: EstadoPublicacion, a: EstadoPublicacion, reclamacionAprobadaId?: string): Promise<boolean> {
     Publicacion.exigirTransicion(de, a);
-    return this.publicaciones.cambiarEstado(id, de, a);
+    return this.publicaciones.cambiarEstado(id, de, a, reclamacionAprobadaId);
   }
 }
 

@@ -7,4 +7,11 @@ export abstract class ReclamacionRepository {
   abstract buscarPorId(id: string): Promise<Reclamacion | null>;
   abstract listarPorPublicacion(publicacionId: string): Promise<Reclamacion[]>;
   abstract listarPorReclamante(reclamanteId: string): Promise<Reclamacion[]>;
+
+  /**
+   * Reclamaciones que todavía no terminaron: pendientes y aprobadas sin entrega
+   * confirmada. Son pocas (duran lo que dura una revisión o una entrega) y es
+   * lo que recorre el reconciliador (ADR-0020).
+   */
+  abstract listarAbiertas(limite: number): Promise<Reclamacion[]>;
 }

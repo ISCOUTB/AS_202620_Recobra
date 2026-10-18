@@ -91,17 +91,21 @@ adaptador, sin tablas ni migraciones nuevas, y la atomicidad la da la base.
 
 ## ¿Aplica una saga?
 
-**No, por ahora, y este es el motivo.** Una saga coordina varios pasos en
-almacenes distintos que deben deshacerse si uno falla. En Recobra la única
-escritura (`POST /publicaciones`) toca una sola fila en una sola base. El
-emparejamiento escribe después en su propio almacén, pero una publicación sin
-coincidencias sigue siendo válida: si el emparejamiento falla, **no hay nada
-que compensar**, solo algo que recalcular.
+**Para publicar, no; para reclamar, sí (desde [ADR-0020](adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md)).**
+Una saga coordina varios pasos en almacenes distintos. Publicar
+(`POST /publicaciones`) toca una sola fila en una sola base. El emparejamiento
+escribe después en su propio almacén, pero una publicación sin coincidencias
+sigue siendo válida: si falla, **no hay nada que compensar**, solo algo que
+recalcular.
 
-Aplicará cuando exista la **reclamación con verificación** (escenario S2):
-cambiar el estado del objeto, registrar la reclamación y avisar al dueño son
-pasos que pueden fallar por separado. Ese diseño corresponde a la semana 12
-(mensajería y consistencia).
+Con la **reclamación con verificación** (escenario S2) sí aplica: reclamar,
+rechazar, aprobar y entregar cambian a la vez una publicación y una reclamación,
+que son de contextos distintos y no comparten transacción. Se resolvió con una
+saga de **recuperación hacia adelante** (no se deshace nada, se termina lo que
+quedó a medias): el cambio de estado deja anotada la reclamación aprobada en el
+mismo `UPDATE` atómico, el reintento retoma el segundo paso y un reconciliador
+repara lo que nadie reintentó. Se descartó una transacción que abarque las dos
+tablas porque rompería el dueño único de los datos.
 
 ## Lo que no se implementó, y por qué
 
@@ -112,7 +116,7 @@ pasos que pueden fallar por separado. Ese diseño corresponde a la semana 12
 | Reprocesar eventos de Emparejamiento perdidos | Pendiente | El evento vive en memoria del proceso: si el proceso cae entre guardar y emitir, o si el cálculo falla, esas coincidencias no se recalculan. Plan: bandeja de salida (outbox) o broker en la S12 |
 | Vencimiento de publicaciones (desde ADR-0017) | Implementado | `ArchivadorVencidas` corre dentro de la API; si la base no responde, deja una advertencia y lo reintenta en la siguiente pasada (6 h). El `UPDATE` solo toca lo que sigue en "publicado", así que correrlo dos veces no hace daño |
 | Persistencia de coincidencias | Implementado ([ADR-0018](adr/0018-coincidencias-persistidas-y-parecido-ponderado.md)) | Tabla `coincidencias` con id determinista por par (`ON CONFLICT (id) DO UPDATE`): recalcular no duplica |
-| Consistencia al aprobar una reclamación (desde ADR-0014) | Pendiente | Aprobar cambia la publicación a "reclamado" y después guarda la reclamación aprobada. El cambio de estado es atómico (comparar y fijar), pero entre las dos tablas no hay transacción: si la segunda escritura falla, quedan desalineadas. Es el primer caso real de saga del proyecto; plan: resolverlo en la S12 |
+| Consistencia entre Publicaciones y Reclamaciones (reclamar, rechazar, aprobar, entregar) | Implementado ([ADR-0020](adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md)) | Cada operación escribe dos tablas sin transacción. El cambio de estado es atómico y anota qué reclamación se aprobó; si falla el segundo paso, el reintento de la misma reclamación lo retoma y `ReconciliarReclamaciones` (cada 5 min) repara las cuatro interrupciones posibles. **Probado** con caídas simuladas (`consistencia-reclamaciones.spec.ts`). Mientras tanto, el estado es eventualmente consistente |
 
 ## Trazabilidad
 

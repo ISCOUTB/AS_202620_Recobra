@@ -306,6 +306,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0017](../adr/0017-ciclo-de-vida-completo-cierre-vencimiento-y-entrega.md) | Ciclo de vida completo: cierre, vencimiento y entrega confirmada | Aceptada |
 | [ADR-0018](../adr/0018-coincidencias-persistidas-y-parecido-ponderado.md) | Coincidencias persistidas y parecido ponderado (lugar, palabras y fecha) | Aceptada |
 | [ADR-0019](../adr/0019-donde-esta-el-objeto-y-lo-tengo-yo.md) | Dónde está el objeto y "Lo tengo yo" | Aceptada |
+| [ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md) | Consistencia entre Publicaciones y Reclamaciones: pasos retomables y reconciliación | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -344,8 +345,8 @@ Detalle completo, con código y pruebas de cada fila, en
 - **Vitrina sin pruebas automáticas:** sus reintentos, límites de tiempo y el bloqueo del botón están implementados pero no tienen prueba.
 - **Idempotencia:** la clave ya se compara junto con el autor (una misma clave con otra cuenta responde 422), pero no se acota por cuenta; ver los límites en `docs/modos-de-fallo.md`.
 - **Correo sin verificar por propiedad:** se exige `@utb.edu.co`, pero no hay código por correo (sin proveedor gratuito); lo mitiga que la entrega la aprueba una persona (ADR-0013, ADR-0014).
-- **Seguridad de la cuenta pendiente:** sin límite de intentos de inicio de sesión ni recuperación de contraseña; el token vive en `localStorage` de la vitrina (riesgo ante XSS). Para el modelado de amenazas de la S13.
-- **Consistencia al aprobar una reclamación:** se cambia la publicación y luego la reclamación; si la segunda escritura falla quedan desalineadas. Para la S12 (saga o bandeja de salida).
+- **Seguridad de la cuenta pendiente:** sin límite de intentos de inicio de sesión ni recuperación de contraseña; el token vive en `localStorage` de la vitrina y en las preferencias del dispositivo en la app (riesgo ante XSS o ante alguien con el dispositivo desbloqueado; el token vence a los 7 días y se revoca al cerrar sesión). Para el modelado de amenazas de la S13.
+- **Consistencia al aprobar o entregar:** se escriben dos tablas sin transacción; resuelto con pasos retomables y un reconciliador ([ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md)). Queda un margen de minutos de consistencia eventual y los avisos perdidos no se reenvían (haría falta una bandeja de salida).
 
 
 - Persistencia en PostgreSQL ya implementada; hoy corre en Dokploy (ADR-0010). El adaptador en memoria queda para pruebas locales sin `DATABASE_URL`. Las coincidencias también se guardan en PostgreSQL desde ADR-0018.

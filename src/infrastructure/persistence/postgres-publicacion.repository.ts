@@ -157,6 +157,8 @@ export class PostgresPublicacionRepository
     // Dónde está un objeto encontrado (ADR-0019).
     await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS custodia TEXT');
     await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS punto_custodia TEXT');
+    // Qué reclamación se aprobó, para retomar una aprobación interrumpida (ADR-0020).
+    await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS reclamacion_aprobada_id TEXT');
     this.esquemaListo = true;
   }
 
@@ -207,13 +209,28 @@ export class PostgresPublicacionRepository
     return resultado.rowCount === 1;
   }
 
-  async cambiarEstado(id: string, de: EstadoPublicacion, a: EstadoPublicacion): Promise<boolean> {
-    const resultado = await this.consultar('UPDATE publicaciones SET estado = $3 WHERE id = $1 AND estado = $2', [
-      id,
-      de,
-      a,
-    ]);
+  /** Comparar y fijar; guarda además la reclamación aprobada en el mismo `UPDATE` (atómico). */
+  async cambiarEstado(
+    id: string,
+    de: EstadoPublicacion,
+    a: EstadoPublicacion,
+    reclamacionAprobadaId?: string,
+  ): Promise<boolean> {
+    const resultado = await this.consultar(
+      `UPDATE publicaciones
+       SET estado = $3, reclamacion_aprobada_id = COALESCE($4, reclamacion_aprobada_id)
+       WHERE id = $1 AND estado = $2`,
+      [id, de, a, reclamacionAprobadaId ?? null],
+    );
     return resultado.rowCount === 1;
+  }
+
+  async listarPorEstado(estado: EstadoPublicacion, limite: number): Promise<Publicacion[]> {
+    const resultado = await this.consultar(
+      'SELECT * FROM publicaciones WHERE estado = $1 ORDER BY creado_en ASC LIMIT $2',
+      [estado, limite],
+    );
+    return resultado.rows.map((fila) => this.aEntidad(fila));
   }
 
   async cerrar(id: string, motivo: MotivoCierre, fecha: string): Promise<boolean> {
@@ -293,6 +310,7 @@ export class PostgresPublicacionRepository
       cerradoEn: fila.cerrado_en ? new Date(fila.cerrado_en as string).toISOString() : null,
       custodia: (fila.custodia as Custodia | null) ?? null,
       puntoCustodia: (fila.punto_custodia as string | null) ?? null,
+      reclamacionAprobadaId: (fila.reclamacion_aprobada_id as string | null) ?? null,
     });
   }
 }

@@ -79,6 +79,12 @@ export interface DatosPublicacion {
   /** Solo en publicaciones cerradas: por qué y cuándo. */
   motivoCierre?: MotivoCierre | null;
   cerradoEn?: string | null;
+  /**
+   * Reclamación aprobada (ADR-0020). Se guarda en el mismo paso atómico que el
+   * cambio a "por_entregar", así un reintento o el reconciliador saben qué
+   * aprobación quedó a medias. Es interno: no sale en las respuestas de la API.
+   */
+  reclamacionAprobadaId?: string | null;
 }
 
 export class Publicacion {
@@ -95,6 +101,7 @@ export class Publicacion {
   readonly cerradoEn: string | null;
   readonly custodia: Custodia | null;
   readonly puntoCustodia: string | null;
+  readonly reclamacionAprobadaId: string | null;
 
   constructor({
     id,
@@ -110,6 +117,7 @@ export class Publicacion {
     cerradoEn,
     custodia,
     puntoCustodia,
+    reclamacionAprobadaId,
   }: DatosPublicacion) {
     Publicacion.validar({ tipo, descripcion, categoria, ubicacion, detalleUbicacion });
     const lugarCustodia = Publicacion.validarCustodia(tipo, custodia, puntoCustodia);
@@ -127,6 +135,14 @@ export class Publicacion {
     this.cerradoEn = cerradoEn ?? null;
     this.custodia = lugarCustodia.custodia;
     this.puntoCustodia = lugarCustodia.puntoCustodia;
+    this.reclamacionAprobadaId = reclamacionAprobadaId ?? null;
+  }
+
+  /** Lo que sale por la API: todo menos el dato interno de la aprobación en curso (ADR-0020). */
+  toJSON(): Record<string, unknown> {
+    const { reclamacionAprobadaId, ...publica } = this;
+    void reclamacionAprobadaId;
+    return publica;
   }
 
   /**

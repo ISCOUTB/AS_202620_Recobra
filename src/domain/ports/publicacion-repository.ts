@@ -65,7 +65,21 @@ export abstract class PublicacionRepository {
    * dejar la publicación en un estado incoherente. Solo lo usa el propio
    * contexto Publicaciones (`CambiarEstadoPublicacion`): es el dueño del dato.
    */
-  abstract cambiarEstado(id: string, de: EstadoPublicacion, a: EstadoPublicacion): Promise<boolean>;
+  abstract cambiarEstado(
+    id: string,
+    de: EstadoPublicacion,
+    a: EstadoPublicacion,
+    reclamacionAprobadaId?: string,
+  ): Promise<boolean>;
+
+  /**
+   * Publicaciones en un estado, las más antiguas primero. Lo usa el
+   * reconciliador de Reclamaciones (ADR-0020) con estados que solo duran lo que
+   * dura una revisión, así que la lista es corta.
+   */
+  async listarPorEstado(_estado: EstadoPublicacion, _limite: number): Promise<Publicacion[]> {
+    throw new Error('listarPorEstado no está implementado en este adaptador');
+  }
 
   /** Publicaciones de una cuenta, las más recientes primero. */
   abstract listarPorAutor(autorId: string): Promise<Publicacion[]>;

@@ -160,6 +160,21 @@ describe('PostgresPublicacionRepository', () => {
     );
   });
 
+  it('cambiarEstado guarda la reclamación aprobada en el mismo UPDATE (atómico) y solo si el estado es el esperado', async () => {
+    queryMock.mockResolvedValue({ rowCount: 1, rows: [] });
+    const repo = new PostgresPublicacionRepository();
+
+    expect(await repo.cambiarEstado('p1', 'en_verificacion', 'por_entregar', 'r1')).toBe(true);
+
+    const [sql, parametros] = queryMock.mock.calls.at(-1) as [string, unknown[]];
+    expect(sql).toContain('WHERE id = $1 AND estado = $2');
+    expect(sql).toContain('reclamacion_aprobada_id = COALESCE($4, reclamacion_aprobada_id)');
+    expect(parametros).toEqual(['p1', 'en_verificacion', 'por_entregar', 'r1']);
+
+    queryMock.mockResolvedValue({ rowCount: 0, rows: [] }); // otro cambió el estado antes
+    expect(await repo.cambiarEstado('p1', 'en_verificacion', 'por_entregar', 'r2')).toBe(false);
+  });
+
   it('buscarPorId devuelve null si no hay filas', async () => {
     queryMock.mockResolvedValueOnce({ rowCount: 0, rows: [] });
     const repo = new PostgresPublicacionRepository();
