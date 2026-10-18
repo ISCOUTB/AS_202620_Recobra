@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/recobra_api.dart';
 import '../tema/tema_utb.dart';
+import 'foto.dart';
 
 const _dias = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
 const _meses = [
@@ -275,6 +276,11 @@ class TarjetaPublicacion extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (p.tieneFoto)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Align(alignment: Alignment.center, child: MiniaturaFoto(publicacionId: p.id)),
+                  ),
                 if (onTap != null)
                   const Padding(
                     padding: EdgeInsets.only(right: 12),

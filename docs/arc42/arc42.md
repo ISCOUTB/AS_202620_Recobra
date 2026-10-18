@@ -309,6 +309,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md) | Consistencia entre Publicaciones y Reclamaciones: pasos retomables y reconciliación | Aceptada |
 | [ADR-0021](../adr/0021-privacidad-y-datos-personales.md) | Privacidad y datos personales: consentimiento, acceso, supresión y retención | Aceptada |
 | [ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md) | Moderación mínima: reportar una publicación y ocultarla | Aceptada |
+| [ADR-0023](../adr/0023-fotos-con-privacidad.md) | Fotos de las publicaciones con privacidad | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -349,6 +350,7 @@ Detalle completo, con código y pruebas de cada fila, en
 - **Datos personales ([ADR-0021](../adr/0021-privacidad-y-datos-personales.md)):** hay aviso, consentimiento, descarga, eliminación (anonimizando) y retención de sesiones y avisos. Pendientes: revisión del texto por la universidad, plazo de las publicaciones cerradas, copias de seguridad y limpieza de datos personales que alguien escriba en una descripción.
 - **Correo sin verificar por propiedad:** se exige `@utb.edu.co`, pero no hay código por correo (sin proveedor gratuito); lo mitiga que la entrega la aprueba una persona (ADR-0013, ADR-0014).
 - **Moderación ([ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md)):** cualquier cuenta reporta y los administradores (`ADMIN_CORREOS`) ocultan o descartan; no hay roles en base de datos, alertas ni apelación desde la aplicación. Una publicación oculta no se reabre. Pendiente: que la universidad defina un procedimiento propio.
+- **Fotos ([ADR-0023](../adr/0023-fotos-con-privacidad.md)):** la foto completa de un encontrado solo la ven su autor y quien tiene la reclamación aprobada; el público ve una miniatura de 24 px, y el servidor quita el EXIF. Se guardan en PostgreSQL (hasta 1 MB cada una); no se revisa qué hay en la imagen y todavía no hay copias de seguridad que respeten la retención.
 - **Seguridad de la cuenta pendiente:** hay límite de intentos de inicio de sesión (5 por correo en 15 minutos, en memoria del proceso, ADR-0021) pero no recuperación de contraseña; el token vive en `localStorage` de la vitrina y en las preferencias del dispositivo en la app (riesgo ante XSS o ante alguien con el dispositivo desbloqueado; el token vence a los 7 días y se revoca al cerrar sesión). Para el modelado de amenazas de la S13.
 - **Consistencia al aprobar o entregar:** se escriben dos tablas sin transacción; resuelto con pasos retomables y un reconciliador ([ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md)). Queda un margen de minutos de consistencia eventual y los avisos perdidos no se reenvían (haría falta una bandeja de salida).
 

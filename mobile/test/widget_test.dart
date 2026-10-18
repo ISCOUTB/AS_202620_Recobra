@@ -1,17 +1,20 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:image/image.dart' as img;
 import 'package:recobra_mobile/api/recobra_api.dart';
 import 'package:recobra_mobile/estado/almacen_local.dart';
 import 'package:recobra_mobile/main.dart';
 import 'package:recobra_mobile/pantallas/avisos.dart';
+import 'package:recobra_mobile/servicios/fotos.dart';
 
 const _json = {'content-type': 'application/json; charset=utf-8'};
 
-String _publicacion({String id = 'abc', String tipo = 'encontrado', String? autorId = 'autor-1'}) => jsonEncode({
+String _publicacion({String id = 'abc', String tipo = 'encontrado', String? autorId = 'autor-1', bool tieneFoto = false}) => jsonEncode({
       'id': id,
       'tipo': tipo,
       'descripcion': 'Termo azul',
@@ -20,7 +23,24 @@ String _publicacion({String id = 'abc', String tipo = 'encontrado', String? auto
       'estado': 'publicado',
       'creadoEn': '2026-10-17T12:00:00.000Z',
       'autorId': autorId,
+      'tieneFoto': tieneFoto,
     });
+
+/// Selector falso: devuelve siempre la misma foto, sin abrir el selector del sistema.
+class _SelectorFalso implements SelectorFoto {
+  _SelectorFalso(this.foto);
+
+  final FotoPreparada foto;
+  int usos = 0;
+
+  @override
+  Future<FotoPreparada?> elegir(OrigenFoto origen) async {
+    usos++;
+    return foto;
+  }
+}
+
+FotoPreparada _fotoDePrueba() => prepararFotoDesdeBytes(img.encodePng(img.Image(width: 64, height: 48)));
 
 final _bandeja = jsonEncode({
   'noLeidas': 1,
@@ -107,6 +127,12 @@ MockClient _servidor({
       if (request.method == 'GET' && ruta == '/publicaciones') return _resp(lista ?? '[${_publicacion()}]', 200);
       if (request.method == 'POST' && ruta == '/publicaciones/p5/lo-tengo') {
         return _resp(_publicacion(id: 'h1', autorId: 'yo'), 201);
+      }
+      if (request.method == 'PUT' && ruta == '/publicaciones/nueva/foto') {
+        return _resp(_publicacion(id: 'nueva', tipo: 'perdido', autorId: 'yo', tieneFoto: true), 200);
+      }
+      if (request.method == 'GET' && ruta == '/publicaciones/f1/foto') {
+        return _resp('{"statusCode":403,"message":"solo quien publicó"}', 403);
       }
       if (request.method == 'POST' && ruta == '/publicaciones') {
         return request.headers['Authorization'] == 'Bearer tok-123'
@@ -218,6 +244,49 @@ void main() {
       expect(peticiones.first.headers['Authorization'], 'Bearer tok-123');
       expect(peticiones.last.method, 'POST');
       expect(peticiones.last.url.path, '/notificaciones/coincidencia:abc__p1:yo/leida');
+    });
+
+    test('subir la foto envía el JPEG con la miniatura en base64 y la sesión', () async {
+      http.Request? recibida;
+      final api = RecobraApi(
+        baseUrl: 'http://localhost:3000',
+        client: MockClient((request) async {
+          recibida = request;
+          return _resp(_publicacion(id: 'nueva', tieneFoto: true), 200);
+        }),
+      )..token = 'tok-123';
+      final foto = _fotoDePrueba();
+
+      final publicacion = await api.subirFoto('nueva', foto.completa, foto.miniatura);
+
+      expect(publicacion.tieneFoto, true);
+      expect(recibida!.method, 'PUT');
+      expect(recibida!.url.path, '/publicaciones/nueva/foto');
+      expect(recibida!.headers['Content-Type'], 'image/jpeg');
+      expect(recibida!.headers['Authorization'], 'Bearer tok-123');
+      expect(base64Decode(recibida!.headers['X-Miniatura']!), foto.miniatura);
+      expect(recibida!.bodyBytes, foto.completa);
+    });
+
+    test('la foto completa de un encontrado ajeno responde 403 con un error entendible', () async {
+      final api = RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor());
+      expect(
+        () => api.fotoCompleta('f1'),
+        throwsA(isA<RecobraApiException>().having((e) => e.statusCode, 'statusCode', 403)),
+      );
+    });
+
+    test('preparar una foto la reduce, la vuelve JPEG y hace la miniatura de 24 px', () {
+      final grande = img.encodePng(img.Image(width: 2000, height: 1000, numChannels: 4));
+
+      final foto = prepararFotoDesdeBytes(grande);
+
+      final completa = img.decodeJpg(foto.completa)!;
+      final miniatura = img.decodeJpg(foto.miniatura)!;
+      expect([completa.width, completa.height], [1280, 640]);
+      expect([miniatura.width, miniatura.height], [24, 12]);
+      expect(foto.completa.sublist(0, 3), [0xff, 0xd8, 0xff]); // JPEG, aunque entró como PNG con transparencia
+      expect(() => prepararFotoDesdeBytes(Uint8List.fromList([1, 2, 3])), throwsFormatException);
     });
 
     test('listarCoincidencias parsea la lista', () async {
@@ -514,6 +583,67 @@ void main() {
       expect(jsonDecode(reporte.body), containsPair('motivo', 'spam'));
       expect(reporte.headers['Authorization'], 'Bearer tok-123');
       expect(find.text('Gracias, un administrador lo revisará.'), findsOneWidget);
+    });
+
+    testWidgets('Publicar con foto: se crea la publicación y después se sube la foto', (tester) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      final selector = _SelectorFalso(_fotoDePrueba());
+      await tester.pumpWidget(
+        RecobraApp(
+          api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor(registro: peticiones)),
+          mostrarBienvenida: false,
+          selectorFoto: selector,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.tap(find.text('Inicio').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Perdí algo'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextFormField, '¿Qué es? Descríbelo'), 'Termo');
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Otros'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<String?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Biblioteca').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Agregar una foto'));
+      await tester.tap(find.text('Agregar una foto'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Elegir de la galería')); // en el celular pregunta cámara o galería
+      await tester.pumpAndSettle();
+      expect(selector.usos, 1);
+      expect(find.text('Quitar'), findsOneWidget); // quedó la vista previa
+      await tester.tap(find.widgetWithText(FilledButton, 'Publicar objeto perdido'));
+      await tester.pumpAndSettle();
+
+      final orden = peticiones.where((r) => r.url.path.startsWith('/publicaciones') && r.method != 'GET').map((r) => '${r.method} ${r.url.path}');
+      expect(orden, ['POST /publicaciones', 'PUT /publicaciones/nueva/foto']);
+      final subida = peticiones.singleWhere((r) => r.method == 'PUT');
+      expect(subida.headers['Content-Type'], 'image/jpeg');
+      expect(subida.headers['X-Miniatura'], isNotEmpty);
+      expect(find.textContaining('Publicación creada'), findsOneWidget);
+      expect(find.textContaining('no se pudo subir'), findsNothing);
+    });
+
+    testWidgets('La foto completa de un encontrado ajeno se explica en vez de mostrarse', (tester) async {
+      pantallaAlta(tester);
+      final encontrado = jsonEncode({
+        ...jsonDecode(_publicacion(id: 'f1', autorId: 'otra', tieneFoto: true)) as Map<String, dynamic>,
+        'descripcion': 'Mochila con foto',
+      });
+      await tester.pumpWidget(app(_servidor(lista: '[$encontrado]')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Mochila con foto'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ver foto'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Así nadie lo reclama solo por haberlo visto'), findsOneWidget);
     });
 
     testWidgets('Los accesos rápidos son botones de color con la palabra Publicar', (tester) async {

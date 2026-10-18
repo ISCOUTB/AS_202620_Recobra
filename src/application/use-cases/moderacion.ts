@@ -8,6 +8,7 @@ import { ConflictoError, DatoInvalidoError, NoEncontradoError } from '../../doma
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { ReporteRepository } from '../../domain/ports/reporte-repository';
 import { PUBLICACION_MODERADA } from '../events/eventos-dominio';
+import { EliminarFotoDe } from './fotos';
 
 /**
  * Administradores: las cuentas cuyo correo está en `ADMIN_CORREOS` (separados
@@ -104,6 +105,7 @@ export class ResolverReporte {
     private readonly reportes: ReporteRepository,
     private readonly publicaciones: PublicacionRepository,
     private readonly eventos: EventEmitter2,
+    private readonly fotos: EliminarFotoDe,
   ) {}
 
   async ejecutar(reporteId: string, administrador: Cuenta, decision: string, nota?: string): Promise<Reporte> {
@@ -127,6 +129,7 @@ export class ResolverReporte {
       if (!(await this.publicaciones.cerrar(publicacionId, 'moderado', ahora))) {
         throw new ConflictoError('la publicación cambió mientras tanto; vuelve a cargar el reporte');
       }
+      await this.fotos.ejecutar(publicacionId); // lo que se oculta no conserva su imagen (ADR-0023)
       this.eventos.emit(PUBLICACION_MODERADA, publicacion);
     } else if (publicacion.estado !== 'cerrado') {
       throw new ConflictoError(

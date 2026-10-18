@@ -8,7 +8,7 @@
  * quien corresponda en la universidad antes de un uso institucional (Ley 1581
  * de 2012 y Decreto 1377 de 2013).
  */
-export const VERSION_AVISO_PRIVACIDAD = '2026-10-18';
+export const VERSION_AVISO_PRIVACIDAD = '2026-10-19';
 
 export interface SeccionAviso {
   titulo: string;
@@ -41,8 +41,10 @@ export function avisoDePrivacidad(contacto: string): AvisoPrivacidad {
           'Tu correo institucional y tu nombre; tu contraseña, solo como un resumen cifrado (nunca la contraseña); ' +
           'lo que publicas (descripción, categoría, lugar y fechas); las pruebas que escribes al reclamar un objeto; ' +
           'los reportes que haces de una publicación; ' +
-          'los avisos que te generamos; y un identificador de tu sesión (también cifrado). ' +
-          'No guardamos tu ubicación, tus contactos ni fotos.',
+          'las fotos de objetos que decides subir (sin los datos ocultos que traen, como la ubicación de la cámara, ' +
+          'que quitamos al recibirlas); los avisos que te generamos; y un identificador de tu sesión (también cifrado). ' +
+          'No guardamos tu ubicación ni tus contactos. Una foto es opcional: sube solo fotos del objeto, ' +
+          'sin personas ni documentos legibles.',
       },
       {
         titulo: 'Para qué los usamos',
@@ -55,15 +57,19 @@ export function avisoDePrivacidad(contacto: string): AvisoPrivacidad {
         texto:
           'Las publicaciones las puede ver cualquier persona, sin cuenta (descripción, lugar, fecha y estado), pero no tu ' +
           'nombre ni tu correo. Tu nombre y tu correo solo los ve la otra persona cuando se aprueba una entrega entre ' +
-          'ustedes. La prueba que escribes al reclamar solo la ve quien publicó el objeto.',
+          'ustedes. La prueba que escribes al reclamar solo la ve quien publicó el objeto. De un objeto perdido, la foto ' +
+          'se ve completa. De un objeto encontrado, el público ve solo una miniatura borrosa; la foto completa la ven ' +
+          'únicamente quien lo publicó y quien lo reclamó cuando su reclamación ya fue aprobada, para que nadie lo ' +
+          'reclame solo por haberlo visto.',
       },
       {
         titulo: 'Cuánto tiempo los guardamos',
         texto:
           'Tu cuenta, mientras la tengas. Las sesiones duran 7 días. Los avisos se borran a los ' +
           `${DIAS_RETENCION_AVISOS} días. Una publicación sin movimiento se cierra sola a los 60 días. Las publicaciones ` +
-          'cerradas o entregadas se conservan sin tus datos personales, solo para el historial. Si eliminas tu cuenta, ' +
-          'borramos tus avisos y tus sesiones, y quitamos tu nombre, tu correo y el texto de tus pruebas y reportes.',
+          'cerradas o entregadas se conservan sin tus datos personales, solo para el historial. Las fotos se borran ' +
+          'cuando la publicación se cierra, se entrega o se oculta. Si eliminas tu cuenta, borramos tus avisos, tus ' +
+          'sesiones y tus fotos, y quitamos tu nombre, tu correo y el texto de tus pruebas y reportes.',
       },
       {
         titulo: 'Tus derechos',

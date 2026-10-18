@@ -159,6 +159,8 @@ export class PostgresPublicacionRepository
     await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS punto_custodia TEXT');
     // Qué reclamación se aprobó, para retomar una aprobación interrumpida (ADR-0020).
     await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS reclamacion_aprobada_id TEXT');
+    // Si tiene foto (ADR-0023); los bytes viven en la tabla `fotos`.
+    await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS tiene_foto BOOLEAN NOT NULL DEFAULT FALSE');
     this.esquemaListo = true;
   }
 
@@ -251,6 +253,11 @@ export class PostgresPublicacionRepository
     return resultado.rowCount === 1;
   }
 
+  async marcarFoto(id: string, tiene: boolean): Promise<boolean> {
+    const resultado = await this.consultar('UPDATE publicaciones SET tiene_foto = $2 WHERE id = $1', [id, tiene]);
+    return resultado.rowCount === 1;
+  }
+
   async cerrarVencidas(creadasAntesDe: string, fecha: string): Promise<number> {
     const resultado = await this.consultar(
       `UPDATE publicaciones SET estado = 'cerrado', motivo_cierre = 'vencido', cerrado_en = $2
@@ -311,6 +318,7 @@ export class PostgresPublicacionRepository
       custodia: (fila.custodia as Custodia | null) ?? null,
       puntoCustodia: (fila.punto_custodia as string | null) ?? null,
       reclamacionAprobadaId: (fila.reclamacion_aprobada_id as string | null) ?? null,
+      tieneFoto: fila.tiene_foto === true,
     });
   }
 }

@@ -170,7 +170,12 @@ class MisCosasPantallaState extends State<MisCosasPantalla> {
             padding: const EdgeInsets.only(bottom: 12),
             child: TarjetaPublicacion(
               publicacion: item.publicacion,
-              onTap: () => abrirDetalle(context, item.publicacion, alPedirCuenta: ({required crearCuenta, alVolver}) {}),
+              onTap: () => abrirDetalle(
+                context,
+                item.publicacion,
+                alPedirCuenta: ({required crearCuenta, alVolver}) {},
+                alActualizar: (_) => _recargar(),
+              ),
               pie: _pie(item),
             ),
           ),

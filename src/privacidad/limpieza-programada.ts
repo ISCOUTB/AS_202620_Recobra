@@ -32,8 +32,10 @@ export class LimpiezaProgramada implements OnModuleInit, OnModuleDestroy {
   async pasada(): Promise<void> {
     try {
       const r = await this.limpieza.ejecutar();
-      if (r.sesiones + r.avisos > 0) {
-        this.logger.log(`Retención: ${r.sesiones} sesión(es) vencida(s) y ${r.avisos} aviso(s) antiguo(s) borrados`);
+      if (r.sesiones + r.avisos + r.fotos > 0) {
+        this.logger.log(
+          `Retención: ${r.sesiones} sesión(es) vencida(s), ${r.avisos} aviso(s) antiguo(s) y ${r.fotos} foto(s) de publicaciones terminadas borrados`,
+        );
       }
     } catch (error) {
       this.logger.warn(`No se pudo aplicar la retención de datos: ${(error as Error).message}`);

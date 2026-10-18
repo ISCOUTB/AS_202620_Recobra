@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Recobra usa la cámara para que puedas fotografiar un objeto que perdiste o encontraste.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Recobra usa tus fotos para que puedas adjuntar la imagen de un objeto que perdiste o encontraste.</string>
 </dict>
 </plist>

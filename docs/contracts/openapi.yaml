@@ -55,7 +55,12 @@ info:
     administradores), el motivo de cierre `moderado`, el aviso
     `publicacion_ocultada` y el campo `esAdministrador` de la cuenta: cambio
     compatible.
-  version: "5.1.0"
+    5.2.0 agrega las fotos (ADR-0023): `PUT` y `DELETE /publicaciones/{id}/foto`
+    (solo quien publicó), `GET /publicaciones/{id}/foto` (completa; la de un
+    objeto encontrado solo la ven su autor y quien tiene una reclamación
+    aprobada), `GET /publicaciones/{id}/foto/miniatura` (pública) y el campo
+    `tieneFoto` de la publicación: cambio compatible.
+  version: "5.2.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
@@ -230,6 +235,188 @@ paths:
                 $ref: "#/components/schemas/Error"
         "503":
           description: El almacenamiento no está disponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /publicaciones/{id}/foto:
+    put:
+      operationId: subirFoto
+      summary: Agregar o reemplazar la foto de una publicación propia
+      description: >
+        El cuerpo es el JPEG (hasta 1 MB y 2048 px por lado). La cabecera
+        `X-Miniatura` lleva, en base64, otro JPEG de hasta 32 px por lado y 4 KB:
+        es lo único que verá el público de un objeto encontrado. El servidor
+        quita de ambos los datos ocultos (EXIF, ubicación GPS, comentarios).
+        Solo mientras la publicación está `publicado`.
+      tags: [Fotos]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Miniatura
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 6000
+          description: JPEG de hasta 32 px por lado, en base64
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: "Publicación con tieneFoto en true"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publicacion"
+        "400":
+          description: No es un JPEG, falta o es inválida la miniatura, o excede los límites
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Solo quien publicó
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La publicación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Tiene una reclamación en curso o está cerrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: La foto pesa más de 1 MB
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: quitarFoto
+      summary: Quitar la foto de una publicación propia
+      tags: [Fotos]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Publicación con tieneFoto en false"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publicacion"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Solo quien publicó
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La publicación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Tiene una reclamación en curso o está cerrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      operationId: verFoto
+      summary: Foto completa de una publicación
+      description: >
+        La de un objeto perdido es pública. La de un objeto encontrado la ven
+        solo quien lo publicó y quien lo reclamó cuando su reclamación ya fue
+        aprobada (con `Authorization`); los demás reciben 403 y pueden pedir la
+        miniatura.
+      tags: [Fotos]
+      security:
+        - {}
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: La imagen
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "403":
+          description: La foto completa de un objeto encontrado no es para esta persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La publicación no existe o no tiene foto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /publicaciones/{id}/foto/miniatura:
+    get:
+      operationId: verMiniatura
+      summary: Miniatura de la foto de una publicación (pública)
+      tags: [Fotos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Un JPEG de hasta 32 px por lado
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: La publicación no existe o no tiene foto
           content:
             application/json:
               schema:
@@ -1581,6 +1768,9 @@ components:
           type: string
           nullable: true
           description: Cuenta que publicó; null en publicaciones anteriores a las cuentas
+        tieneFoto:
+          type: boolean
+          description: Si tiene foto (ADR-0023). La miniatura es pública en `/publicaciones/{id}/foto/miniatura`
     Error:
       description: Formato único de error para 400, 401, 403, 404, 409, 422, 500 y 503.
       type: object

@@ -66,6 +66,13 @@ export class MemoriaPublicacionRepository extends PublicacionRepository {
     return true;
   }
 
+  async marcarFoto(id: string, tiene: boolean): Promise<boolean> {
+    const actual = this.publicaciones.get(id);
+    if (!actual) return false;
+    this.publicaciones.set(id, new Publicacion({ ...actual, tieneFoto: tiene }));
+    return true;
+  }
+
   async cerrarVencidas(creadasAntesDe: string, fecha: string): Promise<number> {
     let cerradas = 0;
     for (const p of this.publicaciones.values()) {

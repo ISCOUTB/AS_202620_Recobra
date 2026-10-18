@@ -12,6 +12,7 @@ import { NotificacionRepository } from '../../domain/ports/notificacion-reposito
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { ReclamacionRepository } from '../../domain/ports/reclamacion-repository';
 import { SesionRepository } from '../../domain/ports/sesion-repository';
+import { EliminarFotoDe, LimpiarFotosDeCerradas } from './fotos';
 import { DIAS_RETENCION_AVISOS } from '../../domain/privacidad/aviso-privacidad';
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
@@ -78,8 +79,8 @@ export class ExportarDatosPersonales {
  * pendiente o aprobada sin entrega, o un objeto propio en verificación o por
  * entregar), para no dejarla esperando. Al eliminar: retira las publicaciones
  * propias que siguen publicadas, borra los avisos y las sesiones, reemplaza el
- * texto de las pruebas y de los reportes escritos y quita el nombre, el correo
- * y la contraseña.
+ * texto de las pruebas y de los reportes escritos, borra las fotos que subió y
+ * quita el nombre, el correo y la contraseña.
  * Lo ya registrado (publicaciones cerradas, reclamaciones) queda apuntando a
  * una cuenta anónima, para conservar el historial sin datos personales.
  */
@@ -93,6 +94,7 @@ export class EliminarCuenta {
     private readonly notificaciones: NotificacionRepository,
     private readonly reportes: ReporteRepository,
     private readonly hash: HashContrasenas,
+    private readonly fotos: EliminarFotoDe,
   ) {}
 
   async ejecutar(cuenta: Cuenta, contrasena: string): Promise<void> {
@@ -113,6 +115,7 @@ export class EliminarCuenta {
         throw new ConflictoError('una de tus publicaciones cambió mientras tanto; vuelve a intentarlo');
       }
     }
+    for (const p of propias.filter((x) => x.tieneFoto)) await this.fotos.ejecutar(p.id);
     await this.reclamaciones.anonimizarPruebasDe(cuenta.id);
     await this.reportes.anonimizarDetallesDe(cuenta.id);
     await this.notificaciones.eliminarDeCuenta(cuenta.id);
@@ -133,20 +136,23 @@ export class EliminarCuenta {
 }
 
 /**
- * Retención (ADR-0021): borra las sesiones vencidas y los avisos de más de
- * `DIAS_RETENCION_AVISOS` días, para no guardar datos que ya no hacen falta.
+ * Retención (ADR-0021 y ADR-0023): borra las sesiones vencidas, los avisos de
+ * más de `DIAS_RETENCION_AVISOS` días y las fotos de lo que ya se cerró o se
+ * entregó, para no guardar datos que ya no hacen falta.
  */
 @Injectable()
 export class LimpiezaPeriodica {
   constructor(
     private readonly sesiones: SesionRepository,
     private readonly notificaciones: NotificacionRepository,
+    private readonly fotos: LimpiarFotosDeCerradas,
   ) {}
 
-  async ejecutar(ahora: Date = new Date()): Promise<{ sesiones: number; avisos: number }> {
+  async ejecutar(ahora: Date = new Date()): Promise<{ sesiones: number; avisos: number; fotos: number }> {
     const sesiones = await this.sesiones.eliminarExpiradas(ahora.toISOString());
     const limite = new Date(ahora.getTime() - DIAS_RETENCION_AVISOS * MS_POR_DIA).toISOString();
     const avisos = await this.notificaciones.eliminarAnterioresA(limite);
-    return { sesiones, avisos };
+    const fotos = await this.fotos.ejecutar();
+    return { sesiones, avisos, fotos };
   }
 }

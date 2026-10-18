@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { EliminarCuenta, ExportarDatosPersonales, LimpiezaPeriodica } from '../application/use-cases/privacidad';
+import { FotosModule } from '../fotos/fotos.module';
 import { IdentidadModule } from '../identidad/identidad.module';
 import { ModeracionModule } from '../moderacion/moderacion.module';
 import { NotificacionesModule } from '../notificaciones/notificaciones.module';
@@ -14,7 +15,7 @@ import { PrivacidadController } from './privacidad.controller';
  * puertos que cada contexto exporta; ninguno de ellos depende de este módulo.
  */
 @Module({
-  imports: [IdentidadModule, PublicacionesModule, ReclamacionesModule, NotificacionesModule, ModeracionModule],
+  imports: [IdentidadModule, PublicacionesModule, ReclamacionesModule, NotificacionesModule, ModeracionModule, FotosModule],
   controllers: [PrivacidadController],
   providers: [ExportarDatosPersonales, EliminarCuenta, LimpiezaPeriodica, LimpiezaProgramada],
 })

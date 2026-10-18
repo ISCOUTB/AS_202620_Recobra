@@ -98,6 +98,11 @@ export abstract class PublicacionRepository {
     throw new Error('cambiarCustodia no está implementado en este adaptador');
   }
 
+  /** Anota si la publicación tiene foto (ADR-0023); dice si la encontró. */
+  async marcarFoto(_id: string, _tiene: boolean): Promise<boolean> {
+    throw new Error('marcarFoto no está implementado en este adaptador');
+  }
+
   /** Cierra como "vencido" lo que sigue en "publicado" y se creó antes de `creadasAntesDe`; dice cuántas. */
   async cerrarVencidas(_creadasAntesDe: string, _fecha: string): Promise<number> {
     throw new Error('cerrarVencidas no está implementado en este adaptador');

@@ -166,6 +166,11 @@
   .zona-foto:hover { border-color: var(--azul-claro); background: #262932; }
   #vista-previa-foto { max-width: 100%; max-height: 130px; border-radius: 10px; }
 
+  .foto-pub { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  .foto-pub .foto-mini { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; background: var(--superficie-alta); }
+  .foto-pub .foto-completa { max-width: 100%; max-height: 320px; border-radius: 12px; }
+  .foto-pub button { padding: 0.35rem 0.8rem; font-size: 0.82rem; }
+  .foto-pub output { flex-basis: 100%; }
   .filtros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
   @media (max-width: 560px) { .filtros { grid-template-columns: minmax(0, 1fr); } }
 
@@ -604,13 +609,14 @@
           <input type="text" name="puntoCustodia" id="campo-punto" maxlength="120" placeholder="Portería de la entrada principal" />
         </label>
       </div>
-      <label>Foto (opcional, solo vista previa por ahora)
+      <label>Foto (opcional)
         <button type="button" class="zona-foto" id="zona-foto">
           <img id="vista-previa-foto" alt="Vista previa" hidden />
           <span id="texto-zona-foto">Elegir una foto del objeto</span>
         </button>
         <input type="file" id="input-foto" accept="image/*" hidden />
       </label>
+      <p class="nota-centro" id="nota-foto">Se reduce en tu dispositivo y se le quitan los datos ocultos, como la ubicación. De un objeto encontrado, el público solo ve una miniatura borrosa.</p>
       <button type="submit" id="boton-publicar">Publicar objeto perdido</button>
       <p class="nota-centro">Al publicar buscamos coincidencias y te avisamos.</p>
       <output id="mensaje-crear"></output>
@@ -744,16 +750,85 @@
 
   zonaFoto.addEventListener('click', () => inputFoto.click());
 
-  inputFoto.addEventListener('change', () => {
+  /* ================= Fotos (ADR-0023) =================
+   * La foto se reduce y se vuelve a codificar en el navegador (eso quita el EXIF
+   * y su ubicación); el servidor además la revisa y limpia. Se envía la foto y
+   * una miniatura de 24 px, que es lo único que ve el público de un objeto
+   * encontrado.
+   */
+  const LADO_FOTO = 1280;
+  const LADO_MINIATURA = 24;
+  let fotoElegida = null;
+
+  function cargarImagen(archivo) {
+    return new Promise((resolver, rechazar) => {
+      const direccion = URL.createObjectURL(archivo);
+      const imagen = new Image();
+      imagen.onload = () => {
+        URL.revokeObjectURL(direccion);
+        resolver(imagen);
+      };
+      imagen.onerror = () => {
+        URL.revokeObjectURL(direccion);
+        rechazar(new Error('No se pudo leer esa imagen. Prueba con una foto JPG o PNG.'));
+      };
+      imagen.src = direccion;
+    });
+  }
+
+  function aJpeg(imagen, ladoMaximo, calidad) {
+    const escala = Math.min(1, ladoMaximo / Math.max(imagen.naturalWidth, imagen.naturalHeight));
+    const lienzo = document.createElement('canvas');
+    lienzo.width = Math.max(1, Math.round(imagen.naturalWidth * escala));
+    lienzo.height = Math.max(1, Math.round(imagen.naturalHeight * escala));
+    const contexto = lienzo.getContext('2d');
+    contexto.fillStyle = '#ffffff'; // los PNG con fondo transparente no quedan negros
+    contexto.fillRect(0, 0, lienzo.width, lienzo.height);
+    contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+    return new Promise((resolver, rechazar) =>
+      lienzo.toBlob((blob) => (blob ? resolver(blob) : rechazar(new Error('No se pudo preparar la foto.'))), 'image/jpeg', calidad),
+    );
+  }
+
+  async function prepararFoto(archivo) {
+    const imagen = await cargarImagen(archivo);
+    return { completa: await aJpeg(imagen, LADO_FOTO, 0.8), miniatura: await aJpeg(imagen, LADO_MINIATURA, 0.5) };
+  }
+
+  function blobABase64(blob) {
+    return new Promise((resolver, rechazar) => {
+      const lector = new FileReader();
+      lector.onload = () => resolver(String(lector.result).split(',')[1]);
+      lector.onerror = () => rechazar(new Error('No se pudo preparar la foto.'));
+      lector.readAsDataURL(blob);
+    });
+  }
+
+  /** Sube la foto de una publicación propia; devuelve { ok, mensaje }. */
+  async function subirFoto(id, foto) {
+    const miniatura = await blobABase64(foto.miniatura);
+    const r = await llamar(`/publicaciones/${encodeURIComponent(id)}/foto`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/jpeg', 'X-Miniatura': miniatura },
+      body: foto.completa,
+    });
+    return { ok: r.ok, mensaje: (r.cuerpo && r.cuerpo.message) || (r.ok ? '' : 'No se pudo subir la foto') };
+  }
+
+  inputFoto.addEventListener('change', async () => {
     const archivo = inputFoto.files[0];
+    fotoElegida = null;
     if (!archivo) return;
     textoZonaFoto.textContent = archivo.name;
-    const lector = new FileReader();
-    lector.onload = () => {
-      vistaPreviaFoto.src = lector.result;
+    try {
+      fotoElegida = await prepararFoto(archivo);
+      vistaPreviaFoto.src = URL.createObjectURL(fotoElegida.completa);
       vistaPreviaFoto.hidden = false;
-    };
-    lector.readAsDataURL(archivo);
+    } catch (error) {
+      vistaPreviaFoto.hidden = true;
+      textoZonaFoto.textContent = error.message;
+      inputFoto.value = '';
+    }
   });
 
   /**
@@ -1069,6 +1144,51 @@
     contenedor.append(caja);
   }
 
+  /**
+   * Miniatura pública y botón "Ver foto". La foto completa de un objeto
+   * encontrado solo la ven su autor y quien tiene una reclamación aprobada
+   * (ADR-0023): para los demás el servidor responde 403 y se explica por qué.
+   */
+  function bloqueFoto(pub) {
+    const ruta = `/publicaciones/${encodeURIComponent(pub.id)}/foto`;
+    const caja = elemento('div', 'foto-pub');
+    const miniatura = elemento('img', 'foto-mini');
+    miniatura.alt = 'Miniatura de la foto del objeto';
+    miniatura.loading = 'lazy';
+    miniatura.src = `${ruta}/miniatura`;
+    const completa = elemento('img', 'foto-completa');
+    completa.alt = 'Foto del objeto';
+    completa.hidden = true;
+    const ver = elemento('button', 'secundario', 'Ver foto');
+    ver.type = 'button';
+    const aviso = elemento('output');
+    ver.addEventListener('click', async () => {
+      ver.disabled = true;
+      aviso.textContent = '';
+      aviso.className = '';
+      try {
+        const r = await fetch(ruta, { headers: cabeceraSesion() });
+        if (r.status === 403) {
+          aviso.textContent =
+            'La foto completa de un objeto encontrado la ven quien lo publicó y, cuando se aprueba su reclamación, quien lo reclamó. Así nadie lo reclama solo por haberlo visto.';
+          return;
+        }
+        if (!r.ok) throw new Error('sin foto');
+        completa.src = URL.createObjectURL(await r.blob());
+        completa.hidden = false;
+        miniatura.hidden = true;
+        ver.hidden = true;
+      } catch {
+        aviso.textContent = 'No se pudo cargar la foto.';
+        aviso.className = 'error';
+      } finally {
+        ver.disabled = false;
+      }
+    });
+    caja.append(miniatura, completa, ver, aviso);
+    return caja;
+  }
+
   function tarjetaPublicacion(pub) {
     const tarjeta = elemento('div', `tarjeta ${pub.tipo}`);
     if (pub.estado === 'reclamado' || pub.estado === 'cerrado') tarjeta.classList.add('entregada');
@@ -1125,6 +1245,7 @@
     tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion), meta);
     if (pub.tipo === 'encontrado') tarjeta.append(elemento('div', 'meta', textoCustodia(pub)));
     if (ayudaDe(pub)) tarjeta.append(elemento('div', 'meta', ayudaDe(pub)));
+    if (pub.tieneFoto) tarjeta.append(bloqueFoto(pub));
     tarjeta.append(acciones, resultado);
     return tarjeta;
   }
@@ -1282,9 +1403,15 @@
         return;
       }
 
+      let mensajeFoto = '';
+      if (fotoElegida) {
+        const foto = await subirFoto(cuerpo.id, fotoElegida);
+        if (!foto.ok) mensajeFoto = ` Pero la foto no se pudo subir (${foto.mensaje}); puedes agregarla desde "Lo que publiqué".`;
+      }
+      fotoElegida = null;
       cargarMiCuenta();
-      mensajeCrear.textContent = respuesta.status === 200 ? 'Ya estaba publicada (reintento).' : 'Publicación creada.';
-      mensajeCrear.className = 'ok';
+      mensajeCrear.textContent = (respuesta.status === 200 ? 'Ya estaba publicada (reintento).' : 'Publicación creada.') + mensajeFoto;
+      mensajeCrear.className = mensajeFoto ? 'error' : 'ok';
       claveIdempotencia = nuevaClave();
       formCrear.reset();
       ajustarFormularioPorTipo();
@@ -1653,12 +1780,62 @@
     }
   }
 
+  /** Agregar, cambiar o quitar la foto de una publicación propia que nadie ha reclamado todavía. */
+  function accionesFoto(pub) {
+    const fila = elemento('div', 'acciones');
+    const entrada = elemento('input');
+    entrada.type = 'file';
+    entrada.accept = 'image/*';
+    entrada.hidden = true;
+    const mensaje = elemento('output');
+    mensaje.setAttribute('role', 'alert');
+    const elegir = elemento('button', 'secundario', pub.tieneFoto ? 'Cambiar foto' : 'Agregar foto');
+    elegir.type = 'button';
+    elegir.addEventListener('click', () => entrada.click());
+    entrada.addEventListener('change', async () => {
+      const archivo = entrada.files[0];
+      if (!archivo) return;
+      elegir.disabled = true;
+      mensaje.textContent = 'Subiendo…';
+      mensaje.className = '';
+      try {
+        const resultado = await subirFoto(pub.id, await prepararFoto(archivo));
+        if (!resultado.ok) throw new Error(resultado.mensaje);
+        cargarMiCuenta();
+        buscar();
+      } catch (error) {
+        mensaje.textContent = error.message;
+        mensaje.className = 'error';
+        elegir.disabled = false;
+      }
+    });
+    fila.append(elegir, entrada);
+    if (pub.tieneFoto) {
+      fila.append(
+        botonConfirmable('Quitar foto', '¿Seguro? Toca otra vez', 'secundario', async () => {
+          const r = await llamar(`/publicaciones/${encodeURIComponent(pub.id)}/foto`, { method: 'DELETE' });
+          if (!r.ok) {
+            mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo quitar la foto';
+            mensaje.className = 'error';
+            return;
+          }
+          cargarMiCuenta();
+          buscar();
+        }),
+      );
+    }
+    fila.append(mensaje);
+    return fila;
+  }
+
   function tarjetaMia(pub) {
     const tarjeta = elemento('div', `tarjeta ${pub.tipo}`);
     const fila = elemento('div', 'fila-superior');
     fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), etiquetaEstado(pub.estado));
     tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion));
     if (ayudaDe(pub)) tarjeta.append(elemento('div', 'meta', ayudaDe(pub)));
+    if (pub.tieneFoto) tarjeta.append(bloqueFoto(pub));
+    if (pub.estado === 'publicado') tarjeta.append(accionesFoto(pub));
     if (pub.tipo === 'encontrado' && pub.estado !== 'reclamado' && pub.estado !== 'cerrado') tarjeta.append(zonaCustodia(pub));
     if (pub.estado === 'publicado') tarjeta.append(accionesCierre(pub));
     if (pub.tipo === 'encontrado') {

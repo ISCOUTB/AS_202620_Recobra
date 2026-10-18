@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'api/recobra_api.dart';
 import 'estado/almacen_local.dart';
 import 'estado/avisos.dart';
+import 'estado/fotos.dart';
 import 'estado/sesion.dart';
 import 'pantallas/bienvenida.dart';
 import 'pantallas/inicio.dart';
 import 'pantallas/mis_cosas.dart';
 import 'pantallas/perfil.dart';
 import 'pantallas/publicar.dart';
+import 'servicios/fotos.dart';
 import 'tema/tema_utb.dart';
 import 'widgets/comunes.dart';
 
@@ -45,9 +47,12 @@ void main() {
 /// Aplicación con el estilo de la app UTB (tema oscuro, encabezados con
 /// degradado azul y barra de navegación flotante).
 class RecobraApp extends StatefulWidget {
-  const RecobraApp({super.key, required this.api, this.almacen, this.mostrarBienvenida = true});
+  const RecobraApp({super.key, required this.api, this.almacen, this.mostrarBienvenida = true, this.selectorFoto});
 
   final RecobraApi api;
+
+  /// Cómo se elige una foto; sin él, la galería o la cámara del dispositivo.
+  final SelectorFoto? selectorFoto;
 
   /// Dónde se guarda la sesión en el dispositivo; sin él, solo vive en memoria.
   final AlmacenLocal? almacen;
@@ -62,6 +67,7 @@ class RecobraApp extends StatefulWidget {
 class _RecobraAppState extends State<RecobraApp> {
   late final SesionApp _sesion = SesionApp(widget.api, almacen: widget.almacen);
   late final AvisosApp _avisos = AvisosApp(_sesion);
+  late final SelectorFoto _selectorFoto = widget.selectorFoto ?? SelectorFotoDispositivo();
 
   @override
   void initState() {
@@ -82,11 +88,14 @@ class _RecobraAppState extends State<RecobraApp> {
       sesion: _sesion,
       child: AlcanceAvisos(
         avisos: _avisos,
-        child: MaterialApp(
-          title: 'Recobra',
-          debugShowCheckedModeBanner: false,
-          theme: temaUtb(),
-          home: Navegacion(mostrarBienvenida: widget.mostrarBienvenida),
+        child: AlcanceFotos(
+          selector: _selectorFoto,
+          child: MaterialApp(
+            title: 'Recobra',
+            debugShowCheckedModeBanner: false,
+            theme: temaUtb(),
+            home: Navegacion(mostrarBienvenida: widget.mostrarBienvenida),
+          ),
         ),
       ),
     );

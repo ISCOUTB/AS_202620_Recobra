@@ -199,6 +199,12 @@ Con el token, `POST /publicaciones` se llama con `Authorization: Bearer <token>`
 - `GET /cuentas/yo/datos` descarga todo lo que se guarda de la cuenta; `DELETE /cuentas/yo` con `{"contrasena": "..."}` la elimina (anonimiza) si no hay reclamaciones ni entregas en curso.
 - `POST /sesiones` responde `429` con `Retry-After` tras 5 intentos fallidos por correo en 15 minutos.
 
+**Fotos con privacidad** ([ADR-0023](docs/adr/0023-fotos-con-privacidad.md))
+
+- Quien publicó agrega o cambia la foto con `PUT /publicaciones/<id>/foto` (cuerpo `image/jpeg`, hasta 1 MB, y la miniatura de hasta 32 px en base64 en la cabecera `X-Miniatura`) y la quita con `DELETE`. El servidor quita el EXIF (ubicación GPS) y la publicación muestra `tieneFoto`.
+- `GET /publicaciones/<id>/foto/miniatura` es público. `GET /publicaciones/<id>/foto` (completa) es público en un perdido; en un encontrado solo la ven su autor y quien tiene una reclamación aprobada (403 para los demás).
+- La foto se borra cuando la publicación se cierra, se entrega o se oculta, y al eliminar la cuenta.
+
 **Moderación mínima** ([ADR-0022](docs/adr/0022-moderacion-minima-reportes-y-ocultar.md))
 
 - Cualquier cuenta reporta una publicación ajena con `POST /publicaciones/<id>/reportar` y `{"motivo": "falso|spam|inapropiado|datos_personales|otro", "detalle"?}` (una vez por cuenta).

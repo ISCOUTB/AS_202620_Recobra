@@ -4,6 +4,7 @@ import { ReporteRepository } from '../domain/ports/reporte-repository';
 import { MemoriaReporteRepository } from '../infrastructure/persistence/memoria-reporte.repository';
 import { PostgresReporteRepository } from '../infrastructure/persistence/postgres-reporte.repository';
 import { AdministradorGuard } from '../identidad/administrador.guard';
+import { FotosModule } from '../fotos/fotos.module';
 import { IdentidadModule } from '../identidad/identidad.module';
 import { PublicacionesModule } from '../publicaciones/publicaciones.module';
 import { ModeracionController } from './moderacion.controller';
@@ -14,7 +15,7 @@ import { ModeracionController } from './moderacion.controller';
  * `cerrar`, como el resto; es dueño único de la tabla `reportes`.
  */
 @Module({
-  imports: [IdentidadModule, PublicacionesModule],
+  imports: [IdentidadModule, PublicacionesModule, FotosModule],
   controllers: [ModeracionController],
   providers: [
     {

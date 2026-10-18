@@ -4,6 +4,7 @@ import '../api/recobra_api.dart';
 import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
+import '../widgets/foto.dart';
 import 'custodia.dart';
 import 'reclamar.dart';
 import 'reportar.dart';
@@ -13,14 +14,19 @@ import 'requiere_cuenta.dart';
 enum ResultadoDetalle { reclamo, hallazgo }
 
 /// Abre el detalle de una publicación en una hoja inferior.
-Future<ResultadoDetalle?> abrirDetalle(BuildContext context, Publicacion p, {required AlPedirCuenta alPedirCuenta}) {
+Future<ResultadoDetalle?> abrirDetalle(
+  BuildContext context,
+  Publicacion p, {
+  required AlPedirCuenta alPedirCuenta,
+  ValueChanged<Publicacion>? alActualizar,
+}) {
   final sesion = AlcanceSesion.de(context);
   return showModalBottomSheet<ResultadoDetalle>(
     context: context,
     isScrollControlled: true,
     builder: (_) => AlcanceSesion(
       sesion: sesion,
-      child: DetallePublicacion(publicacion: p, alPedirCuenta: alPedirCuenta),
+      child: DetallePublicacion(publicacion: p, alPedirCuenta: alPedirCuenta, alActualizar: alActualizar),
     ),
   );
 }
@@ -28,10 +34,13 @@ Future<ResultadoDetalle?> abrirDetalle(BuildContext context, Publicacion p, {req
 /// Detalle: datos, coincidencias lado a lado ("lo que perdiste / lo que
 /// encontraron") y, si es un objeto encontrado ajeno, reclamarlo.
 class DetallePublicacion extends StatefulWidget {
-  const DetallePublicacion({super.key, required this.publicacion, required this.alPedirCuenta});
+  const DetallePublicacion({super.key, required this.publicacion, required this.alPedirCuenta, this.alActualizar});
 
   final Publicacion publicacion;
   final AlPedirCuenta alPedirCuenta;
+
+  /// Quien llamó se entera de que la publicación cambió (por ahora, su foto).
+  final ValueChanged<Publicacion>? alActualizar;
 
   @override
   State<DetallePublicacion> createState() => _DetallePublicacionState();
@@ -39,6 +48,9 @@ class DetallePublicacion extends StatefulWidget {
 
 class _DetallePublicacionState extends State<DetallePublicacion> {
   late Future<List<Coincidencia>> _coincidencias;
+
+  /// La publicación con los cambios hechos desde este detalle (su foto).
+  Publicacion? _actualizada;
 
   @override
   void didChangeDependencies() {
@@ -116,7 +128,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
   @override
   Widget build(BuildContext context) {
     final sesion = AlcanceSesion.de(context);
-    final p = widget.publicacion;
+    final p = _actualizada ?? widget.publicacion;
     final ayuda = ayudaDe(p);
     final esEncontradoAjeno = p.tipo == 'encontrado' && sesion.cuenta?.id != p.autorId;
     return DraggableScrollableSheet(
@@ -173,6 +185,17 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
                       const SizedBox(width: 8),
                       Expanded(child: Text(textoCustodia(p), style: const TextStyle(fontSize: 14))),
                     ],
+                  ),
+                ],
+                if (p.tieneFoto || (sesion.cuenta?.id == p.autorId && p.estado == 'publicado')) ...[
+                  const SizedBox(height: 14),
+                  FotoDetalle(
+                    publicacion: p,
+                    esAutor: sesion.cuenta?.id != null && sesion.cuenta?.id == p.autorId,
+                    alCambiar: (nueva) {
+                      setState(() => _actualizada = nueva);
+                      widget.alActualizar?.call(nueva);
+                    },
                   ),
                 ],
                 const SizedBox(height: 22),

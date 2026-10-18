@@ -85,6 +85,8 @@ export interface DatosPublicacion {
    * aprobación quedó a medias. Es interno: no sale en las respuestas de la API.
    */
   reclamacionAprobadaId?: string | null;
+  /** Si tiene foto (ADR-0023). La foto vive en el contexto Fotos; aquí solo se sabe que existe. */
+  tieneFoto?: boolean;
 }
 
 export class Publicacion {
@@ -102,6 +104,7 @@ export class Publicacion {
   readonly custodia: Custodia | null;
   readonly puntoCustodia: string | null;
   readonly reclamacionAprobadaId: string | null;
+  readonly tieneFoto: boolean;
 
   constructor({
     id,
@@ -118,6 +121,7 @@ export class Publicacion {
     custodia,
     puntoCustodia,
     reclamacionAprobadaId,
+    tieneFoto,
   }: DatosPublicacion) {
     Publicacion.validar({ tipo, descripcion, categoria, ubicacion, detalleUbicacion });
     const lugarCustodia = Publicacion.validarCustodia(tipo, custodia, puntoCustodia);
@@ -136,6 +140,7 @@ export class Publicacion {
     this.custodia = lugarCustodia.custodia;
     this.puntoCustodia = lugarCustodia.puntoCustodia;
     this.reclamacionAprobadaId = reclamacionAprobadaId ?? null;
+    this.tieneFoto = tieneFoto === true;
   }
 
   /** Lo que sale por la API: todo menos el dato interno de la aprobación en curso (ADR-0020). */

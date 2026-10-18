@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../api/recobra_api.dart';
 import '../estado/sesion.dart';
+import '../servicios/fotos.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
+import '../widgets/foto.dart';
 import 'custodia.dart';
 import 'inicio.dart';
 import 'requiere_cuenta.dart';
@@ -61,6 +63,7 @@ class PublicarPantallaState extends State<PublicarPantalla> {
   List<LugarCampus> _lugares = lugaresDeRespaldo;
   bool _lugaresPedidos = false;
   bool _ocupado = false;
+  FotoPreparada? _foto;
 
   /// Clave de idempotencia de la creación en curso: se reutiliza si el envío
   /// falla y se reintenta, y se renueva solo tras crear con éxito, para que un
@@ -128,8 +131,9 @@ class PublicarPantallaState extends State<PublicarPantalla> {
     final sesion = AlcanceSesion.de(context);
     final mensajero = ScaffoldMessenger.of(context);
     setState(() => _ocupado = true);
+    var avisoFoto = '';
     try {
-      await sesion.api.crearPublicacion(
+      final creada = await sesion.api.crearPublicacion(
         tipo: _tipo,
         descripcion: _descripcion.text.trim(),
         categoria: _categoria == 'otros' && _otraCategoria.text.trim().isNotEmpty
@@ -142,6 +146,15 @@ class PublicarPantallaState extends State<PublicarPantalla> {
         claveIdempotencia: _claveIdempotencia,
       );
       _claveIdempotencia = _nuevaClave();
+      final foto = _foto;
+      if (foto != null) {
+        try {
+          await sesion.api.subirFoto(creada.id, foto.completa, foto.miniatura);
+        } catch (e) {
+          sesion.revisarError(e);
+          avisoFoto = ' Pero la foto no se pudo subir ($e); agrégala desde el detalle en Mis cosas.';
+        }
+      }
       _formKey.currentState!.reset();
       _descripcion.clear();
       _otraCategoria.clear();
@@ -153,9 +166,10 @@ class PublicarPantallaState extends State<PublicarPantalla> {
         _categoria = null;
         _ubicacion = null;
         _piso = null;
+        _foto = null;
       });
       mensajero.showSnackBar(
-        const SnackBar(content: Text('Publicación creada. Te avisamos si aparece una coincidencia.')),
+        SnackBar(content: Text('Publicación creada. Te avisamos si aparece una coincidencia.$avisoFoto')),
       );
     } catch (e) {
       sesion.revisarError(e);
@@ -303,6 +317,13 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                   const SizedBox(height: 8),
                   SelectorCustodia(custodia: _custodia, alCambiar: (v) => setState(() => _custodia = v), punto: _punto),
                 ],
+                const SizedBox(height: 20),
+                CampoFoto(
+                  foto: _foto,
+                  alElegida: (f) => setState(() => _foto = f),
+                  alQuitar: () => setState(() => _foto = null),
+                  alError: (mensaje) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje))),
+                ),
                 const SizedBox(height: 28),
                 FilledButton(
                   onPressed: _ocupado ? null : _publicar,

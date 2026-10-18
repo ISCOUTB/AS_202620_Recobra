@@ -24,6 +24,7 @@ flowchart TB
         NOTIF["Notificaciones<br/><i>implementado dentro de la API (ADR-0015)</i><br/>bandeja de avisos"]
         AUTH["Identidad<br/><i>implementado dentro de la API (ADR-0013)</i><br/>cuentas y sesiones"]
         MOD["Moderación<br/><i>implementado dentro de la API (ADR-0022)</i><br/>reportes y ocultar"]
+        FOTOS["Fotos<br/><i>implementado dentro de la API (ADR-0023)</i><br/>foto y miniatura"]
     end
 
     PUB -->|"Cliente/Proveedor — expone publicaciones vía puerto PublicacionRepository"| MATCH
@@ -56,6 +57,7 @@ modelo de datos.
 | **Emparejamiento (Matching)** | Soporte | Comparar publicaciones de "perdido" y "encontrado" y producir coincidencias (escenario S3) | Implementado (misma categoría y parecido ponderado de lugar, palabras y fecha con umbral 0,3, ADR-0018; ver `src/emparejamiento/`, `src/domain/emparejamiento/parecido.ts` y `src/application/use-cases/buscar-coincidencias.ts`) |
 | **Notificaciones** | Genérico | Avisar a cada cuenta de coincidencias y reclamaciones (escenario S3) | Implementado dentro de la API como bandeja de avisos (`src/notificaciones/`, `src/application/use-cases/notificaciones.ts`, ADR-0015); correo o push quedan como canal futuro |
 | **Moderación** | Genérico | Permitir que la comunidad señale abusos y que un administrador oculte publicaciones | Implementado dentro de la API (`src/moderacion/`, ADR-0022); cierra la publicación por el puerto de Publicaciones y avisa a su autor con un evento |
+| **Fotos** | Genérico | Guardar la foto de una publicación y decidir quién ve la completa | Implementado dentro de la API (`src/fotos/`, ADR-0023); anota `tieneFoto` por el puerto de Publicaciones y consulta a Reclamaciones quién tiene una reclamación aprobada |
 | **Identidad** | Genérico | Cuentas con correo institucional y sesiones | Implementado dentro de la API (`src/identidad/`, ADR-0013); un proveedor institucional externo queda como alternativa futura detrás de los mismos puertos |
 
 ## Patrones de relación entre contextos

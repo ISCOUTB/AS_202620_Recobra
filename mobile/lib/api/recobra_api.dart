@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -17,6 +18,7 @@ class Publicacion {
     this.motivoCierre,
     this.custodia,
     this.puntoCustodia,
+    this.tieneFoto = false,
   });
 
   final String id;
@@ -34,6 +36,9 @@ class Publicacion {
   /// Solo encontrados: quien_lo_encontro o punto_de_entrega (ADR-0019).
   final String? custodia;
   final String? puntoCustodia;
+
+  /// Si tiene foto (ADR-0023); la miniatura es pública, la completa depende de quién la pida.
+  final bool tieneFoto;
 
   /// "Bloque A1 · Piso 2 · Salón 204", o solo el lugar si no hay detalle.
   String get lugarCompleto => detalleUbicacion == null ? ubicacion : '$ubicacion · $detalleUbicacion';
@@ -59,6 +64,7 @@ class Publicacion {
       motivoCierre: json['motivoCierre'] as String?,
       custodia: json['custodia'] as String?,
       puntoCustodia: json['puntoCustodia'] as String?,
+      tieneFoto: json['tieneFoto'] as bool? ?? false,
     );
   }
 }
@@ -266,7 +272,7 @@ class RecobraApiException implements Exception {
   String toString() => message;
 }
 
-/// Cliente HTTP de la API de Recobra (contrato 5.1.0). La URL base se inyecta
+/// Cliente HTTP de la API de Recobra (contrato 5.2.0). La URL base se inyecta
 /// para poder apuntar a emulador, web o el despliegue. El token de sesión se
 /// guarda solo en memoria: al cerrar la app hay que volver a iniciar sesión.
 class RecobraApi {
@@ -432,6 +438,35 @@ class RecobraApi {
       }),
     ));
     return Publicacion.fromJson(_cuerpoO(r, {201, 200}, 'No se pudo crear la publicación') as Map<String, dynamic>);
+  }
+
+  /// Dirección de la miniatura pública de una publicación con foto (ADR-0023).
+  String urlMiniatura(String id) => '$baseUrl/publicaciones/$id/foto/miniatura';
+
+  /// Agrega o reemplaza la foto de una publicación propia (JPEG). La miniatura
+  /// (JPEG de hasta 32 px) viaja en la cabecera `X-Miniatura`, en base64.
+  Future<Publicacion> subirFoto(String id, Uint8List completa, Uint8List miniatura) async {
+    final r = await _enviar(_client.put(
+      _uri('/publicaciones/$id/foto'),
+      headers: _cabeceras(extra: {'Content-Type': 'image/jpeg', 'X-Miniatura': base64Encode(miniatura)}),
+      body: completa,
+    ));
+    return Publicacion.fromJson(_cuerpoO(r, {200}, 'No se pudo subir la foto') as Map<String, dynamic>);
+  }
+
+  Future<Publicacion> quitarFoto(String id) async {
+    final r = await _enviar(_client.delete(_uri('/publicaciones/$id/foto'), headers: _cabeceras()));
+    return Publicacion.fromJson(_cuerpoO(r, {200}, 'No se pudo quitar la foto') as Map<String, dynamic>);
+  }
+
+  /// La foto completa. Con 403, el objeto es un encontrado y la persona no es
+  /// su autor ni tiene una reclamación aprobada (ADR-0023).
+  Future<Uint8List> fotoCompleta(String id) async {
+    final r = await _enviar(_client.get(_uri('/publicaciones/$id/foto'), headers: _cabeceras()));
+    if (r.statusCode != 200) {
+      throw RecobraApiException(_extractError(utf8.decode(r.bodyBytes)) ?? 'No se pudo cargar la foto', statusCode: r.statusCode);
+    }
+    return r.bodyBytes;
   }
 
   /// Quien encontró el objeto dice dónde está ahora (ADR-0019).
