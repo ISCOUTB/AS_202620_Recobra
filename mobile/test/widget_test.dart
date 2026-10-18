@@ -59,6 +59,7 @@ MockClient _servidor({
   bool soyAutor = false,
   String? mias,
   String? reclamosPropios,
+  String? lista,
 }) =>
     MockClient((request) async {
       registro?.add(request);
@@ -73,7 +74,10 @@ MockClient _servidor({
           201,
         );
       }
-      if (request.method == 'GET' && ruta == '/publicaciones') return _resp('[${_publicacion()}]', 200);
+      if (request.method == 'GET' && ruta == '/publicaciones') return _resp(lista ?? '[${_publicacion()}]', 200);
+      if (request.method == 'POST' && ruta == '/publicaciones/p5/lo-tengo') {
+        return _resp(_publicacion(id: 'h1', autorId: 'yo'), 201);
+      }
       if (request.method == 'POST' && ruta == '/publicaciones') {
         return request.headers['Authorization'] == 'Bearer tok-123'
             ? _resp(_publicacion(id: 'nueva', tipo: 'perdido', autorId: 'yo'), 201)
@@ -369,6 +373,66 @@ void main() {
       await tester.tap(find.text('Sí, entregar a Bea'));
       await tester.pumpAndSettle();
       expect(peticiones.where((r) => r.url.path == '/reclamaciones/r1/aprobar'), hasLength(1));
+    });
+
+    testWidgets('Publicar un encontrado dejado en la portería envía dónde está', (tester) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      await tester.pumpWidget(app(_servidor(registro: peticiones)));
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.tap(find.text('Inicio').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Encontré algo'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextFormField, '¿Qué es? Descríbelo'), 'Paraguas gris');
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Otros'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<String?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Biblioteca').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lo dejé en un punto'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextFormField, '¿Dónde lo dejaste?'), 'Portería principal');
+      await tester.tap(find.widgetWithText(FilledButton, 'Publicar objeto encontrado'));
+      await tester.pumpAndSettle();
+
+      final crear = peticiones.singleWhere((r) => r.method == 'POST' && r.url.path == '/publicaciones');
+      expect(jsonDecode(crear.body)['custodia'], 'punto_de_entrega');
+      expect(jsonDecode(crear.body)['puntoCustodia'], 'Portería principal');
+    });
+
+    testWidgets('"Lo tengo yo" sobre un perdido ajeno avisa al dueño', (tester) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      final perdido = jsonEncode({
+        ...jsonDecode(_publicacion(id: 'p5', tipo: 'perdido', autorId: 'otra')) as Map<String, dynamic>,
+        'descripcion': 'Calculadora Casio',
+      });
+      await tester.pumpWidget(app(_servidor(registro: peticiones, lista: '[$perdido]')));
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.tap(find.text('Inicio').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Calculadora Casio'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lo tengo yo'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextFormField, '¿Qué tienes?'), 'Calculadora científica');
+      await tester.tap(find.byType(DropdownButtonFormField<String?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Biblioteca').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Avisar que lo tengo'));
+      await tester.pumpAndSettle();
+
+      final reporte = peticiones.singleWhere((r) => r.url.path == '/publicaciones/p5/lo-tengo');
+      expect(jsonDecode(reporte.body), containsPair('descripcion', 'Calculadora científica'));
+      expect(jsonDecode(reporte.body), containsPair('ubicacion', 'Biblioteca'));
+      expect(find.text('Lo que publiqué'), findsOneWidget); // quedó en Mis cosas
     });
 
     testWidgets('Quien perdió algo lo marca como recuperado desde Mis cosas', (tester) async {

@@ -6,6 +6,7 @@ import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 import 'acceso.dart';
+import 'custodia.dart';
 import 'detalle.dart';
 
 /// Una publicación propia con las reclamaciones que recibió.
@@ -178,20 +179,30 @@ class MisCosasPantallaState extends State<MisCosasPantalla> {
   }
 
   Widget? _pie(PublicacionConReclamaciones item) {
-    final cierre = item.publicacion.estado == 'publicado' ? _AccionesCierre(item.publicacion, alCambiar: _recargar) : null;
-    if (item.publicacion.tipo != 'encontrado' || item.reclamaciones.isEmpty) {
-      if (item.publicacion.tipo == 'encontrado' && item.publicacion.estado == 'publicado') {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    final p = item.publicacion;
+    final activa = p.estado != 'reclamado' && p.estado != 'cerrado';
+    final total = item.reclamaciones.length;
+    final partes = <Widget>[
+      if (p.tipo == 'encontrado' && activa)
+        Row(
           children: [
-            const Text('Nadie lo ha reclamado todavía.', style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
-            const SizedBox(height: 10),
-            cierre!,
+            Expanded(child: Text(textoCustodia(p), style: const TextStyle(fontSize: 13))),
+            TextButton(
+              onPressed: () => editarCustodia(context, p, alCambiar: _recargar),
+              child: const Text('Cambiar dónde está'),
+            ),
           ],
-        );
-      }
-      return cierre;
-    }
+        ),
+      if (p.tipo == 'encontrado' && total == 0 && p.estado == 'publicado')
+        const Text('Nadie lo ha reclamado todavía.', style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
+      if (total > 0) _reclamacionesDe(item),
+      if (p.estado == 'publicado') ...[const SizedBox(height: 10), _AccionesCierre(p, alCambiar: _recargar)],
+    ];
+    if (partes.isEmpty) return null;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: partes);
+  }
+
+  Widget _reclamacionesDe(PublicacionConReclamaciones item) {
     final total = item.reclamaciones.length;
     return Column(
       children: [
@@ -557,6 +568,7 @@ class _TarjetaReclamoPropio extends StatelessWidget {
           if (r.contactoCorreo != null)
             _Contacto(
               texto: '${r.contactoNombre ?? 'Quien lo encontró'} aprobó tu reclamación. '
+                  '${p?.custodia == custodiaPunto ? 'Está en: ${p!.puntoCustodia}. ' : ''}'
                   'Escríbele para acordar dónde y cuándo te lo entrega.',
               correo: r.contactoCorreo!,
             ),

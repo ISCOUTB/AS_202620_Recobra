@@ -1,4 +1,4 @@
-import { EstadoPublicacion, MotivoCierre, Publicacion, TipoPublicacion } from '../entities/publicacion';
+import { Custodia, EstadoPublicacion, MotivoCierre, Publicacion, TipoPublicacion } from '../entities/publicacion';
 
 export interface FiltrosBusqueda {
   tipo?: TipoPublicacion;
@@ -77,6 +77,11 @@ export abstract class PublicacionRepository {
    */
   async cerrar(_id: string, _motivo: MotivoCierre, _fecha: string): Promise<boolean> {
     throw new Error('cerrar no está implementado en este adaptador');
+  }
+
+  /** Cambia dónde está un objeto encontrado (ADR-0019); dice si lo cambió. */
+  async cambiarCustodia(_id: string, _custodia: Custodia, _punto: string | null): Promise<boolean> {
+    throw new Error('cambiarCustodia no está implementado en este adaptador');
   }
 
   /** Cierra como "vencido" lo que sigue en "publicado" y se creó antes de `creadasAntesDe`; dice cuántas. */

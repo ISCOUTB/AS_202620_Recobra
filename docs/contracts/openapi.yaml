@@ -42,7 +42,10 @@ info:
     `POST /publicaciones/{id}/cerrar` y lo que vence pasa a `cerrado`. La
     búsqueda ya no devuelve lo cerrado ni lo entregado. Cambio incompatible:
     versión mayor.
-  version: "4.0.0"
+    4.1.0 agrega dónde está un objeto encontrado (`custodia`, `puntoCustodia`,
+    `POST /publicaciones/{id}/custodia`) y "Lo tengo yo" sobre un objeto
+    perdido (`POST /publicaciones/{id}/lo-tengo`), ADR-0019: cambio compatible.
+  version: "4.1.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
@@ -205,6 +208,139 @@ paths:
                 $ref: "#/components/schemas/Error"
         "503":
           description: El almacenamiento no está disponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /publicaciones/{id}/custodia:
+    post:
+      operationId: cambiarCustodia
+      summary: Decir dónde está ahora un objeto encontrado (solo quien lo encontró)
+      tags: [Publicaciones]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [custodia]
+              properties:
+                custodia:
+                  type: string
+                  enum: [quien_lo_encontro, punto_de_entrega]
+                puntoCustodia:
+                  type: string
+                  maxLength: 120
+      responses:
+        "200":
+          description: Publicación actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publicacion"
+        "400":
+          description: Custodia inválida, falta el punto o no es un objeto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Solo quien encontró el objeto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La publicación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: El objeto ya se entregó o la publicación está cerrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /publicaciones/{id}/lo-tengo:
+    post:
+      operationId: reportarHallazgo
+      summary: '"Lo tengo yo": crea un encontrado enlazado a este objeto perdido y avisa a su dueño'
+      tags: [Emparejamiento]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id de la publicación del objeto perdido
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [descripcion, ubicacion]
+              properties:
+                descripcion:
+                  type: string
+                  minLength: 1
+                  description: Lo que se ve del objeto, sin los detalles que el dueño usará como prueba
+                ubicacion:
+                  type: string
+                  minLength: 1
+                detalleUbicacion:
+                  type: string
+                  maxLength: 120
+                custodia:
+                  type: string
+                  enum: [quien_lo_encontro, punto_de_entrega]
+                puntoCustodia:
+                  type: string
+                  maxLength: 120
+      responses:
+        "201":
+          description: Publicación de encontrado creada (misma categoría que el perdido)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publicacion"
+        "400":
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La publicación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: No es un objeto perdido, ya está cerrado o entregado, es tuyo o ya respondiste
           content:
             application/json:
               schema:
@@ -1005,6 +1141,16 @@ components:
           maxLength: 120
           description: Piso, salón o punto de referencia dentro del lugar (opcional)
           example: "Piso 2 · Salón 204"
+        custodia:
+          type: string
+          nullable: true
+          enum: [quien_lo_encontro, punto_de_entrega, null]
+          description: Solo encontrados; dónde está el objeto ahora (ADR-0019). Por omisión, quien_lo_encontro
+        puntoCustodia:
+          type: string
+          nullable: true
+          maxLength: 120
+          description: Con custodia punto_de_entrega, el lugar donde quedó (portería, oficina…)
     Publicacion:
       type: object
       required: [id, tipo, descripcion, categoria, ubicacion, estado, creadoEn]
@@ -1031,6 +1177,16 @@ components:
           type: string
           nullable: true
           enum: [recuperado, retirado, vencido, null]
+        custodia:
+          type: string
+          nullable: true
+          enum: [quien_lo_encontro, punto_de_entrega, null]
+          description: Solo encontrados; dónde está el objeto ahora (ADR-0019). Por omisión, quien_lo_encontro
+        puntoCustodia:
+          type: string
+          nullable: true
+          maxLength: 120
+          description: Con custodia punto_de_entrega, el lugar donde quedó (portería, oficina…)
         cerradoEn:
           type: string
           format: date-time

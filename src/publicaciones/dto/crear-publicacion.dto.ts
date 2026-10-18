@@ -13,4 +13,7 @@ export interface CrearPublicacionDto {
   categoria: string;
   ubicacion: string;
   detalleUbicacion?: string | null;
+  /** Solo encontrados: "quien_lo_encontro" (por omisión) o "punto_de_entrega" (ADR-0019). */
+  custodia?: string | null;
+  puntoCustodia?: string | null;
 }

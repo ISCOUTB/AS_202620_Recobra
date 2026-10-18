@@ -7,6 +7,7 @@ import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 import 'acceso.dart';
+import 'custodia.dart';
 import 'inicio.dart';
 
 /// Se usa solo si `GET /lugares` no responde: la fuente es el catálogo del servidor.
@@ -37,6 +38,8 @@ class PublicarPantallaState extends State<PublicarPantalla> {
   final _otraCategoria = TextEditingController();
   final _otraUbicacion = TextEditingController();
   final _referencia = TextEditingController();
+  final _punto = TextEditingController();
+  String _custodia = custodiaQuienLoEncontro;
   String _tipo = 'perdido';
   String? _categoria;
   String? _ubicacion;
@@ -81,6 +84,7 @@ class PublicarPantallaState extends State<PublicarPantalla> {
     _otraCategoria.dispose();
     _otraUbicacion.dispose();
     _referencia.dispose();
+    _punto.dispose();
     super.dispose();
   }
 
@@ -108,6 +112,8 @@ class PublicarPantallaState extends State<PublicarPantalla> {
             : _categoria!,
         ubicacion: _ubicacion == null ? _otraUbicacion.text.trim() : _ubicacion!,
         detalleUbicacion: _detalle,
+        custodia: _tipo == 'encontrado' ? _custodia : null,
+        puntoCustodia: _punto.text.trim(),
         claveIdempotencia: _claveIdempotencia,
       );
       _claveIdempotencia = _nuevaClave();
@@ -116,7 +122,9 @@ class PublicarPantallaState extends State<PublicarPantalla> {
       _otraCategoria.clear();
       _otraUbicacion.clear();
       _referencia.clear();
+      _punto.clear();
       setState(() {
+        _custodia = custodiaQuienLoEncontro;
         _categoria = null;
         _ubicacion = null;
         _piso = null;
@@ -254,6 +262,10 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                     hintText: 'Salón 204, cerca de los baños…',
                   ),
                 ),
+                if (!perdido) ...[
+                  const SizedBox(height: 8),
+                  SelectorCustodia(custodia: _custodia, alCambiar: (v) => setState(() => _custodia = v), punto: _punto),
+                ],
                 const SizedBox(height: 28),
                 FilledButton(
                   onPressed: _ocupado ? null : _publicar,

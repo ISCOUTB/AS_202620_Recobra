@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  Custodia,
   ESTADOS_ACTIVOS,
   EstadoPublicacion,
   MotivoCierre,
@@ -36,6 +37,13 @@ export class MemoriaPublicacionRepository extends PublicacionRepository {
     const actual = this.publicaciones.get(id);
     if (!actual || actual.estado !== 'publicado') return false;
     this.publicaciones.set(id, new Publicacion({ ...actual, estado: 'cerrado', motivoCierre: motivo, cerradoEn: fecha }));
+    return true;
+  }
+
+  async cambiarCustodia(id: string, custodia: Custodia, punto: string | null): Promise<boolean> {
+    const actual = this.publicaciones.get(id);
+    if (!actual) return false;
+    this.publicaciones.set(id, new Publicacion({ ...actual, custodia, puntoCustodia: punto }));
     return true;
   }
 

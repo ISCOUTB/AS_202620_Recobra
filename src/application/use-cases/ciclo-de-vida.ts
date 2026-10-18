@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Publicacion } from '../../domain/entities/publicacion';
-import { ConflictoError, NoEncontradoError, PermisoDenegadoError } from '../../domain/errors/errores-de-dominio';
+import { Custodia, Publicacion } from '../../domain/entities/publicacion';
+import {
+  ConflictoError,
+  DatoInvalidoError,
+  NoEncontradoError,
+  PermisoDenegadoError,
+} from '../../domain/errors/errores-de-dominio';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 
 /** Días que una publicación sin movimiento sigue visible antes de cerrarse sola. */
@@ -25,6 +30,31 @@ export class CerrarPublicacion {
     const motivoValido = Publicacion.exigirCierre(publicacion, motivo);
     const cerrada = await this.publicaciones.cerrar(id, motivoValido, new Date().toISOString());
     if (!cerrada) throw new ConflictoError('el estado de la publicación cambió; vuelve a cargar');
+    return (await this.publicaciones.buscarPorId(id)) as Publicacion;
+  }
+}
+
+/**
+ * Dónde está ahora un objeto encontrado (ADR-0019): quien lo encontró lo
+ * actualiza, por ejemplo cuando lo deja en la portería. Solo mientras el objeto
+ * no se haya entregado ni cerrado.
+ */
+@Injectable()
+export class CambiarCustodia {
+  constructor(private readonly publicaciones: PublicacionRepository) {}
+
+  async ejecutar(id: string, solicitanteId: string, custodia: string, puntoCustodia?: string | null): Promise<Publicacion> {
+    const publicacion = await this.publicaciones.buscarPorId(id);
+    if (!publicacion) throw new NoEncontradoError('Publicación no encontrada');
+    if (publicacion.autorId !== solicitanteId) {
+      throw new PermisoDenegadoError('solo quien encontró el objeto puede decir dónde está');
+    }
+    if (publicacion.tipo !== 'encontrado') throw new DatoInvalidoError('solo un objeto encontrado indica dónde está');
+    if (publicacion.estado === 'reclamado' || publicacion.estado === 'cerrado') {
+      throw new ConflictoError('este objeto ya se entregó o la publicación está cerrada');
+    }
+    const valor = Publicacion.validarCustodia('encontrado', custodia, puntoCustodia);
+    await this.publicaciones.cambiarCustodia(id, valor.custodia as Custodia, valor.puntoCustodia);
     return (await this.publicaciones.buscarPorId(id)) as Publicacion;
   }
 }

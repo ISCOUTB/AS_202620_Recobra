@@ -4,13 +4,16 @@ import '../api/recobra_api.dart';
 import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
+import 'custodia.dart';
 import 'reclamar.dart';
 
-/// Abre el detalle de una publicación en una hoja inferior. Devuelve `true` si
-/// la persona envió una reclamación.
-Future<bool?> abrirDetalle(BuildContext context, Publicacion p, {required VoidCallback alPedirCuenta}) {
+/// Lo que pasó en el detalle: se envió una reclamación o un "Lo tengo yo".
+enum ResultadoDetalle { reclamo, hallazgo }
+
+/// Abre el detalle de una publicación en una hoja inferior.
+Future<ResultadoDetalle?> abrirDetalle(BuildContext context, Publicacion p, {required VoidCallback alPedirCuenta}) {
   final sesion = AlcanceSesion.de(context);
-  return showModalBottomSheet<bool>(
+  return showModalBottomSheet<ResultadoDetalle>(
     context: context,
     isScrollControlled: true,
     builder: (_) => AlcanceSesion(
@@ -61,7 +64,31 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
         builder: (_) => AlcanceSesion(sesion: sesion, child: ReclamarPantalla(publicacion: widget.publicacion)),
       ),
     );
-    if (enviada == true && mounted) navegador.pop(true);
+    if (enviada == true && mounted) navegador.pop(ResultadoDetalle.reclamo);
+  }
+
+  /// "Lo tengo yo": solo sobre un perdido ajeno que todavía no apareció.
+  bool _puedeDecirLoTengo(SesionApp sesion) {
+    final p = widget.publicacion;
+    return p.tipo == 'perdido' &&
+        estadosReclamables.contains(p.estado) &&
+        p.autorId != null &&
+        sesion.cuenta?.id != p.autorId;
+  }
+
+  Future<void> _loTengo(SesionApp sesion) async {
+    if (!sesion.activa) {
+      Navigator.pop(context);
+      widget.alPedirCuenta();
+      return;
+    }
+    final navegador = Navigator.of(context);
+    final enviado = await navegador.push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AlcanceSesion(sesion: sesion, child: ReportarHallazgoPantalla(perdido: widget.publicacion)),
+      ),
+    );
+    if (enviado == true && mounted) navegador.pop(ResultadoDetalle.hallazgo);
   }
 
   @override
@@ -112,6 +139,20 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
                     Expanded(child: _Dato('Fecha', fechaCorta(p.creadoEn))),
                   ],
                 ),
+                if (p.tipo == 'encontrado') ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(
+                        p.custodia == custodiaPunto ? Icons.storefront_outlined : Icons.person_pin_outlined,
+                        size: 18,
+                        color: ColoresUtb.azulTexto,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(textoCustodia(p), style: const TextStyle(fontSize: 14))),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 22),
                 FutureBuilder<List<Coincidencia>>(
                   future: _coincidencias,
@@ -174,6 +215,16 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
                   ),
                   TextButton(onPressed: () => Navigator.pop(context), child: const Text('No es mío')),
                 ],
+              ),
+            ),
+          if (_puedeDecirLoTengo(sesion) || (p.tipo == 'perdido' && !sesion.activa && estadosReclamables.contains(p.estado)))
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+              decoration: const BoxDecoration(border: Border(top: BorderSide(color: ColoresUtb.borde))),
+              child: FilledButton.icon(
+                icon: const Icon(Icons.volunteer_activism_outlined),
+                onPressed: () => _loTengo(sesion),
+                label: Text(sesion.activa ? 'Lo tengo yo' : 'Inicia sesión para avisar que lo tienes'),
               ),
             ),
         ],

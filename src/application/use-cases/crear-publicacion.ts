@@ -12,6 +12,8 @@ export interface DatosCrearPublicacion {
   categoria: string;
   ubicacion: string;
   detalleUbicacion?: string | null;
+  custodia?: string | null;
+  puntoCustodia?: string | null;
 }
 
 export interface ResultadoCreacion {
@@ -90,7 +92,7 @@ export class CrearPublicacion {
   }
 
   private construir(
-    { tipo, descripcion, categoria, ubicacion, detalleUbicacion }: DatosCrearPublicacion,
+    { tipo, descripcion, categoria, ubicacion, detalleUbicacion, custodia, puntoCustodia }: DatosCrearPublicacion,
     id: string,
     autorId: string | null,
   ): Publicacion {
@@ -101,6 +103,8 @@ export class CrearPublicacion {
       categoria,
       ubicacion,
       detalleUbicacion,
+      custodia: custodia as Publicacion['custodia'],
+      puntoCustodia,
       autorId,
       creadoEn: new Date().toISOString(),
     });
@@ -119,7 +123,8 @@ export class CrearPublicacion {
       existente.descripcion === datos.descripcion?.trim() &&
       existente.categoria === datos.categoria?.trim() &&
       existente.ubicacion === datos.ubicacion?.trim() &&
-      existente.detalleUbicacion === (datos.detalleUbicacion?.trim() || null);
+      existente.detalleUbicacion === (datos.detalleUbicacion?.trim() || null) &&
+      existente.puntoCustodia === (datos.puntoCustodia?.trim() || null);
     if (!igual) throw new ConflictoIdempotenciaError();
     return existente;
   }

@@ -15,6 +15,8 @@ class Publicacion {
     this.autorId,
     this.detalleUbicacion,
     this.motivoCierre,
+    this.custodia,
+    this.puntoCustodia,
   });
 
   final String id;
@@ -28,6 +30,10 @@ class Publicacion {
 
   /// recuperado · retirado · vencido; solo en publicaciones cerradas (ADR-0017).
   final String? motivoCierre;
+
+  /// Solo encontrados: quien_lo_encontro o punto_de_entrega (ADR-0019).
+  final String? custodia;
+  final String? puntoCustodia;
 
   /// "Bloque A1 · Piso 2 · Salón 204", o solo el lugar si no hay detalle.
   String get lugarCompleto => detalleUbicacion == null ? ubicacion : '$ubicacion · $detalleUbicacion';
@@ -51,6 +57,8 @@ class Publicacion {
       autorId: json['autorId'] as String?,
       detalleUbicacion: json['detalleUbicacion'] as String?,
       motivoCierre: json['motivoCierre'] as String?,
+      custodia: json['custodia'] as String?,
+      puntoCustodia: json['puntoCustodia'] as String?,
     );
   }
 }
@@ -229,7 +237,7 @@ class RecobraApiException implements Exception {
   String toString() => message;
 }
 
-/// Cliente HTTP de la API de Recobra (contrato 4.0.0). La URL base se inyecta
+/// Cliente HTTP de la API de Recobra (contrato 4.1.0). La URL base se inyecta
 /// para poder apuntar a emulador, web o el despliegue. El token de sesión se
 /// guarda solo en memoria: al cerrar la app hay que volver a iniciar sesión.
 class RecobraApi {
@@ -323,6 +331,8 @@ class RecobraApi {
     required String categoria,
     required String ubicacion,
     String? detalleUbicacion,
+    String? custodia,
+    String? puntoCustodia,
     String? claveIdempotencia,
   }) async {
     final r = await _enviar(_client.post(
@@ -337,9 +347,44 @@ class RecobraApi {
         'categoria': categoria,
         'ubicacion': ubicacion,
         if (detalleUbicacion != null && detalleUbicacion.isNotEmpty) 'detalleUbicacion': detalleUbicacion,
+        if (custodia != null) 'custodia': custodia,
+        if (custodia == 'punto_de_entrega') 'puntoCustodia': puntoCustodia,
       }),
     ));
     return Publicacion.fromJson(_cuerpoO(r, {201, 200}, 'No se pudo crear la publicación') as Map<String, dynamic>);
+  }
+
+  /// Quien encontró el objeto dice dónde está ahora (ADR-0019).
+  Future<Publicacion> cambiarCustodia(String id, String custodia, String? puntoCustodia) async {
+    final r = await _enviar(_client.post(
+      _uri('/publicaciones/$id/custodia'),
+      headers: _cabeceras(json: true),
+      body: jsonEncode({'custodia': custodia, if (custodia == 'punto_de_entrega') 'puntoCustodia': puntoCustodia}),
+    ));
+    return Publicacion.fromJson(_cuerpoO(r, {200}, 'No se pudo actualizar') as Map<String, dynamic>);
+  }
+
+  /// "Lo tengo yo" sobre un objeto perdido: crea el encontrado enlazado (ADR-0019).
+  Future<Publicacion> reportarHallazgo(
+    String perdidoId, {
+    required String descripcion,
+    required String ubicacion,
+    String? detalleUbicacion,
+    String custodia = 'quien_lo_encontro',
+    String? puntoCustodia,
+  }) async {
+    final r = await _enviar(_client.post(
+      _uri('/publicaciones/$perdidoId/lo-tengo'),
+      headers: _cabeceras(json: true),
+      body: jsonEncode({
+        'descripcion': descripcion,
+        'ubicacion': ubicacion,
+        if (detalleUbicacion != null && detalleUbicacion.isNotEmpty) 'detalleUbicacion': detalleUbicacion,
+        'custodia': custodia,
+        if (custodia == 'punto_de_entrega') 'puntoCustodia': puntoCustodia,
+      }),
+    ));
+    return Publicacion.fromJson(_cuerpoO(r, {201}, 'No se pudo avisar') as Map<String, dynamic>);
   }
 
   /// Catálogo de lugares con sus pisos; es la misma lista para la app y la vitrina.

@@ -1,6 +1,13 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Pool } from 'pg';
-import { EstadoPublicacion, ESTADOS_ACTIVOS, MotivoCierre, Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
+import {
+  Custodia,
+  EstadoPublicacion,
+  ESTADOS_ACTIVOS,
+  MotivoCierre,
+  Publicacion,
+  TipoPublicacion,
+} from '../../domain/entities/publicacion';
 import { FiltrosBusqueda, PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { AlmacenamientoNoDisponibleError } from '../../domain/errors/almacenamiento-no-disponible.error';
 
@@ -147,13 +154,17 @@ export class PostgresPublicacionRepository
     // Cierre y vencimiento (ADR-0017).
     await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS motivo_cierre TEXT');
     await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS cerrado_en TIMESTAMPTZ');
+    // Dónde está un objeto encontrado (ADR-0019).
+    await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS custodia TEXT');
+    await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS punto_custodia TEXT');
     this.esquemaListo = true;
   }
 
   async guardar(publicacion: Publicacion): Promise<Publicacion> {
     await this.consultar(
-      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id, detalle_ubicacion)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO publicaciones
+         (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id, detalle_ubicacion, custodia, punto_custodia)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        ON CONFLICT (id) DO NOTHING`,
       [
         publicacion.id,
@@ -165,6 +176,8 @@ export class PostgresPublicacionRepository
         publicacion.creadoEn,
         publicacion.autorId,
         publicacion.detalleUbicacion,
+        publicacion.custodia,
+        publicacion.puntoCustodia,
       ],
     );
     return publicacion;
@@ -173,8 +186,9 @@ export class PostgresPublicacionRepository
   /** Atómico gracias a la clave primaria: dos inserciones simultáneas del mismo id dejan una sola fila. */
   async guardarSiNoExiste(publicacion: Publicacion): Promise<boolean> {
     const resultado = await this.consultar(
-      `INSERT INTO publicaciones (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id, detalle_ubicacion)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO publicaciones
+         (id, tipo, descripcion, categoria, ubicacion, estado, creado_en, autor_id, detalle_ubicacion, custodia, punto_custodia)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        ON CONFLICT (id) DO NOTHING`,
       [
         publicacion.id,
@@ -186,6 +200,8 @@ export class PostgresPublicacionRepository
         publicacion.creadoEn,
         publicacion.autorId,
         publicacion.detalleUbicacion,
+        publicacion.custodia,
+        publicacion.puntoCustodia,
       ],
     );
     return resultado.rowCount === 1;
@@ -206,6 +222,15 @@ export class PostgresPublicacionRepository
        WHERE id = $1 AND estado = 'publicado'`,
       [id, motivo, fecha],
     );
+    return resultado.rowCount === 1;
+  }
+
+  async cambiarCustodia(id: string, custodia: Custodia, punto: string | null): Promise<boolean> {
+    const resultado = await this.consultar('UPDATE publicaciones SET custodia = $2, punto_custodia = $3 WHERE id = $1', [
+      id,
+      custodia,
+      punto,
+    ]);
     return resultado.rowCount === 1;
   }
 
@@ -266,6 +291,8 @@ export class PostgresPublicacionRepository
       autorId: (fila.autor_id as string | null) ?? null,
       motivoCierre: (fila.motivo_cierre as MotivoCierre | null) ?? null,
       cerradoEn: fila.cerrado_en ? new Date(fila.cerrado_en as string).toISOString() : null,
+      custodia: (fila.custodia as Custodia | null) ?? null,
+      puntoCustodia: (fila.punto_custodia as string | null) ?? null,
     });
   }
 }

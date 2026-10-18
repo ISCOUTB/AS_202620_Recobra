@@ -193,6 +193,13 @@ rechaza con motivo (si no quedan pendientes, vuelve a `publicado`). La entrega l
 confirma cualquiera de los dos (`ConfirmarEntrega` → `por_entregar` a `reclamado`,
 ADR-0017).
 
+Flujo **lo tengo yo** (ADR-0019): sobre un perdido ajeno, `ReportarHallazgo`
+(Emparejamiento) crea el encontrado de quien lo tiene con `CrearPublicacion`
+(Publicaciones), guarda una coincidencia explícita entre los dos y emite
+`coincidencia.detectada`; el dueño recibe el aviso y lo reclama con su prueba.
+Quien encontró un objeto indica dónde está (custodia) al publicar o después con
+`CambiarCustodia`.
+
 Flujo **cerrar y vencer** (ADR-0017): su autor cierra una publicación sin
 reclamaciones (`CerrarPublicacion`: recuperado o retirado) y `ArchivadorVencidas`
 cierra como vencido lo que lleva más de 60 días en `publicado`. Lo cerrado sale de
@@ -298,6 +305,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0016](../adr/0016-recobra-semiindependiente-de-la-app-utb.md) | Recobra semiindependiente de la app UTB, con la integración como objetivo potencial | Aceptada |
 | [ADR-0017](../adr/0017-ciclo-de-vida-completo-cierre-vencimiento-y-entrega.md) | Ciclo de vida completo: cierre, vencimiento y entrega confirmada | Aceptada |
 | [ADR-0018](../adr/0018-coincidencias-persistidas-y-parecido-ponderado.md) | Coincidencias persistidas y parecido ponderado (lugar, palabras y fecha) | Aceptada |
+| [ADR-0019](../adr/0019-donde-esta-el-objeto-y-lo-tengo-yo.md) | Dónde está el objeto y "Lo tengo yo" | Aceptada |
 
 
 ## 10. Requisitos de calidad

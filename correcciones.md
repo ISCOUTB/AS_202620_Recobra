@@ -214,6 +214,13 @@ Fuente de los hallazgos: retroalimentación publicada en
 | Las coincidencias se perdían en cada redespliegue | Tabla `coincidencias` en PostgreSQL | [ADR-0018](docs/adr/0018-coincidencias-persistidas-y-parecido-ponderado.md), `src/infrastructure/persistence/postgres-coincidencia.repository.ts` |
 | El puntaje solo miraba el lugar | Parecido de 0 a 1 con lugar, palabras en común y fechas, y umbral 0,3 | `src/domain/emparejamiento/parecido.spec.ts` |
 
+## Avance del proyecto · Dónde está el objeto y "Lo tengo yo" (2026-10-17)
+
+| Hallazgo de la evaluación | Qué se hizo | Evidencia |
+|---|---|---|
+| No se sabía dónde estaba un objeto encontrado | Custodia: con quien lo encontró o en un punto de entrega, editable | [ADR-0019](docs/adr/0019-donde-esta-el-objeto-y-lo-tengo-yo.md), `test/hallazgos.e2e-spec.ts` |
+| Quien tenía un objeto perdido no podía decirlo | "Lo tengo yo" crea un encontrado enlazado y avisa al dueño; la reclamación con prueba sigue siendo obligatoria | `reportar-hallazgo.spec.ts`, `mobile/test/widget_test.dart` |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

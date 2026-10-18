@@ -21,6 +21,14 @@ export const ESTADOS_ACTIVOS: readonly EstadoPublicacion[] = ['publicado', 'en_v
 /** Estados que pueden recibir coincidencias: lo que todavía no tiene dueño confirmado. */
 export const ESTADOS_EMPAREJABLES: readonly EstadoPublicacion[] = ['publicado', 'en_verificacion'];
 
+/**
+ * Dónde está un objeto encontrado (ADR-0019): lo tiene quien lo encontró o lo
+ * dejó en un punto de entrega (portería, oficina…). Los perdidos no tienen.
+ */
+export const CUSTODIAS = ['quien_lo_encontro', 'punto_de_entrega'] as const;
+export type Custodia = (typeof CUSTODIAS)[number];
+const PUNTO_MAXIMO = 120;
+
 export const MOTIVOS_CIERRE = ['recuperado', 'retirado', 'vencido'] as const;
 export type MotivoCierre = (typeof MOTIVOS_CIERRE)[number];
 
@@ -64,6 +72,10 @@ export interface DatosPublicacion {
   /** Cuenta que la publicó; null en publicaciones anteriores a las cuentas. */
   autorId?: string | null;
   estado?: EstadoPublicacion;
+  /** Solo en encontrados: quién o dónde tiene el objeto ahora (ADR-0019). */
+  custodia?: Custodia | null;
+  /** Solo con custodia "punto_de_entrega": el lugar donde quedó. */
+  puntoCustodia?: string | null;
   /** Solo en publicaciones cerradas: por qué y cuándo. */
   motivoCierre?: MotivoCierre | null;
   cerradoEn?: string | null;
@@ -81,6 +93,8 @@ export class Publicacion {
   readonly autorId: string | null;
   readonly motivoCierre: MotivoCierre | null;
   readonly cerradoEn: string | null;
+  readonly custodia: Custodia | null;
+  readonly puntoCustodia: string | null;
 
   constructor({
     id,
@@ -94,8 +108,11 @@ export class Publicacion {
     estado,
     motivoCierre,
     cerradoEn,
+    custodia,
+    puntoCustodia,
   }: DatosPublicacion) {
     Publicacion.validar({ tipo, descripcion, categoria, ubicacion, detalleUbicacion });
+    const lugarCustodia = Publicacion.validarCustodia(tipo, custodia, puntoCustodia);
 
     this.id = id;
     this.tipo = tipo;
@@ -108,6 +125,33 @@ export class Publicacion {
     this.autorId = autorId ?? null;
     this.motivoCierre = motivoCierre ?? null;
     this.cerradoEn = cerradoEn ?? null;
+    this.custodia = lugarCustodia.custodia;
+    this.puntoCustodia = lugarCustodia.puntoCustodia;
+  }
+
+  /**
+   * Un encontrado sin custodia la tiene "quien_lo_encontro"; con
+   * "punto_de_entrega" hay que decir cuál. Un perdido no tiene custodia.
+   */
+  static validarCustodia(
+    tipo: TipoPublicacion,
+    custodia?: string | null,
+    puntoCustodia?: string | null,
+  ): { custodia: Custodia | null; puntoCustodia: string | null } {
+    if (tipo === 'perdido') {
+      if (custodia) throw new PublicacionInvalidaError('solo un objeto encontrado indica dónde está');
+      return { custodia: null, puntoCustodia: null };
+    }
+    const valor = custodia ?? 'quien_lo_encontro';
+    if (!CUSTODIAS.includes(valor as Custodia)) {
+      throw new PublicacionInvalidaError(`custodia debe ser uno de: ${CUSTODIAS.join(', ')}`);
+    }
+    if (valor === 'quien_lo_encontro') return { custodia: 'quien_lo_encontro', puntoCustodia: null };
+    const punto = typeof puntoCustodia === 'string' ? puntoCustodia.trim() : '';
+    if (punto.length < 3 || punto.length > PUNTO_MAXIMO) {
+      throw new PublicacionInvalidaError(`puntoCustodia debe tener entre 3 y ${PUNTO_MAXIMO} caracteres`);
+    }
+    return { custodia: 'punto_de_entrega', puntoCustodia: punto };
   }
 
   /**

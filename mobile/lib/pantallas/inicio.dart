@@ -89,11 +89,10 @@ class InicioPantallaState extends State<InicioPantalla> {
   }
 
   Future<void> _abrirDetalle(Publicacion p) async {
-    final reclamo = await abrirDetalle(context, p, alPedirCuenta: widget.alPedirCuenta);
-    if (reclamo == true) {
-      recargar();
-      widget.alIrAMisCosas(reclame: true);
-    }
+    final resultado = await abrirDetalle(context, p, alPedirCuenta: widget.alPedirCuenta);
+    if (resultado == null) return;
+    recargar();
+    widget.alIrAMisCosas(reclame: resultado == ResultadoDetalle.reclamo);
   }
 
   @override

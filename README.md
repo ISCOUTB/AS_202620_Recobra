@@ -186,6 +186,7 @@ Con el token, `POST /publicaciones` se llama con `Authorization: Bearer <token>`
 
 - `POST /publicaciones/<id>/reclamaciones` con `{"prueba": "algo que solo el dueño sabría"}` → la publicación pasa a `en_verificacion`.
 - Quien publicó: `GET /publicaciones/<id>/reclamaciones`, y `POST /reclamaciones/<id>/aprobar` o `/rechazar` con `{"motivo": "..."}`. Aprobar deja el objeto `por_entregar`; cualquiera de los dos confirma la entrega con `POST /reclamaciones/<id>/entregada` y el objeto pasa a `reclamado` ([ADR-0017](docs/adr/0017-ciclo-de-vida-completo-cierre-vencimiento-y-entrega.md)).
+- **Dónde está y "Lo tengo yo"** ([ADR-0019](docs/adr/0019-donde-esta-el-objeto-y-lo-tengo-yo.md)): un encontrado lleva `custodia` (`quien_lo_encontro` o `punto_de_entrega` con `puntoCustodia`), que su autor cambia con `POST /publicaciones/<id>/custodia`. Sobre un perdido ajeno, `POST /publicaciones/<id>/lo-tengo` con `{"descripcion", "ubicacion", "custodia"?}` crea el encontrado enlazado y avisa al dueño, que igual lo reclama con su prueba.
 - Su autor cierra una publicación sin reclamaciones con `POST /publicaciones/<id>/cerrar` y `{"motivo": "recuperado"}` (solo perdidos) o `"retirado"`. Lo que lleva 60 días sin movimiento se cierra solo (`DIAS_VIGENCIA_PUBLICACION`). La búsqueda no muestra lo cerrado ni lo entregado.
 - Cada cuenta: `GET /publicaciones/mias` y `GET /reclamaciones/mias` (el correo de la otra persona aparece solo cuando se aprueba).
 

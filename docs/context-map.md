@@ -64,6 +64,9 @@ modelo de datos.
   y llama a `BuscarCoincidencias`, que lee publicaciones vía el puerto
   `PublicacionRepository` (nunca escribe sobre sus datos) y guarda sus
   propios resultados en `CoincidenciaRepository`.
+- **Emparejamiento → Publicaciones ("Lo tengo yo", ADR-0019):** Emparejamiento
+  crea la publicación de encontrado a través de `CrearPublicacion`, el caso de
+  uso de Publicaciones, y solo escribe su propia tabla de coincidencias.
 - **Emparejamiento → Notificaciones y Reclamaciones → Notificaciones
   (Cliente/Proveedor):** implementado (ADR-0015). Emparejamiento emite
   `coincidencia.detectada` (solo ids y score) y Reclamaciones emite

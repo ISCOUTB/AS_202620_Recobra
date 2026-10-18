@@ -21,7 +21,7 @@ import { CrearPublicacionDto } from './dto/crear-publicacion.dto';
 import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
 import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda.interceptor';
 import { ListarPublicacionesDeAutor } from '../application/use-cases/cambiar-estado-publicacion';
-import { CerrarPublicacion } from '../application/use-cases/ciclo-de-vida';
+import { CambiarCustodia, CerrarPublicacion } from '../application/use-cases/ciclo-de-vida';
 import { Cuenta } from '../domain/entities/cuenta';
 import { AutenticacionGuard, CuentaActual } from '../identidad/autenticacion.guard';
 
@@ -33,6 +33,7 @@ export class PublicacionesController {
     private readonly buscarPublicaciones: BuscarPublicaciones,
     private readonly listarDeAutor: ListarPublicacionesDeAutor,
     private readonly cerrarPublicacion: CerrarPublicacion,
+    private readonly cambiarCustodia: CambiarCustodia,
   ) {}
 
   /** Publicar exige sesión (ADR-0013): toda publicación queda ligada a su autor. */
@@ -88,6 +89,18 @@ export class PublicacionesController {
   @UseGuards(AutenticacionGuard)
   cerrar(@Param('id') id: string, @Body() cuerpo: { motivo: string }, @CuentaActual() cuenta: Cuenta) {
     return this.cerrarPublicacion.ejecutar(id, cuenta.id, cuerpo?.motivo);
+  }
+
+  /** Quien encontró el objeto dice dónde está ahora (ADR-0019). */
+  @Post(':id/custodia')
+  @HttpCode(200)
+  @UseGuards(AutenticacionGuard)
+  custodia(
+    @Param('id') id: string,
+    @Body() cuerpo: { custodia: string; puntoCustodia?: string | null },
+    @CuentaActual() cuenta: Cuenta,
+  ) {
+    return this.cambiarCustodia.ejecutar(id, cuenta.id, cuerpo?.custodia, cuerpo?.puntoCustodia);
   }
 
   @Get(':id')

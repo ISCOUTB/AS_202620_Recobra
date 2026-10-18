@@ -277,6 +277,7 @@
   fieldset.segmentado label:has(input:focus-visible) { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
   fieldset.segmentado input { position: absolute; opacity: 0; pointer-events: none; }
   .ayuda { font-size: 0.78rem; font-weight: 400; color: var(--texto-suave); }
+  .columna-form { display: flex; flex-direction: column; gap: 0.6rem; }
   .nota-centro { text-align: center; font-size: 0.8rem; color: var(--texto-suave); margin: 0; }
   .comparacion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.6rem; margin-top: 0.5rem; }
   .lado {
@@ -514,6 +515,17 @@
       <label>Salón o referencia (opcional)
         <input type="text" name="referencia" maxlength="80" placeholder="Salón 204, cerca de los baños…" />
       </label>
+      <div class="columna-form" id="zona-custodia" hidden>
+        <p class="rotulo-chico">¿DÓNDE ESTÁ AHORA?</p>
+        <fieldset class="segmentado">
+          <legend class="oculto">¿Dónde está ahora?</legend>
+          <label><input type="radio" name="custodia" value="quien_lo_encontro" checked /> Lo tengo yo</label>
+          <label><input type="radio" name="custodia" value="punto_de_entrega" /> Lo dejé en un punto</label>
+        </fieldset>
+        <label id="etiqueta-punto" hidden>¿Dónde lo dejaste?
+          <input type="text" name="puntoCustodia" id="campo-punto" maxlength="120" placeholder="Portería de la entrada principal" />
+        </label>
+      </div>
       <label>Foto (opcional, solo vista previa por ahora)
         <button type="button" class="zona-foto" id="zona-foto">
           <img id="vista-previa-foto" alt="Vista previa" hidden />
@@ -763,6 +775,121 @@
     return caja;
   }
 
+  /** "Lo tiene quien lo encontró" o "Está en: Portería…" (ADR-0019). */
+  function textoCustodia(p) {
+    return p.custodia === 'punto_de_entrega' ? `Está en: ${p.puntoCustodia}` : 'Lo tiene quien lo encontró';
+  }
+
+  let contadorSelectores = 0;
+  /** "Lo tengo yo / Lo dejé en un punto" para formularios armados en el momento. */
+  function selectorCustodia(inicial = 'quien_lo_encontro', puntoInicial = '') {
+    contadorSelectores += 1;
+    const nombre = `custodia-${contadorSelectores}`;
+    const caja = elemento('div', 'columna-form');
+    const grupo = document.createElement('fieldset');
+    grupo.className = 'segmentado';
+    grupo.append(elemento('legend', 'oculto', '¿Dónde está ahora?'));
+    const punto = document.createElement('input');
+    punto.type = 'text';
+    punto.maxLength = 120;
+    punto.placeholder = 'Portería de la entrada principal';
+    const etiquetaPunto = elemento('label', '', '¿Dónde lo dejaste?');
+    etiquetaPunto.append(punto);
+    punto.value = puntoInicial;
+    for (const [valor, texto] of [['quien_lo_encontro', 'Lo tengo yo'], ['punto_de_entrega', 'Lo dejé en un punto']]) {
+      const opcion = document.createElement('input');
+      opcion.type = 'radio';
+      opcion.name = nombre;
+      opcion.value = valor;
+      opcion.checked = valor === inicial;
+      opcion.addEventListener('change', () => {
+        etiquetaPunto.hidden = valor !== 'punto_de_entrega';
+      });
+      const etiqueta = elemento('label');
+      etiqueta.append(opcion, ` ${texto}`);
+      grupo.append(etiqueta);
+    }
+    etiquetaPunto.hidden = inicial !== 'punto_de_entrega';
+    caja.append(elemento('p', 'rotulo-chico', '¿DÓNDE ESTÁ AHORA?'), grupo, etiquetaPunto);
+    const valor = () => {
+      const custodia = grupo.querySelector('input:checked').value;
+      return custodia === 'punto_de_entrega' ? { custodia, puntoCustodia: punto.value.trim() } : { custodia };
+    };
+    return { caja, valor };
+  }
+
+  /** "Lo tengo yo" sobre un objeto perdido (ADR-0019): crea un encontrado enlazado y avisa al dueño. */
+  function mostrarFormularioLoTengo(pub, contenedor) {
+    contenedor.replaceChildren();
+    const caja = elemento('div', 'bloque');
+    const form = document.createElement('form');
+    const descripcion = document.createElement('input');
+    descripcion.required = true;
+    descripcion.maxLength = 200;
+    descripcion.placeholder = 'Audífonos negros en estuche';
+    const etiquetaDescripcion = elemento('label', '', '¿Qué tienes?');
+    etiquetaDescripcion.append(descripcion, elemento('span', 'ayuda', 'Describe lo que se ve. Guarda los detalles íntimos para verificar al dueño.'));
+    const lugar = document.createElement('select');
+    lugar.required = true;
+    for (const o of campoLugar.options) lugar.append(new Option(o.textContent, o.value));
+    const etiquetaLugar = elemento('label', '', '¿Dónde lo encontraste?');
+    etiquetaLugar.append(lugar);
+    const otro = document.createElement('input');
+    otro.maxLength = 120;
+    const etiquetaOtro = elemento('label', '', 'Escribe el lugar');
+    etiquetaOtro.append(otro);
+    etiquetaOtro.hidden = true;
+    lugar.addEventListener('change', () => {
+      etiquetaOtro.hidden = lugar.value !== 'otra';
+      otro.required = lugar.value === 'otra';
+    });
+    const referencia = document.createElement('input');
+    referencia.maxLength = 80;
+    const etiquetaReferencia = elemento('label', '', 'Piso, salón o referencia (opcional)');
+    etiquetaReferencia.append(referencia);
+    const custodia = selectorCustodia();
+    const filaBotones = elemento('div', 'fila-botones');
+    const enviar = elemento('button', '', 'Avisar que lo tengo');
+    enviar.type = 'submit';
+    const cancelar = elemento('button', 'secundario', 'Cancelar');
+    cancelar.type = 'button';
+    cancelar.addEventListener('click', () => contenedor.replaceChildren());
+    filaBotones.append(enviar, cancelar);
+    const mensaje = elemento('output');
+    form.append(
+      elemento('p', 'meta', 'Le avisaremos a quien lo perdió. Para que se lo entregues, tendrá que reclamarlo con algo que solo el dueño sabría; tú decides si es suyo.'),
+      etiquetaDescripcion,
+      etiquetaLugar,
+      etiquetaOtro,
+      etiquetaReferencia,
+      custodia.caja,
+      filaBotones,
+      mensaje,
+    );
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      enviar.disabled = true;
+      const cuerpo = {
+        descripcion: descripcion.value.trim(),
+        ubicacion: lugar.value === 'otra' ? otro.value.trim() : lugar.value,
+        detalleUbicacion: referencia.value.trim() || undefined,
+        ...custodia.valor(),
+      };
+      const r = await llamar(`/publicaciones/${encodeURIComponent(pub.id)}/lo-tengo`, { method: 'POST', body: JSON.stringify(cuerpo) });
+      enviar.disabled = false;
+      if (!r.ok) {
+        mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo enviar el aviso';
+        mensaje.className = 'error';
+        return;
+      }
+      // Sin recargar la lista: el mensaje queda visible donde se pidió.
+      contenedor.replaceChildren(elemento('div', 'bloque', 'Le avisamos a quien lo perdió. Si es suyo, lo reclamará con una prueba y lo verás en "Lo que publiqué".'));
+      cargarMiCuenta();
+    });
+    caja.append(form);
+    contenedor.append(caja);
+  }
+
   function tarjetaPublicacion(pub) {
     const tarjeta = elemento('div', `tarjeta ${pub.tipo}`);
     if (pub.estado === 'reclamado' || pub.estado === 'cerrado') tarjeta.classList.add('entregada');
@@ -789,7 +916,22 @@
       });
       acciones.append(reclamar);
     }
+    const ajena = !sesion || sesion.cuenta.id !== pub.autorId;
+    if (pub.tipo === 'perdido' && RECLAMABLE.has(pub.estado) && pub.autorId && ajena) {
+      const loTengo = elemento('button', 'secundario', sesion ? 'Lo tengo yo' : 'Inicia sesión para avisar que lo tienes');
+      loTengo.type = 'button';
+      loTengo.style.marginLeft = '0.5rem';
+      loTengo.addEventListener('click', () => {
+        if (!sesion) {
+          document.getElementById('panel-cuenta').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+        mostrarFormularioLoTengo(pub, resultado);
+      });
+      acciones.append(loTengo);
+    }
     tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion), meta);
+    if (pub.tipo === 'encontrado') tarjeta.append(elemento('div', 'meta', textoCustodia(pub)));
     if (ayudaDe(pub)) tarjeta.append(elemento('div', 'meta', ayudaDe(pub)));
     tarjeta.append(acciones, resultado);
     return tarjeta;
@@ -841,6 +983,10 @@
   /** El texto del botón, la ayuda y el rótulo del lugar siguen al tipo elegido. */
   function ajustarFormularioPorTipo() {
     const perdido = formCrear.elements.tipo.value === 'perdido';
+    document.getElementById('zona-custodia').hidden = perdido;
+    const enPunto = !perdido && formCrear.elements.custodia.value === 'punto_de_entrega';
+    document.getElementById('etiqueta-punto').hidden = !enPunto;
+    document.getElementById('campo-punto').required = enPunto;
     botonPublicar.textContent = perdido ? 'Publicar objeto perdido' : 'Publicar objeto encontrado';
     document.getElementById('rotulo-lugar').textContent = perdido ? '¿Dónde lo perdiste?' : '¿Dónde lo encontraste?';
     document.getElementById('ayuda-descripcion').textContent = perdido
@@ -848,6 +994,7 @@
       : 'Describe lo que se ve. Guarda los detalles íntimos: con ellos el dueño probará que es suyo.';
   }
   for (const opcion of formCrear.elements.tipo) opcion.addEventListener('change', ajustarFormularioPorTipo);
+  for (const opcion of formCrear.elements.custodia) opcion.addEventListener('change', ajustarFormularioPorTipo);
   const campoPiso = document.getElementById('campo-piso');
   const etiquetaPiso = document.getElementById('etiqueta-piso');
   /** Catálogo de lugares con sus pisos (GET /lugares); la lista fija del formulario es el respaldo. */
@@ -907,6 +1054,10 @@
       ubicacion: campos.lugar === 'otra' ? (campos.otroLugar || '').trim() : campos.lugar,
       detalleUbicacion: [campos.piso, (campos.referencia || '').trim()].filter(Boolean).join(' · ') || undefined,
     };
+    if (campos.tipo === 'encontrado') {
+      datos.custodia = campos.custodia;
+      if (campos.custodia === 'punto_de_entrega') datos.puntoCustodia = (campos.puntoCustodia || '').trim();
+    }
     if (!datos.ubicacion) {
       mensajeCrear.textContent = 'Dinos dónde fue.';
       mensajeCrear.className = 'error';
@@ -1221,6 +1372,7 @@
     fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), etiquetaEstado(pub.estado));
     tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion));
     if (ayudaDe(pub)) tarjeta.append(elemento('div', 'meta', ayudaDe(pub)));
+    if (pub.tipo === 'encontrado' && pub.estado !== 'reclamado' && pub.estado !== 'cerrado') tarjeta.append(zonaCustodia(pub));
     if (pub.estado === 'publicado') tarjeta.append(accionesCierre(pub));
     if (pub.tipo === 'encontrado') {
       const zona = elemento('div');
@@ -1256,6 +1408,38 @@
       boton.disabled = false;
     });
     return boton;
+  }
+
+  /** Dónde está el objeto, con la opción de cambiarlo (ADR-0019). */
+  function zonaCustodia(pub) {
+    const zona = elemento('div');
+    const fila = elemento('div', 'fila-botones');
+    const cambiar = elemento('button', 'secundario', 'Cambiar dónde está');
+    cambiar.type = 'button';
+    fila.append(elemento('span', 'meta', textoCustodia(pub)), cambiar);
+    const edicion = elemento('div');
+    cambiar.addEventListener('click', () => {
+      const selector = selectorCustodia(pub.custodia || 'quien_lo_encontro', pub.puntoCustodia || '');
+      const guardar = elemento('button', '', 'Guardar');
+      guardar.type = 'button';
+      const mensaje = elemento('output');
+      guardar.addEventListener('click', async () => {
+        const r = await llamar(`/publicaciones/${encodeURIComponent(pub.id)}/custodia`, {
+          method: 'POST',
+          body: JSON.stringify(selector.valor()),
+        });
+        if (!r.ok) {
+          mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo guardar';
+          mensaje.className = 'error';
+          return;
+        }
+        cargarMiCuenta();
+        buscar();
+      });
+      edicion.replaceChildren(selector.caja, guardar, mensaje);
+    });
+    zona.append(fila, edicion);
+    return zona;
   }
 
   /** "Ya lo recuperé" (solo perdidos) y "Retirar" mientras nadie la reclama (ADR-0017). */
@@ -1460,7 +1644,8 @@
     if (reclamo.estado !== 'rechazada') tarjeta.append(progresoReclamo(reclamo));
     if (reclamo.contactoQuienEncontro && !reclamo.entregadaEn) {
       const c = reclamo.contactoQuienEncontro;
-      tarjeta.append(contacto(`${c.nombre} aprobó tu reclamación. Escríbele para acordar dónde y cuándo te lo entrega.`, c.correo));
+      const dondeEsta = pub.ok && pub.cuerpo.custodia === 'punto_de_entrega' ? `Está en: ${pub.cuerpo.puntoCustodia}. ` : '';
+      tarjeta.append(contacto(`${c.nombre} aprobó tu reclamación. ${dondeEsta}Escríbele para acordar dónde y cuándo te lo entrega.`, c.correo));
       tarjeta.append(botonEntrega(reclamo, 'Ya lo recibí'));
     }
     if (reclamo.entregadaEn) tarjeta.append(elemento('div', 'meta', `Lo recibiste el ${formatearFecha(reclamo.entregadaEn)}. ¡Qué bueno que volvió!`));
