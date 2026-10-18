@@ -23,6 +23,12 @@ services:
       # La base PostgreSQL interna de Dokploy no ofrece TLS; sin esto el
       # backend no arranca. Con una base externa (p. ej. Neon) poner true.
       DATABASE_SSL: ${DATABASE_SSL:-false}
+      # Compose solo pasa al contenedor lo que se lista aquí: las variables que
+      # se definen en la pestaña Environment de Dokploy sin estar en esta lista
+      # no llegan a la aplicación. Vacías, la aplicación usa su valor por omisión.
+      ADMIN_CORREOS: ${ADMIN_CORREOS:-}
+      CONTACTO_PRIVACIDAD: ${CONTACTO_PRIVACIDAD:-}
+      DIAS_VIGENCIA_PUBLICACION: ${DIAS_VIGENCIA_PUBLICACION:-}
     expose:
       - "3000"
     networks:

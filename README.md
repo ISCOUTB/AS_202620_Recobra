@@ -113,6 +113,8 @@ repositorio; ver [`.env.example`](.env.example)):
 | `ADMIN_CORREOS` | Correos `@utb.edu.co` (separados por comas) de quienes pueden resolver reportes de abuso | Nadie es administrador: se puede reportar, pero nadie resuelve |
 | `DIAS_VIGENCIA_PUBLICACION` | Días sin movimiento antes de cerrar una publicación sola | 60 |
 
+El `compose` de producción ([`deploy/compose.lab.yaml`](deploy/compose.lab.yaml)) solo reenvía al contenedor las variables que lista; una variable nueva que se defina en Dokploy debe agregarse también allí. Tras cambiar una variable en el panel hay que volver a desplegar el servicio.
+
 **Recrear el entorno:**
 
 ```bash
