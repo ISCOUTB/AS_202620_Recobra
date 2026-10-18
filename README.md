@@ -109,6 +109,8 @@ repositorio; ver [`.env.example`](.env.example)):
 | `PORT` | Puerto de la API (3000 en el compose) | Usa 3000 |
 | `DATABASE_URL` | Conexión a PostgreSQL | La API usa el adaptador en memoria: los datos se pierden en cada despliegue |
 | `DATABASE_SSL` | `false` para una base interna sin TLS (el compose lo trae en `false`) | Exige TLS, como una base externa |
+| `CONTACTO_PRIVACIDAD` | Texto con el canal de contacto que muestra el aviso de privacidad (por ejemplo, un correo del equipo) | Indica abrir una solicitud en el repositorio |
+| `DIAS_VIGENCIA_PUBLICACION` | Días sin movimiento antes de cerrar una publicación sola | 60 |
 
 **Recrear el entorno:**
 
@@ -189,6 +191,12 @@ Con el token, `POST /publicaciones` se llama con `Authorization: Bearer <token>`
 - **Dónde está y "Lo tengo yo"** ([ADR-0019](docs/adr/0019-donde-esta-el-objeto-y-lo-tengo-yo.md)): un encontrado lleva `custodia` (`quien_lo_encontro` o `punto_de_entrega` con `puntoCustodia`), que su autor cambia con `POST /publicaciones/<id>/custodia`. Sobre un perdido ajeno, `POST /publicaciones/<id>/lo-tengo` con `{"descripcion", "ubicacion", "custodia"?}` crea el encontrado enlazado y avisa al dueño, que igual lo reclama con su prueba.
 - Su autor cierra una publicación sin reclamaciones con `POST /publicaciones/<id>/cerrar` y `{"motivo": "recuperado"}` (solo perdidos) o `"retirado"`. Lo que lleva 60 días sin movimiento se cierra solo (`DIAS_VIGENCIA_PUBLICACION`). La búsqueda no muestra lo cerrado ni lo entregado.
 - Cada cuenta: `GET /publicaciones/mias` y `GET /reclamaciones/mias` (el correo de la otra persona aparece solo cuando se aprueba).
+
+**Privacidad y datos personales** ([ADR-0021](docs/adr/0021-privacidad-y-datos-personales.md))
+
+- Crear la cuenta exige `"aceptoPrivacidad": true`; el aviso se lee en `GET /privacidad` (público, versionado).
+- `GET /cuentas/yo/datos` descarga todo lo que se guarda de la cuenta; `DELETE /cuentas/yo` con `{"contrasena": "..."}` la elimina (anonimiza) si no hay reclamaciones ni entregas en curso.
+- `POST /sesiones` responde `429` con `Retry-After` tras 5 intentos fallidos por correo en 15 minutos.
 
 **Avisos** (escenario S3, [ADR-0015](docs/adr/0015-notificaciones-en-la-aplicacion.md))
 

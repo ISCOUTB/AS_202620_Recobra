@@ -73,6 +73,15 @@ export class PostgresNotificacionRepository extends NotificacionRepository imple
     return resultado.rowCount === 1;
   }
 
+  async eliminarDeCuenta(cuentaId: string): Promise<void> {
+    await consultarCompartido('DELETE FROM notificaciones WHERE cuenta_id = $1', [cuentaId]);
+  }
+
+  async eliminarAnterioresA(fecha: string): Promise<number> {
+    const resultado = await consultarCompartido('DELETE FROM notificaciones WHERE creado_en < $1', [fecha]);
+    return resultado.rowCount ?? 0;
+  }
+
   async marcarTodasLeidas(cuentaId: string): Promise<void> {
     await consultarCompartido('UPDATE notificaciones SET leida = true WHERE cuenta_id = $1 AND NOT leida', [cuentaId]);
   }

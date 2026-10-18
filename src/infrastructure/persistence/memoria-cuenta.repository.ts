@@ -23,4 +23,20 @@ export class MemoriaCuentaRepository extends CuentaRepository {
   async buscarPorId(id: string): Promise<Cuenta | null> {
     return this.porId.get(id) ?? null;
   }
+
+  async anonimizar(id: string, fecha: string): Promise<void> {
+    const actual = this.porId.get(id);
+    if (!actual) return;
+    this.idPorCorreo.delete(actual.correo);
+    this.porId.set(
+      id,
+      new Cuenta({
+        ...actual,
+        correo: Cuenta.correoAnonimo(id),
+        nombre: Cuenta.NOMBRE_ANONIMO,
+        hashContrasena: '',
+        eliminadaEn: fecha,
+      }),
+    );
+  }
 }

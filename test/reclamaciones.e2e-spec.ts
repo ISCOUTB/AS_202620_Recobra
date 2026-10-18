@@ -44,19 +44,19 @@ describe('Cuentas y reclamaciones (e2e)', () => {
     it('registro solo con correo institucional; 409 si ya existe; la respuesta no trae la contraseña', async () => {
       const ok = await request(srv())
         .post('/cuentas')
-        .send({ correo: 'nueva.cuenta@utb.edu.co', nombre: 'Nueva', contrasena: 'contrasena-1' });
+        .send({ correo: 'nueva.cuenta@utb.edu.co', nombre: 'Nueva', contrasena: 'contrasena-1', aceptoPrivacidad: true });
       expect(ok.status).toBe(201);
       expect(ok).toSatisfyApiSpec();
       expect(JSON.stringify(ok.body)).not.toContain('contrasena');
 
       const repetida = await request(srv())
         .post('/cuentas')
-        .send({ correo: 'NUEVA.cuenta@utb.edu.co', nombre: 'Otra', contrasena: 'contrasena-1' });
+        .send({ correo: 'NUEVA.cuenta@utb.edu.co', nombre: 'Otra', contrasena: 'contrasena-1', aceptoPrivacidad: true });
       expect(repetida.status).toBe(409);
 
       const externa = await request(srv())
         .post('/cuentas')
-        .send({ correo: 'alguien@gmail.com', nombre: 'Externo', contrasena: 'contrasena-1' });
+        .send({ correo: 'alguien@gmail.com', nombre: 'Externo', contrasena: 'contrasena-1', aceptoPrivacidad: true });
       expect(externa.status).toBe(400);
       expect(externa).toSatisfyApiSpec();
     });

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
+import 'privacidad.dart';
 import 'requiere_cuenta.dart';
 
 /// Inicio de sesión y registro con correo institucional (ADR-0013). Se
@@ -28,6 +29,8 @@ class _AccesoPantallaState extends State<AccesoPantalla> {
   late bool _registro = widget.registroInicial;
   bool _ocupado = false;
   bool _verContrasena = false;
+  bool _aceptoPrivacidad = false;
+  String? _errorPrivacidad;
   String? _error;
 
   @override
@@ -45,7 +48,12 @@ class _AccesoPantallaState extends State<AccesoPantalla> {
   }
 
   Future<void> _enviar() async {
-    if (!_formKey.currentState!.validate()) return;
+    final valido = _formKey.currentState!.validate();
+    if (_registro && !_aceptoPrivacidad) {
+      setState(() => _errorPrivacidad = 'Para crear la cuenta debes aceptar el aviso de privacidad');
+      return;
+    }
+    if (!valido) return;
     setState(() {
       _ocupado = true;
       _error = null;
@@ -53,7 +61,12 @@ class _AccesoPantallaState extends State<AccesoPantalla> {
     final sesion = AlcanceSesion.de(context);
     try {
       if (_registro) {
-        await sesion.registrarYEntrar(_nombre.text.trim(), _correo.text.trim(), _contrasena.text);
+        await sesion.registrarYEntrar(
+          _nombre.text.trim(),
+          _correo.text.trim(),
+          _contrasena.text,
+          aceptoPrivacidad: _aceptoPrivacidad,
+        );
       } else {
         await sesion.entrar(_correo.text.trim(), _contrasena.text);
       }
@@ -129,6 +142,29 @@ class _AccesoPantallaState extends State<AccesoPantalla> {
                   ),
                   validator: (v) => (v == null || v.length < 8) ? 'Mínimo 8 caracteres' : null,
                 ),
+                if (_registro) ...[
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _aceptoPrivacidad,
+                    onChanged: (v) => setState(() {
+                      _aceptoPrivacidad = v ?? false;
+                      _errorPrivacidad = null;
+                    }),
+                    title: const Text('Acepto el tratamiento de mis datos según el aviso de privacidad'),
+                    subtitle: Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(44, 44)),
+                        onPressed: () => abrirAvisoPrivacidad(context),
+                        child: const Text('Leer el aviso de privacidad'),
+                      ),
+                    ),
+                  ),
+                  if (_errorPrivacidad != null)
+                    Text(_errorPrivacidad!, style: const TextStyle(color: ColoresUtb.rojoTexto, fontSize: 12)),
+                ],
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: _ocupado ? null : _enviar,
@@ -141,6 +177,7 @@ class _AccesoPantallaState extends State<AccesoPantalla> {
                 const SizedBox(height: 12),
                 const TituloSeccion('¿Por qué necesito una cuenta?'),
                 const Card(child: Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 4), child: RazonesCuenta())),
+                TextButton(onPressed: () => abrirAvisoPrivacidad(context), child: const Text('Aviso de privacidad')),
               ],
             ),
           ),

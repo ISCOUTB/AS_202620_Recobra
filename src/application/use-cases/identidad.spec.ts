@@ -1,8 +1,21 @@
-import { CerrarSesion, IniciarSesion, RegistrarCuenta, ResolverSesion, hashToken } from './identidad';
+import {
+  CerrarSesion,
+  ControlDeIntentos,
+  IniciarSesion,
+  RegistrarCuenta,
+  ResolverSesion,
+  hashToken,
+} from './identidad';
 import { MemoriaCuentaRepository } from '../../infrastructure/persistence/memoria-cuenta.repository';
 import { MemoriaSesionRepository } from '../../infrastructure/persistence/memoria-sesion.repository';
 import { ScryptHashContrasenas } from '../../infrastructure/seguridad/scrypt-hash-contrasenas';
-import { ConflictoError, NoAutenticadoError } from '../../domain/errors/errores-de-dominio';
+import {
+  ConflictoError,
+  DatoInvalidoError,
+  DemasiadosIntentosError,
+  NoAutenticadoError,
+} from '../../domain/errors/errores-de-dominio';
+import { VERSION_AVISO_PRIVACIDAD } from '../../domain/privacidad/aviso-privacidad';
 
 describe('Identidad', () => {
   let cuentas: MemoriaCuentaRepository;
@@ -17,11 +30,21 @@ describe('Identidad', () => {
     sesiones = new MemoriaSesionRepository();
     hash = new ScryptHashContrasenas();
     registrar = new RegistrarCuenta(cuentas, hash);
-    iniciar = new IniciarSesion(cuentas, sesiones, hash);
+    iniciar = new IniciarSesion(cuentas, sesiones, hash, new ControlDeIntentos());
     resolver = new ResolverSesion(cuentas, sesiones);
   });
 
-  const datos = { correo: 'ana@utb.edu.co', nombre: 'Ana', contrasena: 'contrasena-1' };
+  const datos = { correo: 'ana@utb.edu.co', nombre: 'Ana', contrasena: 'contrasena-1', aceptoPrivacidad: true };
+
+  it('sin aceptar el aviso de privacidad no se crea la cuenta; al aceptarlo queda constancia de la versión', async () => {
+    await expect(registrar.ejecutar({ ...datos, aceptoPrivacidad: false })).rejects.toBeInstanceOf(DatoInvalidoError);
+    await expect(registrar.ejecutar({ ...datos, aceptoPrivacidad: undefined as unknown as boolean })).rejects.toBeInstanceOf(
+      DatoInvalidoError,
+    );
+    const cuenta = await registrar.ejecutar(datos);
+    expect(cuenta.privacidadVersion).toBe(VERSION_AVISO_PRIVACIDAD);
+    expect(cuenta.privacidadAceptadaEn).toEqual(expect.any(String));
+  });
 
   it('guarda el hash de la contraseña, nunca la contraseña', async () => {
     const cuenta = await registrar.ejecutar(datos);

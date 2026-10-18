@@ -11,6 +11,11 @@ export interface DatosCuenta {
   /** Hash de la contraseña (nunca la contraseña): lo produce el adaptador de hash. */
   hashContrasena: string;
   creadoEn: string;
+  /** Cuándo y con qué versión del aviso de privacidad se dio la autorización (ADR-0021). */
+  privacidadAceptadaEn?: string | null;
+  privacidadVersion?: string | null;
+  /** Cuenta anonimizada a petición de su titular: ya no tiene datos personales. */
+  eliminadaEn?: string | null;
 }
 
 /**
@@ -24,26 +29,39 @@ export class Cuenta {
   readonly nombre: string;
   readonly hashContrasena: string;
   readonly creadoEn: string;
+  readonly privacidadAceptadaEn: string | null;
+  readonly privacidadVersion: string | null;
+  readonly eliminadaEn: string | null;
 
-  constructor({ id, correo, nombre, hashContrasena, creadoEn }: DatosCuenta) {
+  constructor({ id, correo, nombre, hashContrasena, creadoEn, privacidadAceptadaEn, privacidadVersion, eliminadaEn }: DatosCuenta) {
     const correoNormalizado = Cuenta.normalizarCorreo(correo);
-    Cuenta.validar(correoNormalizado, nombre);
+    Cuenta.validar(correoNormalizado, nombre, Boolean(eliminadaEn));
     this.id = id;
     this.correo = correoNormalizado;
     this.nombre = nombre.trim();
     this.hashContrasena = hashContrasena;
     this.creadoEn = creadoEn;
+    this.privacidadAceptadaEn = privacidadAceptadaEn ?? null;
+    this.privacidadVersion = privacidadVersion ?? null;
+    this.eliminadaEn = eliminadaEn ?? null;
   }
+
+  /** Correo y nombre que quedan en una cuenta anonimizada: no identifican a nadie. */
+  static correoAnonimo(id: string): string {
+    return `eliminada-${id}@eliminada.invalid`;
+  }
+
+  static readonly NOMBRE_ANONIMO = 'Cuenta eliminada';
 
   static normalizarCorreo(correo: string): string {
     return (correo ?? '').trim().toLowerCase();
   }
 
-  static validar(correo: string, nombre: string): void {
+  static validar(correo: string, nombre: string, anonimizada = false): void {
     if (!FORMATO_CORREO.test(correo)) {
       throw new DatoInvalidoError('correo no tiene un formato válido');
     }
-    if (!correo.endsWith(`@${DOMINIO_INSTITUCIONAL}`)) {
+    if (!anonimizada && !correo.endsWith(`@${DOMINIO_INSTITUCIONAL}`)) {
       throw new DatoInvalidoError(`correo debe ser institucional (@${DOMINIO_INSTITUCIONAL})`);
     }
     if (!nombre || nombre.trim().length < 2 || nombre.trim().length > 80) {

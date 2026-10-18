@@ -16,7 +16,7 @@ export interface UsuarioDePrueba {
 export async function crearUsuario(app: INestApplication, nombre = 'Usuario de prueba'): Promise<UsuarioDePrueba> {
   const correo = `prueba-${randomUUID().slice(0, 8)}@utb.edu.co`;
   const contrasena = 'contrasena-segura-1';
-  const registro = await request(app.getHttpServer()).post('/cuentas').send({ correo, nombre, contrasena });
+  const registro = await request(app.getHttpServer()).post('/cuentas').send({ correo, nombre, contrasena, aceptoPrivacidad: true });
   if (registro.status !== 201) throw new Error(`registro falló: ${registro.status}`);
   const sesion = await request(app.getHttpServer()).post('/sesiones').send({ correo, contrasena });
   if (sesion.status !== 201) throw new Error(`inicio de sesión falló: ${sesion.status}`);

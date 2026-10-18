@@ -1,7 +1,7 @@
 /**
  * Errores de dominio de Identidad y Reclamaciones. El dominio los nombra sin
  * saber nada de HTTP; `ErroresDeDominioFilter` (adaptador HTTP) los traduce a
- * 400, 401, 403, 404 y 409 con el esquema de error único.
+ * 400, 401, 403, 404, 409 y 429 con el esquema de error único.
  */
 export class DatoInvalidoError extends Error {
   constructor(mensaje: string) {
@@ -30,6 +30,14 @@ export class NoEncontradoError extends Error {
   constructor(mensaje: string) {
     super(mensaje);
     this.name = 'NoEncontradoError';
+  }
+}
+
+/** Demasiados intentos seguidos: hay que esperar antes de volver a probar (429). */
+export class DemasiadosIntentosError extends Error {
+  constructor(readonly esperarSegundos: number) {
+    super(`Demasiados intentos fallidos. Espera ${Math.ceil(esperarSegundos / 60)} minuto(s) antes de volver a intentarlo.`);
+    this.name = 'DemasiadosIntentosError';
   }
 }
 

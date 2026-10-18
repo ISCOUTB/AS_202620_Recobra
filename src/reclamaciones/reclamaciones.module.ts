@@ -34,5 +34,6 @@ import { ReconciliadorReclamaciones } from './reconciliador-reclamaciones';
     ReconciliarReclamaciones,
     ReconciliadorReclamaciones,
   ],
+  exports: [ReclamacionRepository],
 })
 export class ReclamacionesModule {}

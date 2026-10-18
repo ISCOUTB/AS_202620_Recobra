@@ -97,6 +97,28 @@ class Coincidencia {
   }
 }
 
+class SeccionAviso {
+  const SeccionAviso(this.titulo, this.texto);
+
+  final String titulo;
+  final String texto;
+}
+
+/// Aviso de privacidad versionado que sirve la API.
+class AvisoPrivacidad {
+  const AvisoPrivacidad({required this.version, required this.secciones});
+
+  final String version;
+  final List<SeccionAviso> secciones;
+
+  factory AvisoPrivacidad.fromJson(Map<String, dynamic> json) => AvisoPrivacidad(
+        version: json['version'] as String,
+        secciones: (json['secciones'] as List<dynamic>)
+            .map((e) => SeccionAviso((e as Map<String, dynamic>)['titulo'] as String, e['texto'] as String))
+            .toList(),
+      );
+}
+
 class Cuenta {
   Cuenta({required this.id, required this.correo, required this.nombre});
 
@@ -237,7 +259,7 @@ class RecobraApiException implements Exception {
   String toString() => message;
 }
 
-/// Cliente HTTP de la API de Recobra (contrato 4.1.0). La URL base se inyecta
+/// Cliente HTTP de la API de Recobra (contrato 5.0.0). La URL base se inyecta
 /// para poder apuntar a emulador, web o el despliegue. El token de sesión se
 /// guarda solo en memoria: al cerrar la app hay que volver a iniciar sesión.
 class RecobraApi {
@@ -279,11 +301,22 @@ class RecobraApi {
 
   // ---------------- Identidad ----------------
 
-  Future<Cuenta> registrar({required String correo, required String nombre, required String contrasena}) async {
+  /// Crear la cuenta exige aceptar el aviso de privacidad (ADR-0021).
+  Future<Cuenta> registrar({
+    required String correo,
+    required String nombre,
+    required String contrasena,
+    required bool aceptoPrivacidad,
+  }) async {
     final r = await _enviar(_client.post(
       _uri('/cuentas'),
       headers: _cabeceras(json: true),
-      body: jsonEncode({'correo': correo, 'nombre': nombre, 'contrasena': contrasena}),
+      body: jsonEncode({
+        'correo': correo,
+        'nombre': nombre,
+        'contrasena': contrasena,
+        'aceptoPrivacidad': aceptoPrivacidad,
+      }),
     ));
     return Cuenta.fromJson(_cuerpoO(r, {201}, 'No se pudo crear la cuenta') as Map<String, dynamic>);
   }
@@ -298,6 +331,30 @@ class RecobraApi {
     final cuerpo = _cuerpoO(r, {201}, 'No se pudo iniciar sesión') as Map<String, dynamic>;
     token = cuerpo['token'] as String;
     return Cuenta.fromJson(cuerpo['cuenta'] as Map<String, dynamic>);
+  }
+
+  /// El aviso de privacidad vigente (público).
+  Future<AvisoPrivacidad> avisoPrivacidad() async {
+    final r = await _enviar(_client.get(_uri('/privacidad')));
+    return AvisoPrivacidad.fromJson(_cuerpoO(r, {200}, 'No se pudo cargar el aviso') as Map<String, dynamic>);
+  }
+
+  /// Todo lo que Recobra guarda de la cuenta, como texto JSON con sangría.
+  Future<String> misDatos() async {
+    final r = await _enviar(_client.get(_uri('/cuentas/yo/datos'), headers: _cabeceras()));
+    final datos = _cuerpoO(r, {200}, 'No se pudieron cargar tus datos');
+    return const JsonEncoder.withIndent('  ').convert(datos);
+  }
+
+  /// Elimina la cuenta (pide la contraseña); falla con 409 si hay algo en curso.
+  Future<void> eliminarCuenta(String contrasena) async {
+    final r = await _enviar(_client.delete(
+      _uri('/cuentas/yo'),
+      headers: _cabeceras(json: true),
+      body: jsonEncode({'contrasena': contrasena}),
+    ));
+    _cuerpoO(r, {204}, 'No se pudo eliminar la cuenta');
+    token = null;
   }
 
   /// La cuenta de la sesión actual; falla con 401 si el token venció (se usa al restaurar la sesión).

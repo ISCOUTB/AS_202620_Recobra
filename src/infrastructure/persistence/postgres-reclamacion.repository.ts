@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { EstadoReclamacion, Reclamacion } from '../../domain/entities/reclamacion';
+import { EstadoReclamacion, PRUEBA_ANONIMIZADA, Reclamacion } from '../../domain/entities/reclamacion';
 import { ReclamacionRepository } from '../../domain/ports/reclamacion-repository';
 import { consultarCompartido, obtenerPoolCompartido, prepararEsquemaTolerante } from './postgres-comun';
 
@@ -63,6 +63,14 @@ export class PostgresReclamacionRepository extends ReclamacionRepository impleme
       [reclamanteId],
     );
     return resultado.rows.map((fila) => this.aEntidad(fila));
+  }
+
+  async anonimizarPruebasDe(reclamanteId: string): Promise<number> {
+    const resultado = await consultarCompartido(
+      'UPDATE reclamaciones SET prueba = $2 WHERE reclamante_id = $1 AND prueba <> $2',
+      [reclamanteId, PRUEBA_ANONIMIZADA],
+    );
+    return resultado.rowCount ?? 0;
   }
 
   async listarAbiertas(limite: number): Promise<Reclamacion[]> {

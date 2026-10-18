@@ -60,9 +60,17 @@ class SesionApp extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> registrarYEntrar(String nombre, String correo, String contrasena) async {
-    await api.registrar(correo: correo, nombre: nombre, contrasena: contrasena);
+  Future<void> registrarYEntrar(String nombre, String correo, String contrasena, {required bool aceptoPrivacidad}) async {
+    await api.registrar(correo: correo, nombre: nombre, contrasena: contrasena, aceptoPrivacidad: aceptoPrivacidad);
     await entrar(correo, contrasena);
+  }
+
+  /// Elimina la cuenta en el servidor y deja la app como visitante (ADR-0021).
+  Future<void> eliminarCuenta(String contrasena) async {
+    await api.eliminarCuenta(contrasena);
+    await _almacen.borrar(_claveToken);
+    cuenta = null;
+    notifyListeners();
   }
 
   Future<void> salir() async {

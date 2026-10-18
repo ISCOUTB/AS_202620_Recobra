@@ -236,6 +236,13 @@ Fuente de los hallazgos: retroalimentación publicada en
 | La sesión de la app se perdía al cerrarla | Se guarda en el dispositivo, se valida al abrir y se borra al cerrar sesión o si venció; la bienvenida se muestra una sola vez | `mobile/lib/estado/sesion.dart`, `mobile/test/widget_test.dart` |
 | Consistencia al aprobar y entregar (S12) | Pasos retomables y reconciliador | [ADR-0020](docs/adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md), `consistencia-reclamaciones.spec.ts` |
 
+## Avance del proyecto · Privacidad y datos personales (2026-10-18)
+
+| Hallazgo de la evaluación | Qué se hizo | Evidencia |
+|---|---|---|
+| Sin reglas de datos personales (Ley 1581) | Aviso de privacidad, consentimiento al registrarse, descarga de datos, eliminación anonimizando y retención de sesiones y avisos | [ADR-0021](docs/adr/0021-privacidad-y-datos-personales.md), `test/privacidad.e2e-spec.ts` |
+| Sin límite de intentos de inicio de sesión | 5 por correo en 15 minutos, luego 429 | `control-de-intentos.spec.ts` |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

@@ -6,6 +6,7 @@ import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 import 'acceso.dart';
 import 'bienvenida.dart';
+import 'privacidad.dart';
 
 /// Pasos del recorrido, compartidos con la bienvenida.
 const pasosRecobra = ['Publicas', 'Te avisamos si coincide', 'Reclamas con una prueba', 'Acuerdan la entrega'];
@@ -120,7 +121,35 @@ class _PerfilPantallaState extends State<PerfilPantalla> {
                   ),
                   child: const Text('Ver la bienvenida otra vez'),
                 ),
-                const SizedBox(height: 12),
+                const TituloSeccion('Privacidad', subtitulo: 'Tus datos son tuyos'),
+                Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.policy_outlined, color: ColoresUtb.azulClaro),
+                        title: const Text('Aviso de privacidad'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => abrirAvisoPrivacidad(context),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.download_outlined, color: ColoresUtb.azulClaro),
+                        title: const Text('Descargar mis datos'),
+                        subtitle: const Text('Todo lo que Recobra guarda de tu cuenta'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => abrirMisDatos(context),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.delete_outline_rounded, color: ColoresUtb.rojoTexto),
+                        title: const Text('Eliminar mi cuenta', style: TextStyle(color: ColoresUtb.rojoTexto)),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => abrirEliminarCuenta(context),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: ColoresUtb.rojoTexto,

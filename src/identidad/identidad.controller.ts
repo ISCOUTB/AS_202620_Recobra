@@ -7,6 +7,7 @@ interface CuerpoRegistro {
   correo: string;
   nombre: string;
   contrasena: string;
+  aceptoPrivacidad: boolean;
 }
 
 interface CuerpoSesion {
@@ -30,6 +31,7 @@ export class IdentidadController {
       correo: cuerpo?.correo,
       nombre: cuerpo?.nombre,
       contrasena: cuerpo?.contrasena,
+      aceptoPrivacidad: cuerpo?.aceptoPrivacidad,
     });
     return cuenta.vistaPublica();
   }

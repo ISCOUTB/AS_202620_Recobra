@@ -307,6 +307,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0018](../adr/0018-coincidencias-persistidas-y-parecido-ponderado.md) | Coincidencias persistidas y parecido ponderado (lugar, palabras y fecha) | Aceptada |
 | [ADR-0019](../adr/0019-donde-esta-el-objeto-y-lo-tengo-yo.md) | Dónde está el objeto y "Lo tengo yo" | Aceptada |
 | [ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md) | Consistencia entre Publicaciones y Reclamaciones: pasos retomables y reconciliación | Aceptada |
+| [ADR-0021](../adr/0021-privacidad-y-datos-personales.md) | Privacidad y datos personales: consentimiento, acceso, supresión y retención | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -344,8 +345,9 @@ Detalle completo, con código y pruebas de cada fila, en
 - **Sin circuit breaker hacia la base:** con una caída larga, cada petición espera hasta 3 s antes del 503. Plan: agregarlo en el adaptador si una caída real lo justifica.
 - **Vitrina sin pruebas automáticas:** sus reintentos, límites de tiempo y el bloqueo del botón están implementados pero no tienen prueba.
 - **Idempotencia:** la clave ya se compara junto con el autor (una misma clave con otra cuenta responde 422), pero no se acota por cuenta; ver los límites en `docs/modos-de-fallo.md`.
+- **Datos personales ([ADR-0021](../adr/0021-privacidad-y-datos-personales.md)):** hay aviso, consentimiento, descarga, eliminación (anonimizando) y retención de sesiones y avisos. Pendientes: revisión del texto por la universidad, plazo de las publicaciones cerradas, copias de seguridad y limpieza de datos personales que alguien escriba en una descripción.
 - **Correo sin verificar por propiedad:** se exige `@utb.edu.co`, pero no hay código por correo (sin proveedor gratuito); lo mitiga que la entrega la aprueba una persona (ADR-0013, ADR-0014).
-- **Seguridad de la cuenta pendiente:** sin límite de intentos de inicio de sesión ni recuperación de contraseña; el token vive en `localStorage` de la vitrina y en las preferencias del dispositivo en la app (riesgo ante XSS o ante alguien con el dispositivo desbloqueado; el token vence a los 7 días y se revoca al cerrar sesión). Para el modelado de amenazas de la S13.
+- **Seguridad de la cuenta pendiente:** hay límite de intentos de inicio de sesión (5 por correo en 15 minutos, en memoria del proceso, ADR-0021) pero no recuperación de contraseña; el token vive en `localStorage` de la vitrina y en las preferencias del dispositivo en la app (riesgo ante XSS o ante alguien con el dispositivo desbloqueado; el token vence a los 7 días y se revoca al cerrar sesión). Para el modelado de amenazas de la S13.
 - **Consistencia al aprobar o entregar:** se escriben dos tablas sin transacción; resuelto con pasos retomables y un reconciliador ([ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md)). Queda un margen de minutos de consistencia eventual y los avisos perdidos no se reenvían (haría falta una bandeja de salida).
 
 

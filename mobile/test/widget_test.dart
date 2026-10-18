@@ -75,6 +75,30 @@ MockClient _servidor({
           201,
         );
       }
+      if (request.method == 'GET' && ruta == '/privacidad') {
+        return _resp(
+          jsonEncode({
+            'version': '2026-10-18',
+            'titulo': 'Aviso de privacidad de Recobra',
+            'secciones': [
+              {'titulo': 'Qué datos guardamos', 'texto': 'Tu correo y tu nombre.'},
+              {'titulo': 'Tus derechos', 'texto': 'Puedes pedir que se supriman.'},
+            ],
+          }),
+          200,
+        );
+      }
+      if (request.method == 'POST' && ruta == '/cuentas') {
+        final cuerpo = jsonDecode(request.body) as Map<String, dynamic>;
+        return cuerpo['aceptoPrivacidad'] == true
+            ? _resp(jsonEncode({'id': 'yo', 'correo': cuerpo['correo'], 'nombre': cuerpo['nombre']}), 201)
+            : _resp('{"statusCode":400,"message":"debes aceptar el aviso de privacidad"}', 400);
+      }
+      if (request.method == 'DELETE' && ruta == '/cuentas/yo') {
+        return (jsonDecode(request.body) as Map<String, dynamic>)['contrasena'] == 'contrasena-1'
+            ? http.Response('', 204)
+            : _resp('{"statusCode":403,"message":"la contraseña no coincide"}', 403);
+      }
       if (request.method == 'GET' && ruta == '/cuentas/yo') {
         return request.headers['Authorization'] == 'Bearer tok-123'
             ? _resp(jsonEncode({'id': 'yo', 'correo': 'ana@utb.edu.co', 'nombre': 'Ana Pérez'}), 200)
@@ -291,6 +315,76 @@ void main() {
       await tester.tap(find.text('Cerrar sesión'));
       await tester.pumpAndSettle();
       expect(await almacen.leer('recobra.sesion.token'), isNull);
+    });
+
+    testWidgets('Crear una cuenta exige aceptar el aviso de privacidad y lo envía al servidor', (tester) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      await tester.pumpWidget(app(_servidor(registro: peticiones)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Perfil').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Crear cuenta').first);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'Nombre'), 'Ana Pérez');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Correo institucional'), 'ana@utb.edu.co');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'contrasena-1');
+      await tester.tap(find.widgetWithText(FilledButton, 'Crear cuenta'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('debes aceptar el aviso de privacidad'), findsOneWidget);
+      expect(peticiones.where((r) => r.method == 'POST' && r.url.path == '/cuentas'), isEmpty);
+
+      await tester.tap(find.byType(Checkbox));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Crear cuenta'));
+      await tester.pumpAndSettle();
+
+      final registro = peticiones.singleWhere((r) => r.method == 'POST' && r.url.path == '/cuentas');
+      expect(jsonDecode(registro.body)['aceptoPrivacidad'], true);
+    });
+
+    testWidgets('El aviso de privacidad se lee desde el perfil y se puede eliminar la cuenta con la contraseña', (
+      tester,
+    ) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      final almacen = AlmacenMemoria();
+      await tester.pumpWidget(
+        RecobraApp(
+          api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor(registro: peticiones)),
+          almacen: almacen,
+          mostrarBienvenida: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.drag(find.byType(ListView).first, const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Aviso de privacidad'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tus derechos'), findsOneWidget);
+      await tester.tap(find.byTooltip('Cerrar'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Eliminar mi cuenta'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, 'Tu contraseña'), 'equivocada-1');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Eliminar mi cuenta'));
+      await tester.pumpAndSettle();
+      expect(find.text('la contraseña no coincide'), findsOneWidget);
+      expect(await almacen.leer('recobra.sesion.token'), 'tok-123'); // sigue con sesión
+
+      await tester.enterText(find.widgetWithText(TextField, 'Tu contraseña'), 'contrasena-1');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Eliminar mi cuenta'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Tu cuenta fue eliminada'), findsOneWidget);
+      expect(await almacen.leer('recobra.sesion.token'), isNull);
+      expect(find.text('Tu cuenta'), findsOneWidget); // vuelve a la pantalla de acceso, como visitante
     });
 
     testWidgets('La bienvenida se muestra una sola vez', (tester) async {

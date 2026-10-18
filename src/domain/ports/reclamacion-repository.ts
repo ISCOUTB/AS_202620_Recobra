@@ -14,4 +14,7 @@ export abstract class ReclamacionRepository {
    * lo que recorre el reconciliador (ADR-0020).
    */
   abstract listarAbiertas(limite: number): Promise<Reclamacion[]>;
+
+  /** Reemplaza el texto de las pruebas de un reclamante (al eliminar su cuenta) y dice cuántas. */
+  abstract anonimizarPruebasDe(reclamanteId: string): Promise<number>;
 }

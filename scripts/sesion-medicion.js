@@ -17,7 +17,7 @@ async function obtenerToken(baseUrl) {
       body: JSON.stringify(cuerpo),
     });
 
-  const registro = await enviar('/cuentas', { correo, nombre: 'Medición', contrasena });
+  const registro = await enviar('/cuentas', { correo, nombre: 'Medición', contrasena, aceptoPrivacidad: true });
   if (registro.status !== 201) throw new Error('No se pudo registrar la cuenta de medición');
   const sesion = await enviar('/sesiones', { correo, contrasena });
   if (sesion.status !== 201) throw new Error('No se pudo iniciar sesión para medir');

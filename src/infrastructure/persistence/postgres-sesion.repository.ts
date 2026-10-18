@@ -41,4 +41,13 @@ export class PostgresSesionRepository extends SesionRepository implements OnModu
   async eliminar(tokenHash: string): Promise<void> {
     await consultarCompartido('DELETE FROM sesiones WHERE token_hash = $1', [tokenHash]);
   }
+
+  async eliminarDeCuenta(cuentaId: string): Promise<void> {
+    await consultarCompartido('DELETE FROM sesiones WHERE cuenta_id = $1', [cuentaId]);
+  }
+
+  async eliminarExpiradas(ahora: string): Promise<number> {
+    const resultado = await consultarCompartido('DELETE FROM sesiones WHERE expira_en <= $1', [ahora]);
+    return resultado.rowCount ?? 0;
+  }
 }

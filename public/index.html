@@ -299,6 +299,19 @@
   button.acceso .detalle { font-size: 0.8rem; font-weight: 500; opacity: 0.85; }
   button.acceso .publicar { margin-top: 0.5rem; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; }
 
+  /* Privacidad */
+  .consentimiento { display: flex; flex-direction: row; align-items: flex-start; gap: 0.6rem; font-weight: 400; font-size: 0.85rem; }
+  .consentimiento input { margin-top: 0.2rem; width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
+  button.enlace-texto { background: none; border: none; padding: 0; color: var(--azul-claro); font-weight: 600; font-size: inherit; text-decoration: underline; cursor: pointer; }
+  .pie { max-width: 1080px; margin: 0 auto; padding: 0 1.25rem 3rem; font-size: 0.82rem; color: var(--texto-suave); display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; }
+  .privacidad-datos { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--borde); }
+  .privacidad-datos h3 { margin: 0 0 0.2rem; font-size: 1.05rem; }
+  .privacidad-datos .fila-botones { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+  dialog .seccion-aviso { margin-bottom: 0.9rem; }
+  dialog .seccion-aviso h3 { margin: 0 0 0.2rem; font-size: 1rem; }
+  dialog .seccion-aviso p { margin: 0; font-size: 0.88rem; line-height: 1.5; color: var(--texto-suave); }
+  dialog.ancho { width: min(560px, calc(100vw - 2rem)); max-height: 85vh; }
+
   /* Por qué hace falta una cuenta */
   ul.razones { list-style: none; margin: 0.7rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
   ul.razones li { font-size: 0.85rem; color: var(--texto-suave); line-height: 1.45; }
@@ -508,6 +521,10 @@
       <label>Contraseña (mínimo 8 caracteres)
         <input type="password" name="contrasena" autocomplete="new-password" required minlength="8" />
       </label>
+      <label class="consentimiento">
+        <input type="checkbox" name="aceptoPrivacidad" required />
+        <span>Acepto el tratamiento de mis datos según el <button type="button" class="enlace-texto" data-abrir-aviso>aviso de privacidad</button>.</span>
+      </label>
       <button type="submit">Crear cuenta</button>
     </form>
     <output id="mensaje-cuenta"></output>
@@ -647,8 +664,50 @@
         <div id="lista-mis-reclamaciones"></div>
       </div>
     </div>
+    <div class="privacidad-datos">
+      <h3>Mis datos</h3>
+      <p class="meta">Tus datos son tuyos: puedes ver todo lo que Recobra guarda de tu cuenta o eliminarla.</p>
+      <div class="fila-botones">
+        <button type="button" class="secundario" id="boton-descargar-datos">Descargar mis datos</button>
+        <button type="button" class="secundario" data-abrir-aviso>Aviso de privacidad</button>
+        <button type="button" class="peligro" id="boton-eliminar-cuenta">Eliminar mi cuenta</button>
+      </div>
+      <output id="mensaje-datos"></output>
+    </div>
   </section>
 </main>
+
+<footer class="pie">
+  <button type="button" class="enlace-texto" data-abrir-aviso>Aviso de privacidad</button>
+  <a href="https://github.com/ISCOUTB/AS_202620_Recobra">Código en GitHub</a>
+  <span>Proyecto académico de la UTB</span>
+</footer>
+
+<dialog id="dialogo-aviso" class="ancho" aria-labelledby="titulo-aviso">
+  <h2 id="titulo-aviso">Aviso de privacidad</h2>
+  <p class="meta" id="version-aviso"></p>
+  <div id="cuerpo-aviso">Cargando…</div>
+  <form method="dialog"><button type="submit">Cerrar</button></form>
+</dialog>
+
+<dialog id="dialogo-eliminar" aria-labelledby="titulo-eliminar">
+  <h2 id="titulo-eliminar">¿Eliminar tu cuenta?</h2>
+  <p class="meta">Esta acción no se puede deshacer.</p>
+  <ul>
+    <li>Retiramos lo que sigues teniendo publicado.</li>
+    <li>Borramos tus avisos y cerramos tus sesiones.</li>
+    <li>Quitamos tu nombre, tu correo y el texto de las pruebas que escribiste.</li>
+    <li>No puedes tener reclamaciones ni entregas en curso, para no dejar a nadie esperando.</li>
+  </ul>
+  <form id="form-eliminar">
+    <label>Tu contraseña
+      <input type="password" name="contrasena" autocomplete="current-password" required />
+    </label>
+    <output id="mensaje-eliminar" role="alert"></output>
+    <button type="submit" class="peligro">Eliminar mi cuenta</button>
+    <button type="button" class="secundario" id="cancelar-eliminar">Cancelar</button>
+  </form>
+</dialog>
 
 <dialog id="dialogo-entrega" aria-labelledby="titulo-entrega">
   <h2 id="titulo-entrega">Confirmar entrega</h2>
@@ -1337,6 +1396,7 @@
   formRegistro.addEventListener('submit', async (evento) => {
     evento.preventDefault();
     const datos = Object.fromEntries(new FormData(formRegistro).entries());
+    datos.aceptoPrivacidad = formRegistro.elements.aceptoPrivacidad.checked;
     const r = await llamar('/cuentas', { method: 'POST', body: JSON.stringify(datos) });
     if (!r.ok) {
       mensajeCuenta.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo crear la cuenta';
@@ -1884,6 +1944,78 @@
   });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') cargarAvisos();
+  });
+
+  /* ================= Privacidad (ADR-0021) ================= */
+  const dialogoAviso = document.getElementById('dialogo-aviso');
+  const mensajeDatos = document.getElementById('mensaje-datos');
+
+  /** El aviso lo sirve la API: es el mismo texto que ve la app. */
+  async function abrirAviso() {
+    const cuerpo = document.getElementById('cuerpo-aviso');
+    dialogoAviso.showModal();
+    dialogoAviso.scrollTop = 0; // el foco inicial cae en "Cerrar", al final: se vuelve al principio
+    try {
+      const r = await fetch('/privacidad');
+      if (!r.ok) throw new Error('sin aviso');
+      const aviso = await r.json();
+      document.getElementById('version-aviso').textContent = `Versión ${aviso.version}`;
+      cuerpo.replaceChildren(
+        ...aviso.secciones.map((s) => {
+          const caja = elemento('div', 'seccion-aviso');
+          caja.append(elemento('h3', '', s.titulo), elemento('p', '', s.texto));
+          return caja;
+        }),
+      );
+    } catch {
+      cuerpo.textContent = 'No pudimos cargar el aviso. Revisa tu conexión e inténtalo de nuevo.';
+    }
+  }
+  for (const boton of document.querySelectorAll('[data-abrir-aviso]')) boton.addEventListener('click', abrirAviso);
+
+  /** Derecho de acceso: baja un archivo JSON con todo lo que se guarda de la cuenta. */
+  document.getElementById('boton-descargar-datos').addEventListener('click', async () => {
+    mensajeDatos.textContent = '';
+    const r = await llamar('/cuentas/yo/datos');
+    if (!r.ok) {
+      mensajeDatos.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudieron cargar tus datos';
+      mensajeDatos.className = 'error';
+      return;
+    }
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(new Blob([JSON.stringify(r.cuerpo, null, 2)], { type: 'application/json' }));
+    enlace.download = 'mis-datos-recobra.json';
+    enlace.click();
+    URL.revokeObjectURL(enlace.href);
+    mensajeDatos.textContent = 'Listo: se descargó mis-datos-recobra.json';
+    mensajeDatos.className = 'ok';
+  });
+
+  /** Derecho de supresión: pide la contraseña; el servidor dice si hay algo en curso. */
+  const dialogoEliminar = document.getElementById('dialogo-eliminar');
+  const formEliminar = document.getElementById('form-eliminar');
+  const mensajeEliminar = document.getElementById('mensaje-eliminar');
+  document.getElementById('boton-eliminar-cuenta').addEventListener('click', () => {
+    formEliminar.reset();
+    mensajeEliminar.textContent = '';
+    dialogoEliminar.showModal();
+  });
+  document.getElementById('cancelar-eliminar').addEventListener('click', () => dialogoEliminar.close());
+  formEliminar.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const r = await llamar('/cuentas/yo', {
+      method: 'DELETE',
+      body: JSON.stringify({ contrasena: formEliminar.elements.contrasena.value }),
+    });
+    if (!r.ok) {
+      mensajeEliminar.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo eliminar la cuenta';
+      mensajeEliminar.className = 'error';
+      return;
+    }
+    dialogoEliminar.close();
+    guardarSesion(null);
+    mensajeCuenta.textContent = 'Tu cuenta fue eliminada. Gracias por haber usado Recobra.';
+    mensajeCuenta.className = 'ok';
   });
 
   /** Los botones "Perdí algo" / "Encontré algo" dejan el formulario listo y llevan a él. */

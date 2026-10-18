@@ -10,4 +10,7 @@ export abstract class NotificacionRepository {
   /** Marca como leída solo si es de esa cuenta; dice si la encontró. */
   abstract marcarLeida(id: string, cuentaId: string): Promise<boolean>;
   abstract marcarTodasLeidas(cuentaId: string): Promise<void>;
+  abstract eliminarDeCuenta(cuentaId: string): Promise<void>;
+  /** Borra los avisos creados antes de `fecha` y dice cuántos (retención, ADR-0021). */
+  abstract eliminarAnterioresA(fecha: string): Promise<number>;
 }

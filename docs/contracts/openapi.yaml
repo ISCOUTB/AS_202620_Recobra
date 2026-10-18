@@ -45,13 +45,30 @@ info:
     4.1.0 agrega dónde está un objeto encontrado (`custodia`, `puntoCustodia`,
     `POST /publicaciones/{id}/custodia`) y "Lo tengo yo" sobre un objeto
     perdido (`POST /publicaciones/{id}/lo-tengo`), ADR-0019: cambio compatible.
-  version: "4.1.0"
+    5.0.0 agrega la privacidad de los datos (ADR-0021): `POST /cuentas` exige
+    `aceptoPrivacidad: true` (cambio incompatible: versión mayor), y se suman
+    `GET /privacidad`, `GET /cuentas/yo/datos` y `DELETE /cuentas/yo`.
+    `POST /sesiones` responde 429 tras 5 intentos fallidos por correo en 15
+    minutos.
+  version: "5.0.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
   - url: http://localhost:3000
     description: Backend local (npm run start)
 paths:
+  /privacidad:
+    get:
+      operationId: avisoDePrivacidad
+      summary: Aviso de privacidad (público, versionado)
+      tags: [Privacidad]
+      responses:
+        "200":
+          description: El aviso, en secciones
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvisoPrivacidad"
   /health:
     get:
       operationId: consultarSalud
@@ -731,7 +748,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [correo, nombre, contrasena]
+              required: [correo, nombre, contrasena, aceptoPrivacidad]
               properties:
                 correo:
                   type: string
@@ -741,6 +758,10 @@ paths:
                 contrasena:
                   type: string
                   minLength: 8
+                aceptoPrivacidad:
+                  type: boolean
+                  enum: [true]
+                  description: Autoriza el tratamiento de datos según el aviso de privacidad (`GET /privacidad`)
       responses:
         "201":
           description: Cuenta creada
@@ -749,7 +770,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Cuenta"
         "400":
-          description: Correo no institucional, nombre o contraseña inválidos
+          description: Correo no institucional, nombre o contraseña inválidos, o no se aceptó el aviso de privacidad
           content:
             application/json:
               schema:
@@ -761,6 +782,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
   /cuentas/yo:
+    delete:
+      operationId: eliminarMiCuenta
+      summary: Eliminar la cuenta (derecho de supresión); anonimiza lo que queda
+      description: >
+        Pide la contraseña. No se puede mientras haya una reclamación pendiente o
+        aprobada sin entrega, o un objeto propio con una reclamación o entrega en
+        curso. Retira las publicaciones propias que siguen publicadas, borra los
+        avisos y las sesiones, reemplaza el texto de las pruebas escritas y quita
+        el nombre, el correo y la contraseña (ADR-0021).
+      tags: [Privacidad]
+      security:
+        - sesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contrasena]
+              properties:
+                contrasena:
+                  type: string
+      responses:
+        "204":
+          description: Cuenta eliminada
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La contraseña no coincide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Hay reclamaciones o entregas en curso que resolver primero
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     get:
       operationId: consultarMiCuenta
       summary: Cuenta de la sesión
@@ -774,6 +838,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Cuenta"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /cuentas/yo/datos:
+    get:
+      operationId: descargarMisDatos
+      summary: Todo lo que Recobra guarda de la cuenta (derecho de acceso)
+      tags: [Privacidad]
+      security:
+        - sesion: []
+      responses:
+        "200":
+          description: La cuenta, sus publicaciones, sus reclamaciones (con la prueba que escribió) y sus avisos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatosPersonales"
         "401":
           description: Falta la sesión o no es válida
           content:
@@ -815,6 +899,17 @@ paths:
                     $ref: "#/components/schemas/Cuenta"
         "401":
           description: Correo o contraseña incorrectos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Demasiados intentos fallidos de inicio de sesión para ese correo (5 en 15 minutos)
+          headers:
+            Retry-After:
+              description: Segundos que hay que esperar
+              schema:
+                type: integer
           content:
             application/json:
               schema:
@@ -983,6 +1078,64 @@ components:
         creadoEn:
           type: string
           format: date-time
+    AvisoPrivacidad:
+      type: object
+      required: [version, titulo, secciones]
+      properties:
+        version:
+          type: string
+          example: "2026-10-18"
+        titulo:
+          type: string
+        secciones:
+          type: array
+          items:
+            type: object
+            required: [titulo, texto]
+            properties:
+              titulo:
+                type: string
+              texto:
+                type: string
+    DatosPersonales:
+      type: object
+      required: [generadoEn, cuenta, publicaciones, reclamaciones, avisos]
+      properties:
+        generadoEn:
+          type: string
+          format: date-time
+        cuenta:
+          type: object
+          required: [id, correo, nombre, creadoEn]
+          properties:
+            id:
+              type: string
+            correo:
+              type: string
+            nombre:
+              type: string
+            creadoEn:
+              type: string
+              format: date-time
+            avisoDePrivacidadAceptadoEn:
+              type: string
+              format: date-time
+              nullable: true
+            versionDelAviso:
+              type: string
+              nullable: true
+        publicaciones:
+          type: array
+          items:
+            $ref: "#/components/schemas/Publicacion"
+        reclamaciones:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reclamacion"
+        avisos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notificacion"
     Cuenta:
       type: object
       required: [id, correo, nombre]

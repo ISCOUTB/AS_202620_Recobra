@@ -34,6 +34,21 @@ export class MemoriaNotificacionRepository extends NotificacionRepository {
     for (const n of this.deCuenta(cuentaId)) this.notificaciones.set(n.id, new Notificacion({ ...n, leida: true }));
   }
 
+  async eliminarDeCuenta(cuentaId: string): Promise<void> {
+    for (const n of this.deCuenta(cuentaId)) this.notificaciones.delete(n.id);
+  }
+
+  async eliminarAnterioresA(fecha: string): Promise<number> {
+    let borradas = 0;
+    for (const [id, n] of this.notificaciones) {
+      if (n.creadoEn < fecha) {
+        this.notificaciones.delete(id);
+        borradas++;
+      }
+    }
+    return borradas;
+  }
+
   private deCuenta(cuentaId: string): Notificacion[] {
     return [...this.notificaciones.values()].filter((n) => n.cuentaId === cuentaId);
   }

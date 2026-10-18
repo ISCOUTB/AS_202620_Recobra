@@ -8,7 +8,13 @@ import { MemoriaSesionRepository } from '../infrastructure/persistence/memoria-s
 import { PostgresCuentaRepository } from '../infrastructure/persistence/postgres-cuenta.repository';
 import { PostgresSesionRepository } from '../infrastructure/persistence/postgres-sesion.repository';
 import { ScryptHashContrasenas } from '../infrastructure/seguridad/scrypt-hash-contrasenas';
-import { CerrarSesion, IniciarSesion, RegistrarCuenta, ResolverSesion } from '../application/use-cases/identidad';
+import {
+  CerrarSesion,
+  ControlDeIntentos,
+  IniciarSesion,
+  RegistrarCuenta,
+  ResolverSesion,
+} from '../application/use-cases/identidad';
 import { IdentidadController } from './identidad.controller';
 import { AutenticacionGuard } from './autenticacion.guard';
 import { ErroresDeDominioFilter } from './errores-de-dominio.filter';
@@ -28,11 +34,12 @@ const conBase = Boolean(process.env.DATABASE_URL);
     { provide: HashContrasenas, useClass: ScryptHashContrasenas },
     { provide: APP_FILTER, useClass: ErroresDeDominioFilter },
     RegistrarCuenta,
+    ControlDeIntentos,
     IniciarSesion,
     CerrarSesion,
     ResolverSesion,
     AutenticacionGuard,
   ],
-  exports: [CuentaRepository, ResolverSesion, AutenticacionGuard],
+  exports: [CuentaRepository, SesionRepository, HashContrasenas, ResolverSesion, AutenticacionGuard],
 })
 export class IdentidadModule {}

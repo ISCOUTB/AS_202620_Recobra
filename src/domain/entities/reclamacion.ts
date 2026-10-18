@@ -17,6 +17,9 @@ export interface DatosReclamacion {
 }
 
 const PRUEBA_MINIMA = 20;
+
+/** Lo que queda en lugar de la prueba cuando su autor elimina la cuenta (ADR-0021). */
+export const PRUEBA_ANONIMIZADA = '[prueba eliminada a petición de su titular]';
 const PRUEBA_MAXIMA = 1000;
 
 /**

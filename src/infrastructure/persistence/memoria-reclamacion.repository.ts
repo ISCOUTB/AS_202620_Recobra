@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Reclamacion } from '../../domain/entities/reclamacion';
+import { PRUEBA_ANONIMIZADA, Reclamacion } from '../../domain/entities/reclamacion';
 import { ReclamacionRepository } from '../../domain/ports/reclamacion-repository';
 
 @Injectable()
@@ -21,6 +21,16 @@ export class MemoriaReclamacionRepository extends ReclamacionRepository {
 
   async listarPorReclamante(reclamanteId: string): Promise<Reclamacion[]> {
     return this.ordenar([...this.reclamaciones.values()].filter((r) => r.reclamanteId === reclamanteId));
+  }
+
+  async anonimizarPruebasDe(reclamanteId: string): Promise<number> {
+    let cambiadas = 0;
+    for (const r of this.reclamaciones.values()) {
+      if (r.reclamanteId !== reclamanteId || r.prueba === PRUEBA_ANONIMIZADA) continue;
+      this.reclamaciones.set(r.id, new Reclamacion({ ...r, prueba: PRUEBA_ANONIMIZADA }));
+      cambiadas++;
+    }
+    return cambiadas;
   }
 
   async listarAbiertas(limite: number): Promise<Reclamacion[]> {

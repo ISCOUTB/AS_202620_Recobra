@@ -17,4 +17,19 @@ export class MemoriaSesionRepository extends SesionRepository {
   async eliminar(tokenHash: string): Promise<void> {
     this.sesiones.delete(tokenHash);
   }
+
+  async eliminarDeCuenta(cuentaId: string): Promise<void> {
+    for (const [hash, s] of this.sesiones) if (s.cuentaId === cuentaId) this.sesiones.delete(hash);
+  }
+
+  async eliminarExpiradas(ahora: string): Promise<number> {
+    let borradas = 0;
+    for (const [hash, s] of this.sesiones) {
+      if (s.expiraEn <= ahora) {
+        this.sesiones.delete(hash);
+        borradas++;
+      }
+    }
+    return borradas;
+  }
 }
