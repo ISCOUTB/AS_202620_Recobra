@@ -2,7 +2,12 @@ import { Module } from '@nestjs/common';
 import { ReclamacionRepository } from '../domain/ports/reclamacion-repository';
 import { MemoriaReclamacionRepository } from '../infrastructure/persistence/memoria-reclamacion.repository';
 import { PostgresReclamacionRepository } from '../infrastructure/persistence/postgres-reclamacion.repository';
-import { ConsultarReclamaciones, CrearReclamacion, ResolverReclamacion } from '../application/use-cases/reclamaciones';
+import {
+  ConfirmarEntrega,
+  ConsultarReclamaciones,
+  CrearReclamacion,
+  ResolverReclamacion,
+} from '../application/use-cases/reclamaciones';
 import { PublicacionesModule } from '../publicaciones/publicaciones.module';
 import { IdentidadModule } from '../identidad/identidad.module';
 import { ReclamacionesController } from './reclamaciones.controller';
@@ -23,6 +28,7 @@ import { ReclamacionesController } from './reclamaciones.controller';
     CrearReclamacion,
     ResolverReclamacion,
     ConsultarReclamaciones,
+    ConfirmarEntrega,
   ],
 })
 export class ReclamacionesModule {}

@@ -12,6 +12,8 @@ export interface DatosReclamacion {
   creadoEn: string;
   resueltaEn?: string | null;
   motivoRechazo?: string | null;
+  /** Cuándo se confirmó que el objeto llegó a su dueño (ADR-0017). */
+  entregadaEn?: string | null;
 }
 
 const PRUEBA_MINIMA = 20;
@@ -32,6 +34,7 @@ export class Reclamacion {
   readonly creadoEn: string;
   readonly resueltaEn: string | null;
   readonly motivoRechazo: string | null;
+  readonly entregadaEn: string | null;
 
   constructor(datos: DatosReclamacion) {
     const prueba = (datos.prueba ?? '').trim();
@@ -48,6 +51,16 @@ export class Reclamacion {
     this.creadoEn = datos.creadoEn;
     this.resueltaEn = datos.resueltaEn ?? null;
     this.motivoRechazo = datos.motivoRechazo ?? null;
+    this.entregadaEn = datos.entregadaEn ?? null;
+  }
+
+  /** Solo una reclamación aprobada y sin entregar puede confirmarse como entregada. */
+  confirmarEntrega(ahora: string): Reclamacion {
+    if (this.estado !== 'aprobada') {
+      throw new ConflictoError('solo se confirma la entrega de una reclamación aprobada');
+    }
+    if (this.entregadaEn) throw new ConflictoError('la entrega ya estaba confirmada');
+    return new Reclamacion({ ...this, entregadaEn: ahora });
   }
 
   aprobar(ahora: string): Reclamacion {

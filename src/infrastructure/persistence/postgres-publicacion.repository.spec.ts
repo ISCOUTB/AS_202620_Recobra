@@ -233,6 +233,12 @@ describe('PostgresPublicacionRepository', () => {
     const [sql, parametros] = queryMock.mock.calls[0];
     expect(sql).not.toContain('DROP TABLE');
     expect(sql).toContain('LIMIT $4');
-    expect(parametros).toEqual(['perdido', "x'; DROP TABLE publicaciones;--", null, 5]);
+    expect(parametros).toEqual([
+      'perdido',
+      "x'; DROP TABLE publicaciones;--",
+      null,
+      5,
+      ['publicado', 'en_verificacion', 'por_entregar'],
+    ]);
   });
 });

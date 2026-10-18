@@ -59,14 +59,19 @@ describe('Reclamacion', () => {
 });
 
 describe('Ciclo de vida de la publicación', () => {
-  it('permite publicado → en_verificacion → reclamado o → publicado', () => {
+  it('permite publicado → en_verificacion → por_entregar → reclamado, volver a publicado o cerrar', () => {
     expect(() => Publicacion.exigirTransicion('publicado', 'en_verificacion')).not.toThrow();
-    expect(() => Publicacion.exigirTransicion('en_verificacion', 'reclamado')).not.toThrow();
+    expect(() => Publicacion.exigirTransicion('en_verificacion', 'por_entregar')).not.toThrow();
+    expect(() => Publicacion.exigirTransicion('por_entregar', 'reclamado')).not.toThrow();
     expect(() => Publicacion.exigirTransicion('en_verificacion', 'publicado')).not.toThrow();
+    expect(() => Publicacion.exigirTransicion('publicado', 'cerrado')).not.toThrow();
   });
 
-  it('no permite saltar a reclamado sin pasar por verificación, ni salir de reclamado', () => {
+  it('no permite saltarse la aprobación ni la entrega, ni salir de reclamado o cerrado', () => {
     expect(() => Publicacion.exigirTransicion('publicado', 'reclamado')).toThrow(ConflictoError);
+    expect(() => Publicacion.exigirTransicion('en_verificacion', 'reclamado')).toThrow(ConflictoError);
     expect(() => Publicacion.exigirTransicion('reclamado', 'publicado')).toThrow(ConflictoError);
+    expect(() => Publicacion.exigirTransicion('cerrado', 'publicado')).toThrow(ConflictoError);
+    expect(() => Publicacion.exigirTransicion('en_verificacion', 'cerrado')).toThrow(ConflictoError);
   });
 });

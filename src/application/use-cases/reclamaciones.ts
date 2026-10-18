@@ -10,6 +10,12 @@ import { ReclamacionRepository } from '../../domain/ports/reclamacion-repository
 import { CambiarEstadoPublicacion } from './cambiar-estado-publicacion';
 import { RECLAMACION_CREADA, RECLAMACION_RESUELTA } from '../events/eventos-dominio';
 
+const MENSAJE_NO_RECLAMABLE: Partial<Record<string, string>> = {
+  por_entregar: 'quien lo encontró ya aprobó otra reclamación',
+  reclamado: 'este objeto ya fue entregado a su dueño',
+  cerrado: 'esta publicación está cerrada',
+};
+
 /**
  * Contexto Reclamaciones (escenario S2, ADR-0014). Lee publicaciones y cuentas
  * a través de sus puertos y cambia el estado de una publicación solo a través
@@ -36,8 +42,8 @@ export class CrearReclamacion {
     if (publicacion.autorId === reclamanteId) {
       throw new ConflictoError('no puedes reclamar tu propia publicación');
     }
-    if (publicacion.estado === 'reclamado') {
-      throw new ConflictoError('este objeto ya fue entregado a su dueño');
+    if (publicacion.estado !== 'publicado' && publicacion.estado !== 'en_verificacion') {
+      throw new ConflictoError(MENSAJE_NO_RECLAMABLE[publicacion.estado] ?? 'este objeto ya no se puede reclamar');
     }
     const previas = await this.reclamaciones.listarPorPublicacion(publicacionId);
     if (previas.some((r) => r.reclamanteId === reclamanteId && r.estado === 'pendiente')) {
@@ -72,14 +78,15 @@ export class ResolverReclamacion {
 
   /**
    * Quien publicó el objeto aprueba la reclamación: es la única forma de que
-   * la publicación llegue a "reclamado". Las demás reclamaciones pendientes del
-   * mismo objeto se rechazan.
+   * la publicación pase a "por_entregar" (y luego, al confirmar la entrega, a
+   * "reclamado"). Las demás reclamaciones pendientes del mismo objeto se
+   * rechazan.
    */
   async aprobar(reclamacionId: string, solicitanteId: string): Promise<Reclamacion> {
     const { reclamacion, publicacion } = await this.cargarParaResolver(reclamacionId, solicitanteId);
     const aprobada = reclamacion.aprobar(new Date().toISOString());
 
-    const cambio = await this.cambiarEstado.ejecutar(reclamacion.publicacionId, 'en_verificacion', 'reclamado');
+    const cambio = await this.cambiarEstado.ejecutar(reclamacion.publicacionId, 'en_verificacion', 'por_entregar');
     if (!cambio) throw new ConflictoError('el estado del objeto cambió; vuelve a cargar las reclamaciones');
     await this.reclamaciones.guardar(aprobada);
 
@@ -123,6 +130,35 @@ export class ResolverReclamacion {
   }
 }
 
+/**
+ * Confirmar la entrega (ADR-0017): aprobar dice "es el dueño"; esto dice "ya
+ * lo tiene". Lo puede confirmar quien reclamó ("lo recibí") o quien lo
+ * encontró ("lo entregué"); la primera confirmación cierra el ciclo.
+ */
+@Injectable()
+export class ConfirmarEntrega {
+  constructor(
+    private readonly reclamaciones: ReclamacionRepository,
+    private readonly publicaciones: PublicacionRepository,
+    private readonly cambiarEstado: CambiarEstadoPublicacion,
+  ) {}
+
+  async ejecutar(reclamacionId: string, solicitanteId: string): Promise<Reclamacion> {
+    const reclamacion = await this.reclamaciones.buscarPorId(reclamacionId);
+    if (!reclamacion) throw new NoEncontradoError('Reclamación no encontrada');
+    const publicacion = await this.publicaciones.buscarPorId(reclamacion.publicacionId);
+    const esParte = solicitanteId === reclamacion.reclamanteId || solicitanteId === publicacion?.autorId;
+    if (!publicacion || !esParte) {
+      throw new PermisoDenegadoError('solo quien reclamó o quien encontró el objeto confirma la entrega');
+    }
+    const entregada = reclamacion.confirmarEntrega(new Date().toISOString());
+    const cambio = await this.cambiarEstado.ejecutar(publicacion.id, 'por_entregar', 'reclamado');
+    if (!cambio) throw new ConflictoError('el estado del objeto cambió; vuelve a cargar');
+    await this.reclamaciones.guardar(entregada);
+    return entregada;
+  }
+}
+
 /** Lo que ve quien publicó el objeto: la prueba, y el contacto del reclamante solo si aprobó. */
 export interface VistaReclamacionParaAutor {
   id: string;
@@ -132,6 +168,7 @@ export interface VistaReclamacionParaAutor {
   creadoEn: string;
   resueltaEn: string | null;
   motivoRechazo: string | null;
+  entregadaEn: string | null;
   reclamante: { nombre: string; correo?: string };
 }
 
@@ -143,6 +180,7 @@ export interface VistaReclamacionPropia {
   creadoEn: string;
   resueltaEn: string | null;
   motivoRechazo: string | null;
+  entregadaEn: string | null;
   contactoQuienEncontro?: { nombre: string; correo: string };
 }
 
@@ -172,6 +210,7 @@ export class ConsultarReclamaciones {
           creadoEn: r.creadoEn,
           resueltaEn: r.resueltaEn,
           motivoRechazo: r.motivoRechazo,
+          entregadaEn: r.entregadaEn,
           reclamante: {
             nombre: cuenta?.nombre ?? 'cuenta eliminada',
             ...(r.estado === 'aprobada' && cuenta ? { correo: cuenta.correo } : {}),
@@ -192,6 +231,7 @@ export class ConsultarReclamaciones {
           creadoEn: r.creadoEn,
           resueltaEn: r.resueltaEn,
           motivoRechazo: r.motivoRechazo,
+          entregadaEn: r.entregadaEn,
         };
         if (r.estado === 'aprobada') {
           const publicacion = await this.publicaciones.buscarPorId(r.publicacionId);

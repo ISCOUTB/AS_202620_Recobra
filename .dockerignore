@@ -1,10 +1,20 @@
 node_modules
 dist
 coverage
-mobile
 test
 docs
 .git
 .github
+.claude
 *.md
 .env
+# La app Flutter se compila dentro de la imagen (etapa app-web): entra su
+# código, no lo generado ni las plataformas nativas.
+mobile/build
+mobile/.dart_tool
+mobile/android
+mobile/ios
+mobile/linux
+mobile/macos
+mobile/windows
+mobile/test

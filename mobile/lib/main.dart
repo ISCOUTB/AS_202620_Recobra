@@ -18,11 +18,17 @@ import 'widgets/comunes.dart';
 /// Despliegue). Sin ese flag, usa localhost (desarrollo).
 const String _apiBaseUrlOverride = String.fromEnvironment('API_BASE_URL');
 
-/// En web/desktop: localhost. En Android: 127.0.0.1 tras `adb reverse tcp:3000 tcp:3000`
-/// (evita cleartext a 10.0.2.2, que Sonar marca como vulnerabilidad).
+/// En web servida por la propia API (https://recobra.iscoutb.dev/app/): el
+/// mismo origen. En web local y desktop: localhost. En Android: 127.0.0.1 tras
+/// `adb reverse tcp:3000 tcp:3000` (evita cleartext a 10.0.2.2, que Sonar
+/// marca como vulnerabilidad).
 String defaultApiBaseUrl() {
   if (_apiBaseUrlOverride.isNotEmpty) return _apiBaseUrlOverride;
-  if (kIsWeb) return 'http://localhost:3000';
+  if (kIsWeb) {
+    final host = Uri.base.host;
+    final local = host == 'localhost' || host == '127.0.0.1';
+    return local ? 'http://localhost:3000' : Uri.base.origin;
+  }
   switch (defaultTargetPlatform) {
     case TargetPlatform.android:
       return 'http://127.0.0.1:3000';

@@ -33,25 +33,48 @@ String iniciales(String nombre) {
   return partes.map((p) => p[0].toUpperCase()).join();
 }
 
-const textosEstado = {'publicado': 'Publicado', 'en_verificacion': 'En verificación', 'reclamado': 'Entregado'};
+const textosEstado = {
+  'publicado': 'Publicado',
+  'en_verificacion': 'En verificación',
+  'por_entregar': 'Por entregar',
+  'reclamado': 'Entregado',
+  'cerrado': 'Cerrado',
+};
 
 /// Qué significa cada estado, dicho para quien no conoce el sistema.
 const ayudaEstado = {
   'en_verificacion': 'Alguien dijo que es suyo. Quien lo encontró está revisando.',
+  'por_entregar': 'Ya apareció su dueño; falta que se lo entreguen.',
   'reclamado': 'Ya volvió a su dueño.',
 };
+
+/// Por qué se cerró una publicación (ADR-0017).
+const textosCierre = {
+  'recuperado': 'Su dueño ya lo recuperó.',
+  'retirado': 'Quien la publicó la retiró.',
+  'vencido': 'Se cerró sola tras 60 días sin movimiento.',
+};
+
+/// Estados en los que todavía se puede reclamar un objeto encontrado.
+const estadosReclamables = {'publicado', 'en_verificacion'};
+
+String? ayudaDe(Publicacion p) =>
+    p.estado == 'cerrado' ? textosCierre[p.motivoCierre] ?? 'Publicación cerrada.' : ayudaEstado[p.estado];
 
 Color colorTipo(String tipo) => tipo == 'perdido' ? ColoresUtb.naranja : ColoresUtb.verde;
 
 Color colorEstado(String estado) => switch (estado) {
-      'en_verificacion' => ColoresUtb.naranja,
+      'en_verificacion' || 'por_entregar' => ColoresUtb.naranja,
       'reclamado' => ColoresUtb.verde,
+      'cerrado' => ColoresUtb.textoSuave,
       _ => ColoresUtb.azulTexto,
     };
 
 IconData iconoEstado(String estado) => switch (estado) {
       'en_verificacion' => Icons.hourglass_top_rounded,
+      'por_entregar' => Icons.handshake_outlined,
       'reclamado' => Icons.check_rounded,
+      'cerrado' => Icons.archive_outlined,
       _ => Icons.campaign_outlined,
     };
 
@@ -212,9 +235,9 @@ class TarjetaPublicacion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = publicacion;
-    final ayuda = ayudaEstado[p.estado];
+    final ayuda = ayudaDe(p);
     return Opacity(
-      opacity: p.estado == 'reclamado' ? 0.6 : 1,
+      opacity: p.estado == 'reclamado' || p.estado == 'cerrado' ? 0.6 : 1,
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(

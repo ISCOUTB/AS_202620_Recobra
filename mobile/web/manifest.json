@@ -1,11 +1,11 @@
 {
-    "name": "recobra_mobile",
-    "short_name": "recobra_mobile",
+    "name": "Recobra",
+    "short_name": "Recobra",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#05060B",
+    "theme_color": "#0A39D0",
+    "description": "Objetos perdidos y encontrados en el campus UTB.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

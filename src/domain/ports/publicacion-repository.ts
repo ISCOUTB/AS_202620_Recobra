@@ -1,4 +1,4 @@
-import { EstadoPublicacion, Publicacion, TipoPublicacion } from '../entities/publicacion';
+import { EstadoPublicacion, MotivoCierre, Publicacion, TipoPublicacion } from '../entities/publicacion';
 
 export interface FiltrosBusqueda {
   tipo?: TipoPublicacion;
@@ -54,7 +54,8 @@ export abstract class PublicacionRepository {
   abstract listarPorTipo(tipo: TipoPublicacion): Promise<Publicacion[]>;
   /**
    * Búsqueda con filtros del escenario S1 (ADR-0008). Solo lectura; devuelve
-   * las más recientes primero, hasta `filtros.limite`.
+   * las más recientes primero, hasta `filtros.limite`, y solo las que están
+   * en un estado activo (`ESTADOS_ACTIVOS`, ADR-0017).
    */
   abstract buscar(filtros: FiltrosBusqueda): Promise<Publicacion[]>;
 
@@ -68,4 +69,18 @@ export abstract class PublicacionRepository {
 
   /** Publicaciones de una cuenta, las más recientes primero. */
   abstract listarPorAutor(autorId: string): Promise<Publicacion[]>;
+
+  /**
+   * Cierra la publicación solo si sigue en "publicado" (comparar y fijar) y
+   * dice si la cerró (ADR-0017). Los dobles de prueba que no lo usan heredan
+   * esta versión, que falla.
+   */
+  async cerrar(_id: string, _motivo: MotivoCierre, _fecha: string): Promise<boolean> {
+    throw new Error('cerrar no está implementado en este adaptador');
+  }
+
+  /** Cierra como "vencido" lo que sigue en "publicado" y se creó antes de `creadasAntesDe`; dice cuántas. */
+  async cerrarVencidas(_creadasAntesDe: string, _fecha: string): Promise<number> {
+    throw new Error('cerrarVencidas no está implementado en este adaptador');
+  }
 }

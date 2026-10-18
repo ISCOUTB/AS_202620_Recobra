@@ -188,8 +188,15 @@ Flujo **reclamar** (escenario S2, ADR-0014): con sesión, `POST /publicaciones/:
 otra pendiente de la misma cuenta → guarda la reclamación → pide a
 `CambiarEstadoPublicacion` (Publicaciones) pasar de `publicado` a `en_verificacion`.
 Quien publicó la aprueba (`ResolverReclamacion.aprobar` → `en_verificacion` a
-`reclamado`, solo si sigue en verificación; las demás pendientes se rechazan) o la
-rechaza con motivo (si no quedan pendientes, vuelve a `publicado`).
+`por_entregar`, solo si sigue en verificación; las demás pendientes se rechazan) o la
+rechaza con motivo (si no quedan pendientes, vuelve a `publicado`). La entrega la
+confirma cualquiera de los dos (`ConfirmarEntrega` → `por_entregar` a `reclamado`,
+ADR-0017).
+
+Flujo **cerrar y vencer** (ADR-0017): su autor cierra una publicación sin
+reclamaciones (`CerrarPublicacion`: recuperado o retirado) y `ArchivadorVencidas`
+cierra como vencido lo que lleva más de 60 días en `publicado`. Lo cerrado sale de
+la búsqueda y del emparejamiento.
 
 Flujo **avisar** (escenario S3, ADR-0015): `BuscarCoincidencias` emite
 `coincidencia.detectada` por cada coincidencia nueva; `CrearReclamacion` y
@@ -289,6 +296,7 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0014](../adr/0014-reclamacion-con-prueba-y-aprobacion.md) | Reclamación con prueba del reclamante y aprobación de quien encontró el objeto | Aceptada |
 | [ADR-0015](../adr/0015-notificaciones-en-la-aplicacion.md) | Notificaciones dentro de la aplicación, alimentadas por eventos en proceso | Aceptada |
 | [ADR-0016](../adr/0016-recobra-semiindependiente-de-la-app-utb.md) | Recobra semiindependiente de la app UTB, con la integración como objetivo potencial | Aceptada |
+| [ADR-0017](../adr/0017-ciclo-de-vida-completo-cierre-vencimiento-y-entrega.md) | Ciclo de vida completo: cierre, vencimiento y entrega confirmada | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -302,7 +310,7 @@ decisiones:
 - **S4 / S4a / S4b Disponibilidad:** aislar fallos de infraestructura del
   dominio (aspecto A1; hexagonal).
 - **S5 Mantenibilidad:** ancla del reto de corte 1 (aspecto A2; ADR-0003).
-- **S6 Trazabilidad:** historial de estados (futuro).
+- **S6 Trazabilidad:** ciclo de vida completo con cierre, vencimiento y entrega confirmada (ADR-0017); el historial con fecha de cada cambio sigue pendiente.
 - **S7 Escalabilidad:** crecimiento de usuarios/publicaciones (futuro).
  
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
+import { ESTADOS_EMPAREJABLES, Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
 import { Coincidencia } from '../../domain/entities/coincidencia';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { CoincidenciaRepository } from '../../domain/ports/coincidencia-repository';
@@ -32,6 +32,8 @@ export class BuscarCoincidencias {
 
     const encontradas: Coincidencia[] = [];
     for (const candidata of candidatas) {
+      // Lo cerrado o ya entregado no recibe coincidencias (ADR-0017).
+      if (!ESTADOS_EMPAREJABLES.includes(candidata.estado)) continue;
       if (candidata.categoria.trim().toLowerCase() !== publicacion.categoria.trim().toLowerCase()) {
         continue;
       }

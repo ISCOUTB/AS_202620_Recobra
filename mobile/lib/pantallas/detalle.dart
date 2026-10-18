@@ -43,7 +43,10 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
 
   bool _puedeReclamar(SesionApp sesion) {
     final p = widget.publicacion;
-    return p.tipo == 'encontrado' && p.estado != 'reclamado' && p.autorId != null && sesion.cuenta?.id != p.autorId;
+    return p.tipo == 'encontrado' &&
+        estadosReclamables.contains(p.estado) &&
+        p.autorId != null &&
+        sesion.cuenta?.id != p.autorId;
   }
 
   Future<void> _reclamar(SesionApp sesion) async {
@@ -65,7 +68,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
   Widget build(BuildContext context) {
     final sesion = AlcanceSesion.de(context);
     final p = widget.publicacion;
-    final ayuda = ayudaEstado[p.estado];
+    final ayuda = ayudaDe(p);
     final esEncontradoAjeno = p.tipo == 'encontrado' && sesion.cuenta?.id != p.autorId;
     return DraggableScrollableSheet(
       expand: false,
@@ -158,7 +161,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
               ],
             ),
           ),
-          if (_puedeReclamar(sesion) || (esEncontradoAjeno && !sesion.activa && p.estado != 'reclamado'))
+          if (_puedeReclamar(sesion) || (esEncontradoAjeno && !sesion.activa && estadosReclamables.contains(p.estado)))
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
               decoration: const BoxDecoration(border: Border(top: BorderSide(color: ColoresUtb.borde))),

@@ -202,6 +202,7 @@
   .etiqueta-tipo.perdido { background: rgba(242, 140, 40, 0.16); color: var(--naranja); }
   .etiqueta-tipo.encontrado { background: rgba(60, 203, 110, 0.16); color: var(--verde); }
   .estado-pub.en_verificacion { background: rgba(242, 140, 40, 0.16); color: var(--naranja); }
+  .estado-pub.por_entregar { background: rgba(242, 140, 40, 0.16); color: var(--naranja); }
   .estado-pub.reclamado { background: rgba(60, 203, 110, 0.16); color: var(--verde); }
 
   .tarjeta .descripcion { font-size: 1.05rem; font-weight: 600; }
@@ -261,6 +262,8 @@
 
   /* ---- Propuesta de diseño (Claude Design): saludo, segmentado, comparación, diálogos ---- */
   header h1 .saludo { color: #b9c8ff; }
+  .enlace-app { color: #ffffff; font-weight: 600; }
+  .enlace-app:hover { color: #cfd8ff; }
   .oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   fieldset.segmentado {
     display: flex; gap: 0.25rem; margin: 0; padding: 0.25rem; border-radius: 999px;
@@ -408,7 +411,7 @@
     <div>
       <p class="sobretitulo" id="fecha-hoy"></p>
       <h1 id="titulo-principal">Recobra</h1>
-      <p class="lema">Objetos perdidos y encontrados en el campus</p>
+      <p class="lema">Objetos perdidos y encontrados en el campus · <a class="enlace-app" href="/app/">Usar la app</a></p>
     </div>
     <div id="zona-sesion">
       <output id="estado-salud">verificando backend…</output>
@@ -707,7 +710,22 @@
     }
   }
 
-  const AYUDA_ESTADO = { en_verificacion: 'Alguien dijo que es suyo. Quien lo encontró está revisando.' };
+  const AYUDA_ESTADO = {
+    en_verificacion: 'Alguien dijo que es suyo. Quien lo encontró está revisando.',
+    por_entregar: 'Ya apareció su dueño; falta que se lo entreguen.',
+  };
+  const TEXTO_CIERRE = {
+    recuperado: 'Su dueño ya lo recuperó.',
+    retirado: 'Quien la publicó la retiró.',
+    vencido: 'Se cerró sola tras 60 días sin movimiento.',
+  };
+  /** Estados en los que todavía se puede reclamar un objeto encontrado (ADR-0017). */
+  const RECLAMABLE = new Set(['publicado', 'en_verificacion']);
+
+  function ayudaDe(pub) {
+    if (pub.estado === 'cerrado') return TEXTO_CIERRE[pub.motivoCierre] || 'Publicación cerrada.';
+    return AYUDA_ESTADO[pub.estado];
+  }
 
   /** "Bloque A1 · Piso 2 · Salón 204", o solo el lugar si no hay detalle. */
   function lugarCompleto(p) {
@@ -748,7 +766,7 @@
 
   function tarjetaPublicacion(pub) {
     const tarjeta = elemento('div', `tarjeta ${pub.tipo}`);
-    if (pub.estado === 'reclamado') tarjeta.classList.add('entregada');
+    if (pub.estado === 'reclamado' || pub.estado === 'cerrado') tarjeta.classList.add('entregada');
     const fila = elemento('div', 'fila-superior');
     fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), etiquetaEstado(pub.estado));
     const meta = elemento('div', 'meta', `${pub.categoria} · ${lugarCompleto(pub)} · ${formatearFecha(pub.creadoEn)}`);
@@ -758,7 +776,7 @@
     const resultado = elemento('div');
     boton.addEventListener('click', () => verCoincidencias(pub, resultado, boton));
     acciones.append(boton);
-    if (pub.tipo === 'encontrado' && pub.estado !== 'reclamado' && pub.autorId) {
+    if (pub.tipo === 'encontrado' && RECLAMABLE.has(pub.estado) && pub.autorId) {
       const reclamar = elemento('button', 'secundario', sesion ? 'Es mío: reclamar' : 'Inicia sesión para reclamar');
       reclamar.type = 'button';
       reclamar.style.marginLeft = '0.5rem';
@@ -773,7 +791,7 @@
       acciones.append(reclamar);
     }
     tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion), meta);
-    if (AYUDA_ESTADO[pub.estado]) tarjeta.append(elemento('div', 'meta', AYUDA_ESTADO[pub.estado]));
+    if (ayudaDe(pub)) tarjeta.append(elemento('div', 'meta', ayudaDe(pub)));
     tarjeta.append(acciones, resultado);
     return tarjeta;
   }
@@ -965,7 +983,13 @@
   const avisoPublicar = document.getElementById('aviso-publicar');
   const pestanaEntrar = document.getElementById('pestana-entrar');
   const pestanaRegistro = document.getElementById('pestana-registro');
-  const ESTADOS = { publicado: 'publicado', en_verificacion: 'en verificación', reclamado: 'entregado' };
+  const ESTADOS = {
+    publicado: 'publicado',
+    en_verificacion: 'en verificación',
+    por_entregar: 'por entregar',
+    reclamado: 'entregado',
+    cerrado: 'cerrado',
+  };
 
   function etiquetaEstado(estado) {
     return elemento('span', `estado-pub ${estado}`, ESTADOS[estado] || estado);
@@ -1197,6 +1221,8 @@
     const fila = elemento('div', 'fila-superior');
     fila.append(elemento('span', `etiqueta-tipo ${pub.tipo}`, pub.tipo), etiquetaEstado(pub.estado));
     tarjeta.append(fila, elemento('div', 'descripcion', pub.descripcion));
+    if (ayudaDe(pub)) tarjeta.append(elemento('div', 'meta', ayudaDe(pub)));
+    if (pub.estado === 'publicado') tarjeta.append(accionesCierre(pub));
     if (pub.tipo === 'encontrado') {
       const zona = elemento('div');
       const ver = elemento('button', 'secundario', 'Ver reclamaciones');
@@ -1206,6 +1232,64 @@
       if (pub.estado !== 'publicado') verReclamaciones(pub, zona);
     }
     return tarjeta;
+  }
+
+  /**
+   * Botón que pide un segundo toque para confirmar ("¿Seguro? Toca otra vez")
+   * antes de hacer algo que no se deshace.
+   */
+  function botonConfirmable(texto, textoConfirmar, clase, accion) {
+    const boton = elemento('button', clase, texto);
+    boton.type = 'button';
+    let armado = false;
+    boton.addEventListener('click', async () => {
+      if (!armado) {
+        armado = true;
+        boton.textContent = textoConfirmar;
+        setTimeout(() => {
+          armado = false;
+          boton.textContent = texto;
+        }, 5000);
+        return;
+      }
+      boton.disabled = true;
+      await accion(boton);
+      boton.disabled = false;
+    });
+    return boton;
+  }
+
+  /** "Ya lo recuperé" (solo perdidos) y "Retirar" mientras nadie la reclama (ADR-0017). */
+  function accionesCierre(pub) {
+    const fila = elemento('div', 'fila-botones');
+    const mensaje = elemento('output');
+    const cerrar = (motivo) => async () => {
+      const r = await llamar(`/publicaciones/${encodeURIComponent(pub.id)}/cerrar`, {
+        method: 'POST',
+        body: JSON.stringify({ motivo }),
+      });
+      if (!r.ok) {
+        mensaje.textContent = (r.cuerpo && r.cuerpo.message) || 'No se pudo cerrar la publicación';
+        mensaje.className = 'error';
+        return;
+      }
+      cargarMiCuenta();
+      buscar();
+    };
+    if (pub.tipo === 'perdido') fila.append(botonConfirmable('Ya lo recuperé', '¿Seguro? Toca otra vez', '', cerrar('recuperado')));
+    fila.append(botonConfirmable('Retirar', '¿Retirarla? Toca otra vez', 'secundario', cerrar('retirado')), mensaje);
+    return fila;
+  }
+
+  /** Confirmar la entrega desde cualquiera de los dos lados (ADR-0017). */
+  function botonEntrega(rec, texto) {
+    return botonConfirmable(texto, '¿Confirmas? Toca otra vez', '', async () => {
+      const r = await llamar(`/reclamaciones/${encodeURIComponent(rec.id)}/entregada`, { method: 'POST' });
+      if (r.ok) {
+        cargarMiCuenta();
+        buscar();
+      }
+    });
   }
 
   async function verReclamaciones(pub, zona) {
@@ -1229,6 +1313,8 @@
       );
       if (rec.reclamante.correo) caja.append(contacto(`Coordina la entrega con ${rec.reclamante.nombre}.`, rec.reclamante.correo));
       if (rec.motivoRechazo) caja.append(elemento('p', 'meta', `Motivo: ${rec.motivoRechazo}`));
+      if (rec.estado === 'aprobada' && !rec.entregadaEn) caja.append(botonEntrega(rec, 'Ya lo entregué'));
+      if (rec.entregadaEn) caja.append(elemento('p', 'meta', `Entregado el ${formatearFecha(rec.entregadaEn)}.`));
       if (rec.estado === 'pendiente') {
         caja.append(elemento('p', 'meta', 'Compárala con el objeto que tienes. ¿Coinciden las señas?'));
         caja.append(botonesResolver(rec, pub, zona, pendientes.filter((x) => x.id !== rec.id)));
@@ -1247,6 +1333,7 @@
     lista.replaceChildren(
       elemento('li', '', 'El objeto pasa a Entregado.'),
       elemento('li', '', `${nombre} verá tu correo para acordar la entrega.`),
+      elemento('li', '', `Cuando se lo des, márcalo como entregado (o lo confirma ${nombre} al recibirlo).`),
     );
     if (otras.length === 1) lista.append(elemento('li', '', `La reclamación de ${otras[0].reclamante.nombre.split(' ')[0]} se rechaza automáticamente.`));
     if (otras.length > 1) lista.append(elemento('li', '', `Las otras ${otras.length} reclamaciones se rechazan automáticamente.`));
@@ -1327,6 +1414,22 @@
 
   const CLASE_RECLAMO = { pendiente: 'en_verificacion', aprobada: 'reclamado' };
 
+  /** Enviada → Aprobada → Entregada. */
+  function progresoReclamo(reclamo) {
+    let actual = 1;
+    if (reclamo.estado === 'aprobada') actual = reclamo.entregadaEn ? 3 : 2;
+    const nombres = ['Enviada', 'Aprobada', 'Entregada'];
+    const progreso = elemento('div', 'progreso');
+    progreso.setAttribute('aria-label', actual === 3 ? 'Entregada' : `Paso ${actual + 1} de 3: ${nombres[actual]}`);
+    nombres.forEach((nombre, i) => {
+      let clase = '';
+      if (i < actual) clase = 'hecho';
+      else if (i === actual) clase = 'actual';
+      progreso.append(elemento('span', clase, nombre));
+    });
+    return progreso;
+  }
+
   /** Contacto que aparece solo después de aprobar, con botón para copiarlo. */
   function contacto(texto, correo) {
     const caja = elemento('div', 'contacto', texto);
@@ -1355,15 +1458,15 @@
       elemento('div', 'meta', [pub.ok ? lugarCompleto(pub.cuerpo) : '', `Enviada el ${formatearFecha(reclamo.creadoEn)}`].filter(Boolean).join(' · ')),
     );
     if (reclamo.estado === 'rechazada') tarjeta.append(elemento('div', 'meta', `Motivo: “${reclamo.motivoRechazo || 'sin motivo'}”`));
-    if (reclamo.contactoQuienEncontro) {
+    if (reclamo.estado !== 'rechazada') tarjeta.append(progresoReclamo(reclamo));
+    if (reclamo.contactoQuienEncontro && !reclamo.entregadaEn) {
       const c = reclamo.contactoQuienEncontro;
       tarjeta.append(contacto(`${c.nombre} aprobó tu reclamación. Escríbele para acordar dónde y cuándo te lo entrega.`, c.correo));
+      tarjeta.append(botonEntrega(reclamo, 'Ya lo recibí'));
     }
+    if (reclamo.entregadaEn) tarjeta.append(elemento('div', 'meta', `Lo recibiste el ${formatearFecha(reclamo.entregadaEn)}. ¡Qué bueno que volvió!`));
     if (reclamo.estado === 'pendiente') {
-      const progreso = elemento('div', 'progreso');
-      progreso.setAttribute('aria-label', 'Paso 2 de 3: en revisión');
-      progreso.append(elemento('span', 'hecho', 'Enviada'), elemento('span', 'actual', 'En revisión'), elemento('span', '', 'Entrega'));
-      tarjeta.append(progreso, elemento('div', 'meta', 'Quien lo encontró aún no revisa tu prueba. Te avisamos apenas responda.'));
+      tarjeta.append(elemento('div', 'meta', 'Quien lo encontró aún no revisa tu prueba. Te avisamos apenas responda.'));
     }
     return tarjeta;
   }

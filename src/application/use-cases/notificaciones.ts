@@ -70,7 +70,7 @@ export class Notificar {
       aprobada ? 'reclamacion_aprobada' : 'reclamacion_rechazada',
       aprobada ? 'Aprobaron tu reclamación' : 'Rechazaron tu reclamación',
       aprobada
-        ? `«${recortar(publicacion.descripcion)}» es tuyo. Ya puedes ver el contacto para coordinar la entrega.`
+        ? `«${recortar(publicacion.descripcion)}» es tuyo. Ya puedes ver el contacto para coordinar la entrega; cuando lo tengas, confírmalo en Mis cosas.`
         : `«${recortar(publicacion.descripcion)}»: ${reclamacion.motivoRechazo ?? 'sin motivo'}.`,
       publicacion.id,
     );

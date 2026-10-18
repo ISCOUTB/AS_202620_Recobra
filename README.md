@@ -21,10 +21,12 @@ UTB (inicio de sesión con la cuenta de la universidad, entrada desde su menú y
 avisos por su canal); cada punto de integración ya está detrás de un puerto o
 del contrato de la API para poder darlo sin reescribir el dominio.
 
-**Probar:** vitrina web en https://recobra.iscoutb.dev (crear cuenta con un
-correo `@utb.edu.co`, publicar, buscar, reclamar, aprobar y ver avisos). La app
-Flutter se prueba con `flutter run -d chrome --dart-define=API_BASE_URL=https://recobra.iscoutb.dev`
-desde `mobile/`.
+**Probar:** vitrina web en https://recobra.iscoutb.dev y la app Flutter
+(versión web) en https://recobra.iscoutb.dev/app/. En ambas: crear cuenta con un
+correo `@utb.edu.co`, publicar, buscar, reclamar, aprobar, confirmar la entrega,
+cerrar publicaciones y ver avisos. La imagen de Docker compila la app web
+(etapa `app-web` del `Dockerfile`) y la API la sirve en `/app/`, en el mismo
+origen.
 
 ## Stack
 
@@ -183,7 +185,8 @@ Con el token, `POST /publicaciones` se llama con `Authorization: Bearer <token>`
 **Reclamar un objeto encontrado** (escenario S2, [ADR-0014](docs/adr/0014-reclamacion-con-prueba-y-aprobacion.md))
 
 - `POST /publicaciones/<id>/reclamaciones` con `{"prueba": "algo que solo el dueño sabría"}` → la publicación pasa a `en_verificacion`.
-- Quien publicó: `GET /publicaciones/<id>/reclamaciones`, y `POST /reclamaciones/<id>/aprobar` o `/rechazar` con `{"motivo": "..."}`. Aprobar es la única forma de llegar a `reclamado`.
+- Quien publicó: `GET /publicaciones/<id>/reclamaciones`, y `POST /reclamaciones/<id>/aprobar` o `/rechazar` con `{"motivo": "..."}`. Aprobar deja el objeto `por_entregar`; cualquiera de los dos confirma la entrega con `POST /reclamaciones/<id>/entregada` y el objeto pasa a `reclamado` ([ADR-0017](docs/adr/0017-ciclo-de-vida-completo-cierre-vencimiento-y-entrega.md)).
+- Su autor cierra una publicación sin reclamaciones con `POST /publicaciones/<id>/cerrar` y `{"motivo": "recuperado"}` (solo perdidos) o `"retirado"`. Lo que lleva 60 días sin movimiento se cierra solo (`DIAS_VIGENCIA_PUBLICACION`). La búsqueda no muestra lo cerrado ni lo entregado.
 - Cada cuenta: `GET /publicaciones/mias` y `GET /reclamaciones/mias` (el correo de la otra persona aparece solo cuando se aprueba).
 
 **Avisos** (escenario S3, [ADR-0015](docs/adr/0015-notificaciones-en-la-aplicacion.md))

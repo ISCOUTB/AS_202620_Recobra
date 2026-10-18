@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { EstadoPublicacion, Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
+import {
+  ESTADOS_ACTIVOS,
+  EstadoPublicacion,
+  MotivoCierre,
+  Publicacion,
+  TipoPublicacion,
+} from '../../domain/entities/publicacion';
 import { FiltrosBusqueda, PublicacionRepository } from '../../domain/ports/publicacion-repository';
 
 @Injectable()
@@ -26,6 +32,23 @@ export class MemoriaPublicacionRepository extends PublicacionRepository {
     return true;
   }
 
+  async cerrar(id: string, motivo: MotivoCierre, fecha: string): Promise<boolean> {
+    const actual = this.publicaciones.get(id);
+    if (!actual || actual.estado !== 'publicado') return false;
+    this.publicaciones.set(id, new Publicacion({ ...actual, estado: 'cerrado', motivoCierre: motivo, cerradoEn: fecha }));
+    return true;
+  }
+
+  async cerrarVencidas(creadasAntesDe: string, fecha: string): Promise<number> {
+    let cerradas = 0;
+    for (const p of this.publicaciones.values()) {
+      if (p.estado === 'publicado' && p.creadoEn < creadasAntesDe && (await this.cerrar(p.id, 'vencido', fecha))) {
+        cerradas++;
+      }
+    }
+    return cerradas;
+  }
+
   async listarPorAutor(autorId: string): Promise<Publicacion[]> {
     return [...this.publicaciones.values()]
       .filter((p) => p.autorId === autorId)
@@ -42,6 +65,7 @@ export class MemoriaPublicacionRepository extends PublicacionRepository {
 
   async buscar({ tipo, categoria, ubicacion, limite }: FiltrosBusqueda): Promise<Publicacion[]> {
     return [...this.publicaciones.values()]
+      .filter((p) => ESTADOS_ACTIVOS.includes(p.estado))
       .filter((p) => !tipo || p.tipo === tipo)
       .filter((p) => !categoria || p.categoria.trim().toLowerCase() === categoria)
       .filter((p) => !ubicacion || p.ubicacion.trim().toLowerCase() === ubicacion)

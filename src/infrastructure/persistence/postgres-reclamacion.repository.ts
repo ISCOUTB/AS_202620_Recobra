@@ -28,16 +28,18 @@ export class PostgresReclamacionRepository extends ReclamacionRepository impleme
       `);
       await pool.query('CREATE INDEX IF NOT EXISTS idx_reclamaciones_publicacion ON reclamaciones (publicacion_id)');
       await pool.query('CREATE INDEX IF NOT EXISTS idx_reclamaciones_reclamante ON reclamaciones (reclamante_id)');
+      // Entrega confirmada (ADR-0017).
+      await pool.query('ALTER TABLE reclamaciones ADD COLUMN IF NOT EXISTS entregada_en TIMESTAMPTZ');
     });
   }
 
   async guardar(r: Reclamacion): Promise<Reclamacion> {
     await consultarCompartido(
-      `INSERT INTO reclamaciones (id, publicacion_id, reclamante_id, prueba, estado, creado_en, resuelta_en, motivo_rechazo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO reclamaciones (id, publicacion_id, reclamante_id, prueba, estado, creado_en, resuelta_en, motivo_rechazo, entregada_en)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (id) DO UPDATE SET estado = EXCLUDED.estado, resuelta_en = EXCLUDED.resuelta_en,
-         motivo_rechazo = EXCLUDED.motivo_rechazo`,
-      [r.id, r.publicacionId, r.reclamanteId, r.prueba, r.estado, r.creadoEn, r.resueltaEn, r.motivoRechazo],
+         motivo_rechazo = EXCLUDED.motivo_rechazo, entregada_en = EXCLUDED.entregada_en`,
+      [r.id, r.publicacionId, r.reclamanteId, r.prueba, r.estado, r.creadoEn, r.resueltaEn, r.motivoRechazo, r.entregadaEn],
     );
     return r;
   }
@@ -74,6 +76,7 @@ export class PostgresReclamacionRepository extends ReclamacionRepository impleme
       creadoEn: fecha(fila.creado_en) as string,
       resueltaEn: fecha(fila.resuelta_en),
       motivoRechazo: (fila.motivo_rechazo as string | null) ?? null,
+      entregadaEn: fecha(fila.entregada_en),
     });
   }
 }

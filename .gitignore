@@ -31,3 +31,6 @@ mobile/coverage/
 # miscelánea
 *.tmp
 .nyc_output/
+
+# App Flutter web: se compila dentro de la imagen (Dockerfile, etapa app-web)
+public/app/

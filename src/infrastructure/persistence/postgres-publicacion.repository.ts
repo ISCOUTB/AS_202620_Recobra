@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Pool } from 'pg';
-import { EstadoPublicacion, Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
+import { EstadoPublicacion, ESTADOS_ACTIVOS, MotivoCierre, Publicacion, TipoPublicacion } from '../../domain/entities/publicacion';
 import { FiltrosBusqueda, PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { AlmacenamientoNoDisponibleError } from '../../domain/errors/almacenamiento-no-disponible.error';
 
@@ -144,6 +144,9 @@ export class PostgresPublicacionRepository
     await this.pool.query('CREATE INDEX IF NOT EXISTS idx_publicaciones_autor ON publicaciones (autor_id)');
     // Lugares en dos niveles: piso, salón o referencia; nulo en las anteriores.
     await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS detalle_ubicacion TEXT');
+    // Cierre y vencimiento (ADR-0017).
+    await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS motivo_cierre TEXT');
+    await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS cerrado_en TIMESTAMPTZ');
     this.esquemaListo = true;
   }
 
@@ -197,6 +200,24 @@ export class PostgresPublicacionRepository
     return resultado.rowCount === 1;
   }
 
+  async cerrar(id: string, motivo: MotivoCierre, fecha: string): Promise<boolean> {
+    const resultado = await this.consultar(
+      `UPDATE publicaciones SET estado = 'cerrado', motivo_cierre = $2, cerrado_en = $3
+       WHERE id = $1 AND estado = 'publicado'`,
+      [id, motivo, fecha],
+    );
+    return resultado.rowCount === 1;
+  }
+
+  async cerrarVencidas(creadasAntesDe: string, fecha: string): Promise<number> {
+    const resultado = await this.consultar(
+      `UPDATE publicaciones SET estado = 'cerrado', motivo_cierre = 'vencido', cerrado_en = $2
+       WHERE estado = 'publicado' AND creado_en < $1`,
+      [creadasAntesDe, fecha],
+    );
+    return resultado.rowCount ?? 0;
+  }
+
   async listarPorAutor(autorId: string): Promise<Publicacion[]> {
     const resultado = await this.consultar(
       'SELECT * FROM publicaciones WHERE autor_id = $1 ORDER BY creado_en DESC LIMIT 100',
@@ -224,9 +245,10 @@ export class PostgresPublicacionRepository
        WHERE ($1::text IS NULL OR tipo = $1)
          AND ($2::text IS NULL OR lower(trim(categoria)) = $2)
          AND ($3::text IS NULL OR lower(trim(ubicacion)) = $3)
+         AND estado = ANY($5::text[])
        ORDER BY creado_en DESC
        LIMIT $4`,
-      [tipo ?? null, categoria ?? null, ubicacion ?? null, limite],
+      [tipo ?? null, categoria ?? null, ubicacion ?? null, limite, [...ESTADOS_ACTIVOS]],
     );
     return resultado.rows.map((fila) => this.aEntidad(fila));
   }
@@ -242,6 +264,8 @@ export class PostgresPublicacionRepository
       creadoEn: new Date(fila.creado_en as string).toISOString(),
       estado: fila.estado as EstadoPublicacion,
       autorId: (fila.autor_id as string | null) ?? null,
+      motivoCierre: (fila.motivo_cierre as MotivoCierre | null) ?? null,
+      cerradoEn: fila.cerrado_en ? new Date(fila.cerrado_en as string).toISOString() : null,
     });
   }
 }

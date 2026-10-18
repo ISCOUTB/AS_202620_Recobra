@@ -133,13 +133,24 @@ describe('Cuentas y reclamaciones (e2e)', () => {
         .set(conSesion(quienEncontro));
       expect(aprobacion.status).toBe(200);
       expect(aprobacion).toSatisfyApiSpec();
-      expect((await request(srv()).get(`/publicaciones/${pubId}`)).body.estado).toBe('reclamado');
+      expect((await request(srv()).get(`/publicaciones/${pubId}`)).body.estado).toBe('por_entregar');
 
       const despues = await request(srv()).get('/reclamaciones/mias').set(conSesion(dueno));
       expect(despues).toSatisfyApiSpec();
       expect(despues.body.find((r: { id: string }) => r.id === reclamo.body.id).contactoQuienEncontro.correo).toBe(
         quienEncontro.correo,
       );
+
+      // ADR-0017: aprobar dice "es el dueño"; la entrega la confirma una de las dos partes.
+      const recibido = await request(srv()).post(`/reclamaciones/${reclamo.body.id}/entregada`).set(conSesion(dueno));
+      expect(recibido.status).toBe(200);
+      expect(recibido).toSatisfyApiSpec();
+      expect(recibido.body.entregadaEn).toEqual(expect.any(String));
+      expect((await request(srv()).get(`/publicaciones/${pubId}`)).body.estado).toBe('reclamado');
+      const otraVez = await request(srv())
+        .post(`/reclamaciones/${reclamo.body.id}/entregada`)
+        .set(conSesion(quienEncontro));
+      expect(otraVez.status).toBe(409);
     });
 
     it('solo quien publicó puede ver y resolver; los demás reciben 403', async () => {

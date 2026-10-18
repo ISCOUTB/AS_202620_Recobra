@@ -178,9 +178,19 @@ class MisCosasPantallaState extends State<MisCosasPantalla> {
   }
 
   Widget? _pie(PublicacionConReclamaciones item) {
-    if (item.publicacion.tipo != 'encontrado') return null;
-    if (item.reclamaciones.isEmpty) {
-      return const Text('Nadie lo ha reclamado todavía.', style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13));
+    final cierre = item.publicacion.estado == 'publicado' ? _AccionesCierre(item.publicacion, alCambiar: _recargar) : null;
+    if (item.publicacion.tipo != 'encontrado' || item.reclamaciones.isEmpty) {
+      if (item.publicacion.tipo == 'encontrado' && item.publicacion.estado == 'publicado') {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Nadie lo ha reclamado todavía.', style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
+            const SizedBox(height: 10),
+            cierre!,
+          ],
+        );
+      }
+      return cierre;
     }
     final total = item.reclamaciones.length;
     return Column(
@@ -217,7 +227,10 @@ class MisCosasPantallaState extends State<MisCosasPantalla> {
         return Column(
           children: [
             for (final item in lista)
-              Padding(padding: const EdgeInsets.only(bottom: 12), child: _TarjetaReclamoPropio(item)),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _TarjetaReclamoPropio(item, alCambiar: _recargar),
+              ),
           ],
         );
       },
@@ -347,6 +360,14 @@ class _TarjetaReclamacion extends StatelessWidget {
             const SizedBox(height: 10),
             _Contacto(texto: 'Coordina la entrega con ${r.reclamanteNombre}.', correo: r.reclamanteCorreo!),
           ],
+          if (r.estado == 'aprobada' && r.entregadaEn == null) ...[
+            const SizedBox(height: 10),
+            _BotonEntrega(reclamacionId: r.id, texto: 'Ya lo entregué', alCambiar: alCambiar),
+          ],
+          if (r.entregadaEn != null) ...[
+            const SizedBox(height: 8),
+            Text('Entregado el ${fechaCorta(r.entregadaEn!)}', style: const TextStyle(color: ColoresUtb.verde, fontSize: 13)),
+          ],
           if (r.motivoRechazo != null) ...[
             const SizedBox(height: 8),
             Text('Motivo: ${r.motivoRechazo}', style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
@@ -372,6 +393,7 @@ class ConfirmarEntrega extends StatelessWidget {
     final consecuencias = [
       'El objeto pasa a Entregado.',
       '$nombre verá tu correo para acordar la entrega.',
+      'Cuando se lo des, márcalo como entregado (o lo confirma $nombre al recibirlo).',
       if (otras.length == 1) 'La reclamación de ${otras.single.reclamanteNombre.split(' ').first} se rechaza automáticamente.',
       if (otras.length > 1) 'Las otras ${otras.length} reclamaciones se rechazan automáticamente.',
       'Esta acción no se puede deshacer.',
@@ -504,23 +526,44 @@ class _RechazarConMotivoState extends State<RechazarConMotivo> {
 
 /// Una reclamación propia: su estado en tres pasos y, si se aprobó, el contacto.
 class _TarjetaReclamoPropio extends StatelessWidget {
-  const _TarjetaReclamoPropio(this.item);
+  const _TarjetaReclamoPropio(this.item, {required this.alCambiar});
 
   final ReclamacionConPublicacion item;
+  final VoidCallback alCambiar;
 
   @override
   Widget build(BuildContext context) {
     final r = item.reclamacion;
     final p = item.publicacion;
     final Widget cuerpo;
-    if (r.estado == 'aprobada' && r.contactoCorreo != null) {
-      cuerpo = _Contacto(
-        texto: '${r.contactoNombre ?? 'Quien lo encontró'} aprobó tu reclamación. '
-            'Escríbele para acordar dónde y cuándo te lo entrega.',
-        correo: r.contactoCorreo!,
-      );
-    } else if (r.estado == 'rechazada') {
+    if (r.estado == 'rechazada') {
       cuerpo = Text('Motivo: “${r.motivoRechazo ?? 'sin motivo'}”', style: const TextStyle(color: ColoresUtb.textoSuave));
+    } else if (r.estado == 'aprobada' && r.entregadaEn != null) {
+      cuerpo = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _Pasos(actual: 3),
+          const SizedBox(height: 10),
+          Text('Lo recibiste el ${fechaCorta(r.entregadaEn!)}. ¡Qué bueno que volvió!',
+              style: const TextStyle(color: ColoresUtb.verde, fontSize: 13)),
+        ],
+      );
+    } else if (r.estado == 'aprobada') {
+      cuerpo = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _Pasos(actual: 2),
+          const SizedBox(height: 10),
+          if (r.contactoCorreo != null)
+            _Contacto(
+              texto: '${r.contactoNombre ?? 'Quien lo encontró'} aprobó tu reclamación. '
+                  'Escríbele para acordar dónde y cuándo te lo entrega.',
+              correo: r.contactoCorreo!,
+            ),
+          const SizedBox(height: 10),
+          _BotonEntrega(reclamacionId: r.id, texto: 'Ya lo recibí', alCambiar: alCambiar),
+        ],
+      );
     } else {
       cuerpo = const Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -569,7 +612,7 @@ class _TarjetaReclamoPropio extends StatelessWidget {
   }
 }
 
-/// Enviada → En revisión → Entrega.
+/// Enviada → Aprobada → Entregada; `actual` = 3 cuando todo terminó.
 class _Pasos extends StatelessWidget {
   const _Pasos({required this.actual});
 
@@ -583,9 +626,9 @@ class _Pasos extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const nombres = ['Enviada', 'En revisión', 'Entrega'];
+    const nombres = ['Enviada', 'Aprobada', 'Entregada'];
     return Semantics(
-      label: 'Paso ${actual + 1} de 3: ${nombres[actual]}',
+      label: actual >= nombres.length ? 'Entregada' : 'Paso ${actual + 1} de 3: ${nombres[actual]}',
       excludeSemantics: true,
       child: Row(
         children: [
@@ -614,6 +657,123 @@ class _Pasos extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Confirmar la entrega desde cualquiera de los dos lados (ADR-0017).
+class _BotonEntrega extends StatelessWidget {
+  const _BotonEntrega({required this.reclamacionId, required this.texto, required this.alCambiar});
+
+  final String reclamacionId;
+  final String texto;
+  final VoidCallback alCambiar;
+
+  Future<void> _confirmar(BuildContext context) async {
+    final sesion = AlcanceSesion.de(context);
+    final mensajero = ScaffoldMessenger.of(context);
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (contexto) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              EncabezadoHoja(titulo: '¿$texto?', subtitulo: 'El objeto queda como entregado y se cierra el caso.'),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: () => Navigator.pop(contexto, true), child: Text('Sí, ${texto.toLowerCase()}')),
+              const SizedBox(height: 8),
+              OutlinedButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Todavía no')),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await sesion.api.confirmarEntrega(reclamacionId);
+      mensajero.showSnackBar(const SnackBar(content: Text('Entrega confirmada. ¡Gracias por cerrar el caso!')));
+      alCambiar();
+    } catch (e) {
+      sesion.revisarError(e);
+      mensajero.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      icon: const Icon(Icons.handshake_outlined),
+      label: Text(texto),
+      onPressed: () => _confirmar(context),
+    );
+  }
+}
+
+/// "Ya lo recuperé" (solo perdidos) y "Retirar": cerrar una publicación propia
+/// mientras nadie la reclama (ADR-0017).
+class _AccionesCierre extends StatelessWidget {
+  const _AccionesCierre(this.publicacion, {required this.alCambiar});
+
+  final Publicacion publicacion;
+  final VoidCallback alCambiar;
+
+  Future<void> _cerrar(BuildContext context, String motivo) async {
+    final sesion = AlcanceSesion.de(context);
+    final mensajero = ScaffoldMessenger.of(context);
+    final recuperado = motivo == 'recuperado';
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (contexto) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              EncabezadoHoja(
+                titulo: recuperado ? '¿Ya lo recuperaste?' : '¿Retirar la publicación?',
+                subtitulo: 'Deja de aparecer en la búsqueda y no recibirá más coincidencias. La seguirás viendo aquí.',
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => Navigator.pop(contexto, true),
+                child: Text(recuperado ? 'Sí, ya lo tengo' : 'Sí, retirarla'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Todavía no')),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await sesion.api.cerrarPublicacion(publicacion.id, motivo);
+      mensajero.showSnackBar(SnackBar(content: Text(recuperado ? '¡Qué bueno que apareció!' : 'Publicación retirada')));
+      alCambiar();
+    } catch (e) {
+      sesion.revisarError(e);
+      mensajero.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (publicacion.tipo == 'perdido') ...[
+          Expanded(
+            child: FilledButton(onPressed: () => _cerrar(context, 'recuperado'), child: const Text('Ya lo recuperé')),
+          ),
+          const SizedBox(width: 10),
+        ],
+        Expanded(
+          child: OutlinedButton(onPressed: () => _cerrar(context, 'retirado'), child: const Text('Retirar')),
+        ),
+      ],
     );
   }
 }

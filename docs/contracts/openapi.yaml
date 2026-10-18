@@ -36,7 +36,13 @@ info:
     3.2.0 agrega los lugares en dos niveles: `GET /lugares` (catálogo con
     pisos) y el campo opcional `detalleUbicacion` (piso, salón o referencia):
     cambio compatible.
-  version: "3.2.0"
+    4.0.0 completa el ciclo de vida (ADR-0017): aprobar deja el objeto en
+    `por_entregar` (antes iba directo a `reclamado`), la entrega se confirma
+    con `POST /reclamaciones/{id}/entregada`, el autor cierra con
+    `POST /publicaciones/{id}/cerrar` y lo que vence pasa a `cerrado`. La
+    búsqueda ya no devuelve lo cerrado ni lo entregado. Cambio incompatible:
+    versión mayor.
+  version: "4.0.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
@@ -199,6 +205,67 @@ paths:
                 $ref: "#/components/schemas/Error"
         "503":
           description: El almacenamiento no está disponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /publicaciones/{id}/cerrar:
+    post:
+      operationId: cerrarPublicacion
+      summary: Cerrar una publicación propia (recuperado, solo perdidos, o retirado)
+      tags: [Publicaciones]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motivo]
+              properties:
+                motivo:
+                  type: string
+                  enum: [recuperado, retirado]
+      responses:
+        "200":
+          description: Publicación cerrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publicacion"
+        "400":
+          description: Motivo inválido o "recuperado" en un objeto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Solo quien publicó el objeto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La publicación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Tiene una reclamación en curso, ya se entregó o ya estaba cerrada
           content:
             application/json:
               schema:
@@ -367,10 +434,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /reclamaciones/{id}/entregada:
+    post:
+      operationId: confirmarEntrega
+      summary: Confirmar que el objeto llegó a su dueño (quien reclamó o quien lo encontró); pasa a reclamado
+      tags: [Reclamaciones]
+      security:
+        - sesion: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Entrega confirmada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reclamacion"
+        "401":
+          description: Falta la sesión o no es válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Solo quien reclamó o quien encontró el objeto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: La reclamación no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: La reclamación no está aprobada o la entrega ya se confirmó
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /reclamaciones/{id}/aprobar:
     post:
       operationId: aprobarReclamacion
-      summary: Aprobar una reclamación (solo quien publicó el objeto); el objeto pasa a reclamado
+      summary: Aprobar una reclamación (solo quien publicó el objeto); el objeto pasa a por_entregar
       tags: [Reclamaciones]
       security:
         - sesion: []
@@ -768,6 +879,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        entregadaEn:
+          type: string
+          format: date-time
+          nullable: true
         motivoRechazo:
           type: string
           nullable: true
@@ -788,6 +903,10 @@ components:
           type: string
           format: date-time
         resueltaEn:
+          type: string
+          format: date-time
+          nullable: true
+        entregadaEn:
           type: string
           format: date-time
           nullable: true
@@ -818,6 +937,10 @@ components:
           type: string
           format: date-time
         resueltaEn:
+          type: string
+          format: date-time
+          nullable: true
+        entregadaEn:
           type: string
           format: date-time
           nullable: true
@@ -902,7 +1025,16 @@ components:
           description: Piso, salón o referencia; null si no se indicó
         estado:
           type: string
-          enum: [publicado, en_verificacion, reclamado]
+          enum: [publicado, en_verificacion, por_entregar, reclamado, cerrado]
+          description: "reclamado: entregado a su dueño (ADR-0017)"
+        motivoCierre:
+          type: string
+          nullable: true
+          enum: [recuperado, retirado, vencido, null]
+        cerradoEn:
+          type: string
+          format: date-time
+          nullable: true
         creadoEn:
           type: string
           format: date-time

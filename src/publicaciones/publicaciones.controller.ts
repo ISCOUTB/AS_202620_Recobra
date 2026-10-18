@@ -21,6 +21,7 @@ import { CrearPublicacionDto } from './dto/crear-publicacion.dto';
 import { LatenciaPublicacionesInterceptor } from '../observabilidad/latencia-publicaciones.interceptor';
 import { LatenciaBusquedaInterceptor } from '../observabilidad/latencia-busqueda.interceptor';
 import { ListarPublicacionesDeAutor } from '../application/use-cases/cambiar-estado-publicacion';
+import { CerrarPublicacion } from '../application/use-cases/ciclo-de-vida';
 import { Cuenta } from '../domain/entities/cuenta';
 import { AutenticacionGuard, CuentaActual } from '../identidad/autenticacion.guard';
 
@@ -31,6 +32,7 @@ export class PublicacionesController {
     private readonly consultarPublicacion: ConsultarPublicacion,
     private readonly buscarPublicaciones: BuscarPublicaciones,
     private readonly listarDeAutor: ListarPublicacionesDeAutor,
+    private readonly cerrarPublicacion: CerrarPublicacion,
   ) {}
 
   /** Publicar exige sesión (ADR-0013): toda publicación queda ligada a su autor. */
@@ -78,6 +80,14 @@ export class PublicacionesController {
   @UseGuards(AutenticacionGuard)
   mias(@CuentaActual() cuenta: Cuenta) {
     return this.listarDeAutor.ejecutar(cuenta.id);
+  }
+
+  /** Su autor la cierra: "recuperado" (solo perdidos) o "retirado" (ADR-0017). */
+  @Post(':id/cerrar')
+  @HttpCode(200)
+  @UseGuards(AutenticacionGuard)
+  cerrar(@Param('id') id: string, @Body() cuerpo: { motivo: string }, @CuentaActual() cuenta: Cuenta) {
+    return this.cerrarPublicacion.ejecutar(id, cuenta.id, cuerpo?.motivo);
   }
 
   @Get(':id')

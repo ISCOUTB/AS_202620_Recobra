@@ -14,6 +14,7 @@ class Publicacion {
     required this.creadoEn,
     this.autorId,
     this.detalleUbicacion,
+    this.motivoCierre,
   });
 
   final String id;
@@ -24,6 +25,9 @@ class Publicacion {
 
   /// Piso, salón o referencia dentro del lugar ("Piso 2 · Salón 204").
   final String? detalleUbicacion;
+
+  /// recuperado · retirado · vencido; solo en publicaciones cerradas (ADR-0017).
+  final String? motivoCierre;
 
   /// "Bloque A1 · Piso 2 · Salón 204", o solo el lugar si no hay detalle.
   String get lugarCompleto => detalleUbicacion == null ? ubicacion : '$ubicacion · $detalleUbicacion';
@@ -46,6 +50,7 @@ class Publicacion {
       creadoEn: json['creadoEn'] as String,
       autorId: json['autorId'] as String?,
       detalleUbicacion: json['detalleUbicacion'] as String?,
+      motivoCierre: json['motivoCierre'] as String?,
     );
   }
 }
@@ -104,6 +109,7 @@ class ReclamacionParaAutor {
     required this.reclamanteNombre,
     this.reclamanteCorreo,
     this.motivoRechazo,
+    this.entregadaEn,
   });
 
   final String id;
@@ -112,6 +118,9 @@ class ReclamacionParaAutor {
   final String reclamanteNombre;
   final String? reclamanteCorreo;
   final String? motivoRechazo;
+
+  /// Cuándo se confirmó la entrega; null si todavía no (ADR-0017).
+  final String? entregadaEn;
 
   factory ReclamacionParaAutor.fromJson(Map<String, dynamic> json) {
     final reclamante = json['reclamante'] as Map<String, dynamic>;
@@ -122,6 +131,7 @@ class ReclamacionParaAutor {
       reclamanteNombre: reclamante['nombre'] as String,
       reclamanteCorreo: reclamante['correo'] as String?,
       motivoRechazo: json['motivoRechazo'] as String?,
+      entregadaEn: json['entregadaEn'] as String?,
     );
   }
 }
@@ -136,6 +146,7 @@ class ReclamacionPropia {
     this.motivoRechazo,
     this.contactoNombre,
     this.contactoCorreo,
+    this.entregadaEn,
   });
 
   final String id;
@@ -145,6 +156,7 @@ class ReclamacionPropia {
   final String? motivoRechazo;
   final String? contactoNombre;
   final String? contactoCorreo;
+  final String? entregadaEn;
 
   factory ReclamacionPropia.fromJson(Map<String, dynamic> json) {
     final contacto = json['contactoQuienEncontro'] as Map<String, dynamic>?;
@@ -156,6 +168,7 @@ class ReclamacionPropia {
       motivoRechazo: json['motivoRechazo'] as String?,
       contactoNombre: contacto?['nombre'] as String?,
       contactoCorreo: contacto?['correo'] as String?,
+      entregadaEn: json['entregadaEn'] as String?,
     );
   }
 }
@@ -216,7 +229,7 @@ class RecobraApiException implements Exception {
   String toString() => message;
 }
 
-/// Cliente HTTP de la API de Recobra (contrato 3.2.0). La URL base se inyecta
+/// Cliente HTTP de la API de Recobra (contrato 4.0.0). La URL base se inyecta
 /// para poder apuntar a emulador, web o el despliegue. El token de sesión se
 /// guarda solo en memoria: al cerrar la app hay que volver a iniciar sesión.
 class RecobraApi {
@@ -377,6 +390,22 @@ class RecobraApi {
     final r = await _enviar(_client.get(_uri('/reclamaciones/mias'), headers: _cabeceras()));
     final lista = _cuerpoO(r, {200}, 'No se pudieron cargar tus reclamaciones') as List<dynamic>;
     return lista.map((e) => ReclamacionPropia.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Confirmar la entrega: "lo recibí" o "lo entregué" (ADR-0017).
+  Future<void> confirmarEntrega(String reclamacionId) async {
+    final r = await _enviar(_client.post(_uri('/reclamaciones/$reclamacionId/entregada'), headers: _cabeceras()));
+    _cuerpoO(r, {200}, 'No se pudo confirmar la entrega');
+  }
+
+  /// Cerrar una publicación propia: "recuperado" (solo perdidos) o "retirado".
+  Future<Publicacion> cerrarPublicacion(String id, String motivo) async {
+    final r = await _enviar(_client.post(
+      _uri('/publicaciones/$id/cerrar'),
+      headers: _cabeceras(json: true),
+      body: jsonEncode({'motivo': motivo}),
+    ));
+    return Publicacion.fromJson(_cuerpoO(r, {200}, 'No se pudo cerrar la publicación') as Map<String, dynamic>);
   }
 
   Future<void> aprobar(String reclamacionId) async {

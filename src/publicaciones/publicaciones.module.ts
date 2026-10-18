@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { PublicacionesController } from './publicaciones.controller';
 import { LugaresController } from './lugares.controller';
+import { ArchivarVencidas, CerrarPublicacion } from '../application/use-cases/ciclo-de-vida';
+import { ArchivadorVencidas } from './archivador-vencidas';
 import { CrearPublicacion } from '../application/use-cases/crear-publicacion';
 import { ConsultarPublicacion } from '../application/use-cases/consultar-publicacion';
 import { BuscarPublicaciones } from '../application/use-cases/buscar-publicaciones';
@@ -29,6 +31,9 @@ import {
     BuscarPublicaciones,
     CambiarEstadoPublicacion,
     ListarPublicacionesDeAutor,
+    CerrarPublicacion,
+    ArchivarVencidas,
+    ArchivadorVencidas,
     // Aquí es donde se conecta el puerto con su adaptador concreto (ADR-0002
     // / ADR-0006): con DATABASE_URL definida usa PostgreSQL; sin ella (por
     // ejemplo en pruebas) cae al adaptador en memoria. Los casos de uso no

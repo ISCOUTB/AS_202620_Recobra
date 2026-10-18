@@ -198,6 +198,15 @@ Fuente de los hallazgos: retroalimentación publicada en
 | El lugar era un texto libre o una lista plana | Lugar en dos niveles: catálogo de lugares con pisos (`GET /lugares`) como submenú, y piso, salón o referencia en `detalleUbicacion` (contrato 3.2.0, compatible) | `test/lugares.e2e-spec.ts`, `publicacion-lugar.spec.ts` |
 | Relación con la app UTB sin decidir | Recobra semiindependiente, con la integración como objetivo potencial y los pasos para llegar | [ADR-0016](docs/adr/0016-recobra-semiindependiente-de-la-app-utb.md) |
 
+## Avance del proyecto · Ciclo de vida completo y app web (2026-10-17)
+
+| Hallazgo de la evaluación | Qué se hizo | Evidencia |
+|---|---|---|
+| Las publicaciones de perdidos nunca se cerraban | Su autor la cierra como "recuperado" o "retirado"; sale de la búsqueda y del emparejamiento | [ADR-0017](docs/adr/0017-ciclo-de-vida-completo-cierre-vencimiento-y-entrega.md), `test/ciclo-de-vida.e2e-spec.ts` |
+| Nada vencía | Lo que lleva 60 días en "publicado" se cierra solo como "vencido" | `ciclo-de-vida.spec.ts`, `src/publicaciones/archivador-vencidas.ts` |
+| "Entregado" al aprobar | Estado "por entregar" y confirmación de la entrega por cualquiera de las dos partes | `test/reclamaciones.e2e-spec.ts`, `mobile/test/widget_test.dart` |
+| La app Flutter solo se podía probar compilándola | Se compila en la imagen y se sirve en https://recobra.iscoutb.dev/app/ | `Dockerfile` (etapa `app-web`) |
+
 ## Pendientes que siguen abiertos
 
 Ver el detalle y el plan de corrección de cada uno en

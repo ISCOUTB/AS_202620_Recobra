@@ -62,7 +62,7 @@ describe('Reclamaciones', () => {
     expect(await estado(pub.id)).toBe('en_verificacion');
   });
 
-  it('solo la aprobación de quien encontró el objeto lo lleva a "reclamado" y rechaza las demás pendientes', async () => {
+  it('solo la aprobación de quien encontró el objeto lo lleva a "por_entregar" y rechaza las demás pendientes', async () => {
     const pub = await encontrado();
     const deAna = await crear.ejecutar(pub.id, 'dueno', PRUEBA);
     const deLeo = await crear.ejecutar(pub.id, 'otro', 'Es negro con una abolladura en la base');
@@ -71,7 +71,7 @@ describe('Reclamaciones', () => {
     expect(await estado(pub.id)).toBe('en_verificacion');
 
     await resolver.aprobar(deAna.id, 'quien-encontro');
-    expect(await estado(pub.id)).toBe('reclamado');
+    expect(await estado(pub.id)).toBe('por_entregar');
     expect((await reclamaciones.buscarPorId(deLeo.id))?.estado).toBe('rechazada');
   });
 
@@ -126,7 +126,7 @@ describe('Reclamaciones', () => {
     ]);
 
     expect(resultados.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
-    expect(await estado(pub.id)).toBe('reclamado');
+    expect(await estado(pub.id)).toBe('por_entregar');
     const aprobadas = (await reclamaciones.listarPorPublicacion(pub.id)).filter((r) => r.estado === 'aprobada');
     expect(aprobadas).toHaveLength(1);
   });

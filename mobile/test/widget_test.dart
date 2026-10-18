@@ -54,7 +54,13 @@ final _reclamacionPendiente = jsonEncode([
 
 /// Servidor simulado con las rutas que usa la app. Con `soyAutor`, la cuenta
 /// es la autora de "Termo azul" y tiene una reclamación pendiente por revisar.
-MockClient _servidor({List<http.Request>? registro, bool soyAutor = false}) => MockClient((request) async {
+MockClient _servidor({
+  List<http.Request>? registro,
+  bool soyAutor = false,
+  String? mias,
+  String? reclamosPropios,
+}) =>
+    MockClient((request) async {
       registro?.add(request);
       final ruta = request.url.path;
       if (request.method == 'POST' && ruta == '/sesiones') {
@@ -81,10 +87,23 @@ MockClient _servidor({List<http.Request>? registro, bool soyAutor = false}) => M
       if (request.method == 'POST' && ruta.startsWith('/notificaciones/')) return http.Response('', 204);
       if (request.method == 'GET' && ruta == '/publicaciones/abc') return _resp(_publicacion(), 200);
       if (request.method == 'POST' && ruta == '/publicaciones/abc/reclamaciones') return _resp('{}', 201);
-      if (ruta == '/publicaciones/mias') return _resp(soyAutor ? '[${_publicacion(autorId: 'yo')}]' : '[]', 200);
+      if (ruta == '/publicaciones/mias') {
+        return _resp(mias ?? (soyAutor ? '[${_publicacion(autorId: 'yo')}]' : '[]'), 200);
+      }
+      if (request.method == 'POST' && ruta == '/publicaciones/p9/cerrar') {
+        return _resp(
+          jsonEncode({
+            ...jsonDecode(_publicacion(id: 'p9', tipo: 'perdido', autorId: 'yo')) as Map<String, dynamic>,
+            'estado': 'cerrado',
+            'motivoCierre': 'recuperado',
+          }),
+          200,
+        );
+      }
+      if (request.method == 'POST' && ruta == '/reclamaciones/r7/entregada') return _resp('{}', 200);
       if (ruta == '/publicaciones/abc/reclamaciones') return _resp(_reclamacionPendiente, 200);
       if (request.method == 'POST' && ruta == '/reclamaciones/r1/aprobar') return _resp('{}', 200);
-      if (ruta == '/reclamaciones/mias') return _resp('[]', 200);
+      if (ruta == '/reclamaciones/mias') return _resp(reclamosPropios ?? '[]', 200);
       return _resp('{"statusCode":404,"message":"no"}', 404);
     });
 
@@ -350,6 +369,58 @@ void main() {
       await tester.tap(find.text('Sí, entregar a Bea'));
       await tester.pumpAndSettle();
       expect(peticiones.where((r) => r.url.path == '/reclamaciones/r1/aprobar'), hasLength(1));
+    });
+
+    testWidgets('Quien perdió algo lo marca como recuperado desde Mis cosas', (tester) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      final perdido = _publicacion(id: 'p9', tipo: 'perdido', autorId: 'yo');
+      await tester.pumpWidget(app(_servidor(registro: peticiones, mias: '[$perdido]')));
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.tap(find.text('Mis cosas').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ya lo recuperé'));
+      await tester.pumpAndSettle();
+      expect(find.text('¿Ya lo recuperaste?'), findsOneWidget);
+      await tester.tap(find.text('Sí, ya lo tengo'));
+      await tester.pumpAndSettle();
+
+      final cierre = peticiones.singleWhere((r) => r.url.path == '/publicaciones/p9/cerrar');
+      expect(jsonDecode(cierre.body)['motivo'], 'recuperado');
+    });
+
+    testWidgets('Con la reclamación aprobada, quien reclamó confirma que lo recibió', (tester) async {
+      pantallaAlta(tester);
+      final peticiones = <http.Request>[];
+      final aprobada = jsonEncode([
+        {
+          'id': 'r7',
+          'publicacionId': 'abc',
+          'estado': 'aprobada',
+          'creadoEn': '2026-10-17T12:00:00.000Z',
+          'resueltaEn': '2026-10-17T13:00:00.000Z',
+          'motivoRechazo': null,
+          'entregadaEn': null,
+          'contactoQuienEncontro': {'nombre': 'Leo', 'correo': 'leo@utb.edu.co'},
+        },
+      ]);
+      await tester.pumpWidget(app(_servidor(registro: peticiones, reclamosPropios: aprobada)));
+      await tester.pumpAndSettle();
+      await entrar(tester);
+      await tester.tap(find.text('Mis cosas').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lo que reclamé'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('leo@utb.edu.co'), findsOneWidget);
+      await tester.tap(find.text('Ya lo recibí'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sí, ya lo recibí'));
+      await tester.pumpAndSettle();
+
+      expect(peticiones.where((r) => r.url.path == '/reclamaciones/r7/entregada'), hasLength(1));
     });
   });
 }
