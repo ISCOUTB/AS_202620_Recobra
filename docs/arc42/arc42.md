@@ -274,14 +274,130 @@ Observabilidad: `src/observabilidad/` — logs en JSON por línea, métrica en
 
 ## 8. Conceptos transversales
 
-### Lenguaje ubicuo
+### 8.1 Lenguaje ubicuo
 
 - **Publicación**: registro de un objeto perdido o encontrado.
 - **Reclamación**: solicitud de un usuario para recuperar un objeto publicado.
 - **Coincidencia**: relación detectada entre una publicación "perdido" y una "encontrado".
 - **Emparejamiento**: proceso que detecta coincidencias entre publicaciones.
+- **Aviso**: notificación dentro de la aplicación para una cuenta (ADR-0015).
+- **Evento**: mensaje en proceso entre contextos, con sobre e identificador de correlación (ADR-0026).
 
 Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
+
+### 8.2 Estrategia de consistencia
+
+**Principio.** Cada contexto es dueño único de sus tablas y **no hay transacciones
+entre contextos** (`git grep` de `BEGIN|COMMIT|transaction` sobre `src/` no
+encuentra nada). La consistencia **fuerte** se limita a lo que una sola sentencia
+atómica de PostgreSQL puede garantizar; entre contextos la consistencia es
+**eventual con desfase acotado y un mecanismo que lo repara**. Razones y
+alternativa descartada (una transacción entre tablas de contextos distintos):
+[ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md).
+
+Garantías con nombre que se usan abajo:
+
+- **Fuerte:** el resultado es visible y definitivo al responder; una sola
+  sentencia atómica (`INSERT … ON CONFLICT`, `UPDATE … WHERE estado = …`).
+- **Eventual retomable:** varias escrituras en tablas distintas; si se interrumpe
+  entre ellas, repetir la operación la termina y un reconciliador repara lo que
+  nadie reintentó (saga con recuperación hacia adelante, sin deshacer).
+- **Eventual por evento (al menos una vez):** el efecto llega después, por un
+  evento en proceso con reintentos, cola de fallidos y conciliación (ADR-0026).
+
+| Operación (ruta o caso de uso) | Escrituras | Garantía | Dónde se acepta el desfase y qué lo repara | Código |
+|---|---|---|---|---|
+| Registrar cuenta (`POST /cuentas`) | 1: `cuentas` | **Fuerte**: correo único por inserción condicional | — | `identidad.ts`, `postgres-cuenta.repository.ts` |
+| Iniciar y cerrar sesión (`/sesiones`) | 1: `sesiones` | **Fuerte** | — | `identidad.ts` |
+| Crear publicación (`POST /publicaciones`) | 1: `publicaciones` | **Fuerte e idempotente**: `ON CONFLICT (id) DO NOTHING` con `Idempotency-Key`; un reintento responde 200 con la original | — | `crear-publicacion.ts`, `postgres-publicacion.repository.ts` |
+| Calcular coincidencias de una publicación nueva | 1: `coincidencias` (+ aviso) | **Eventual por evento**: ocurre tras responder; id de coincidencia determinista por par, así que repetir no duplica | Si el proceso cae entre guardar la publicación y calcular, **esas coincidencias no se recalculan** (riesgo vigente, §11.2) | `publicacion-creada.listener.ts`, `buscar-coincidencias.ts` |
+| Reclamar (`POST /publicaciones/{id}/reclamaciones`) | 2: `reclamaciones`, luego estado de la publicación `publicado → en_verificacion` | **Eventual retomable** | Entre el paso 1 y el 2 hay un desfase de hasta 5 min; reintentar retoma y `ReconciliarReclamaciones` lo repara | `reclamaciones.ts` (`CrearReclamacion.ejecutar`, l. 39), `reconciliar-reclamaciones.ts` |
+| Rechazar una reclamación | 2: `reclamaciones`, luego (si no quedan pendientes) estado `en_verificacion → publicado` | **Eventual retomable** | Igual | `reclamaciones.ts` (`ResolverReclamacion.rechazar`, l. 136) |
+| Aprobar una reclamación | Estado `en_verificacion → por_entregar` **y** `reclamacion_aprobada_id` en **una** sentencia atómica; luego reclamación aprobada y rechazo de las demás | **Fuerte** para el cambio de estado (comparar y fijar, impide dos aprobaciones); **eventual retomable** para el resto | Un objeto "por entregar" con la reclamación todavía pendiente dura hasta 5 min; el reintento lee `reclamacion_aprobada_id` y la termina; el reconciliador también | `reclamaciones.ts` (`aprobar` l. 91, `completarAprobacion` l. 121), `postgres-publicacion.repository.ts` (`cambiarEstado`) |
+| Confirmar la entrega | Estado `por_entregar → reclamado`, luego fecha de entrega en la reclamación | **Eventual retomable** | Igual | `reclamaciones.ts` (`ConfirmarEntrega.ejecutar`, l. 176) |
+| Cerrar una publicación (retirar, recuperar) y vencimiento automático | 1: `publicaciones` | **Fuerte por fila**: `UPDATE … WHERE estado = 'publicado'`. El vencimiento corre cada 6 h | Lo que vence puede tardar hasta 6 h en cerrarse (es una regla de negocio, no una inconsistencia) | `ciclo-de-vida.ts`, `archivador-vencidas.ts` |
+| Reportar una publicación | 1: `reportes` | **Fuerte**: índice único (cuenta, publicación) | — | `moderacion.ts`, `postgres-reporte.repository.ts` |
+| Ocultar por moderación | Cierre `moderado` (atómico), borrar foto, evento de aviso, resolver los reportes | **Fuerte** para el cierre; el resto, **eventual retomable** | Si falla tras el cierre, el administrador repite: el cierre ya hecho se salta y se completa lo demás; la foto la borra de todos modos el barrido diario de publicaciones cerradas y el aviso lo recrea la conciliación | `moderacion.ts` (`ResolverReporte.ocultar`) |
+| Subir o quitar la foto | 2: `fotos` y la marca `tiene_foto` en `publicaciones` | **Eventual retomable** | Si falla entre ambas, la foto existe pero la publicación no la anuncia hasta repetir la subida (idempotente: reemplaza) | `fotos.ts` (`SubirFoto.ejecutar`) |
+| Eliminar la cuenta | Varias: publicaciones propias, pruebas, reportes, fotos, avisos, sesiones y, al final, la cuenta | **Eventual retomable**: cada paso es idempotente y la cuenta se anonimiza al final | Si falla a medias, la persona repite y continúa; mientras no termine, la cuenta sigue existiendo | `privacidad.ts` (`EliminarCuenta`) |
+| Aviso a la persona (reclamación, resolución, coincidencia, ocultamiento) | 1: `notificaciones` | **Eventual por evento, al menos una vez**: id del aviso derivado del dato, `ON CONFLICT DO NOTHING` | Reintentos (segundos), cola de fallidos (hasta 7 días) y conciliación por estado (3 días); detalle en §8.4 | `entrega-de-eventos.ts`, `conciliar-avisos.ts` |
+| Lecturas (búsqueda, detalle, "mis cosas") | 0 | **Fuerte sobre una tabla** (lee del único PostgreSQL, ve lo que ya se escribió); **sin garantía entre tablas**: una lista que combina publicación y reclamación puede verse a medias durante el desfase de arriba | Hasta 5 min en los casos de reclamar, aprobar y entregar | `buscar-publicaciones.ts`, `reclamaciones.ts` |
+
+**Dos operaciones contrastadas con el código** (como pide el criterio de
+verificación):
+
+- *Aprobar* promete **fuerte** para el estado: `cambiarEstado(id, de, a,
+  reclamacionAprobadaId)` es un único `UPDATE publicaciones SET estado = …,
+  reclamacion_aprobada_id = … WHERE id = $1 AND estado = $2`, y dice si cambió
+  una fila. Dos aprobaciones simultáneas: solo una cambia la fila. Y promete
+  **eventual retomable** para guardar la reclamación aprobada: el desfase se acepta
+  en `ResolverReclamacion.aprobar` (el paso 2 puede fallar y sube la excepción) y lo
+  repara `completarAprobacion` al reintentar y `ReconciliarReclamaciones` cada 5
+  minutos. Probado con caídas simuladas en `consistencia-reclamaciones.spec.ts`.
+- *Crear publicación* promete **fuerte e idempotente**: `guardarSiNoExiste` usa
+  `INSERT … ON CONFLICT (id) DO NOTHING` y devuelve si insertó; si el reintento
+  llega con la misma clave, responde la original. Probado en
+  `crear-publicacion-idempotente.spec.ts` y `test/idempotencia.e2e-spec.ts`.
+
+### 8.3 Estrategia de caché
+
+Resumen; decisión completa, alternativas y qué se rompería con una caché por
+tiempo: [ADR-0025](../adr/0025-diseno-de-cache-y-politica-de-invalidacion.md).
+
+**No hay caché de datos en el servidor** (ni en memoria ni Redis), y está
+argumentado: con 200 conexiones en Dokploy la búsqueda tuvo p97,5 de 157 ms
+contra el objetivo de 400 ms de S1 y p95 interno de 12,8 ms
+([`docs/medicion-s10.md`](../medicion-s10.md)); no hay necesidad que una caché
+resuelva, y una caché por tiempo rompería operaciones reales (aprobar, cerrar,
+ocultar). Lo que sí hay es **caché HTTP**, con esta política:
+
+| Qué | Dónde | Cuánto | Qué lo invalida |
+|---|---|---|---|
+| Búsqueda y detalle de publicaciones | Navegador o intermediario | **0 s**: `no-cache`, se revalida en cada uso con **ETag** (304 si no cambió) | Automática: toda escritura cambia el contenido y su ETag. Probado en `test/cache.e2e-spec.ts` (consulta condicional 304 → escritura → ya no 304) |
+| Lo de una persona (sus publicaciones, avisos, reclamaciones, cuenta, datos) | — | **No se guarda**: `private, no-store` | — |
+| Catálogo de lugares | Navegador y proxies | **1 hora**: `public, max-age=3600` | Un despliegue (el catálogo está en el código) |
+| Miniatura de una foto | Navegador y proxies | **60 s**: `public, max-age=60` | Por tiempo; es el único caso en que algo ya quitado puede seguir visible, hasta 60 s |
+| Foto completa | — | **No se guarda**: `private, no-store` | — |
+| Vitrina y app web | Navegador | Express: se revalida con ETag y `Last-Modified` | Un despliegue |
+
+La política por omisión (`no-cache`, o `private, no-store` con sesión) está en
+`src/observabilidad/politica-de-cache.middleware.ts`; cada excepción es explícita
+en su controlador. **Se reconsideraría** si el p95 interno sostenido supera 200 ms
+o si se agrega una segunda instancia (una caché en el proceso divergiría).
+
+### 8.4 Eventos entre contextos: garantías
+
+Decisión, alternativa síncrona descartada y límites del experimento:
+[ADR-0026](../adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md).
+Contrato de los mensajes y criterio de compatibilidad:
+[`docs/contracts/eventos.md`](../contracts/eventos.md).
+
+- **Garantía elegida: al menos una vez, con consumidor idempotente.** Mientras el
+  proceso vive, un evento se entrega hasta 3 veces (espera de 200 ms y 800 ms
+  con ±20 % de variación) y, si sigue fallando, pasa a la **cola de fallidos**
+  (`eventos_fallidos`), que se reprocesa cada 5 minutos y se limpia a los 7 días.
+  Si el proceso muere con el evento en memoria, se pierde ("como máximo una
+  vez" en ese caso) y lo recupera la **conciliación por estado**
+  ([ADR-0024](../adr/0024-conciliacion-de-avisos.md)) durante 3 días.
+- **Lo que se asume:** el consumidor tiene que ser idempotente y no se garantiza
+  el orden entre eventos. La idempotencia se apoya en un id de aviso derivado
+  del dato que lo origina, con `ON CONFLICT DO NOTHING`.
+- **Trazabilidad:** el identificador de correlación del sobre aparece en el
+  registro de quien emite y de quien procesa; los contadores (emitidos,
+  procesados, reintentos, en cola de fallidos, reprocesados) salen en
+  `GET /metrics`.
+- **Lo que no se promete:** no es un broker durable ni exactamente una vez; una
+  caída del proceso en el momento equivocado puede perder un evento que la
+  conciliación solo recupera si se puede rehacer desde el dato.
+
+### 8.5 Datos y costo de revertir decisiones
+
+La decisión de datos más costosa de revertir es **PostgreSQL como único almacén,
+con la consistencia apoyada en escrituras atómicas de una sola sentencia**, por
+alcance (9 de 9 adaptadores y tablas), datos (todos los reales), error en
+silencio (duplicados o estados incoherentes) y verificación (el CI no ejercita
+los adaptadores contra un motor real). Comparación con las demás y estimación:
+[ADR-0027](../adr/0027-la-decision-de-datos-mas-costosa-de-revertir.md).
 
 ## 9. Decisiones de arquitectura
 
@@ -311,6 +427,9 @@ Mapa de contextos completo: [`docs/context-map.md`](../context-map.md).
 | [ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md) | Moderación mínima: reportar una publicación y ocultarla | Aceptada |
 | [ADR-0023](../adr/0023-fotos-con-privacidad.md) | Fotos de las publicaciones con privacidad | Aceptada |
 | [ADR-0024](../adr/0024-conciliacion-de-avisos.md) | Conciliación de avisos en lugar de una tabla de eventos pendientes | Aceptada |
+| [ADR-0025](../adr/0025-diseno-de-cache-y-politica-de-invalidacion.md) | Diseño de caché y política de invalidación | Aceptada |
+| [ADR-0026](../adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md) | Entrega de avisos con eventos, reintentos y cola de fallidos, frente a una llamada síncrona | Aceptada |
+| [ADR-0027](../adr/0027-la-decision-de-datos-mas-costosa-de-revertir.md) | La decisión de datos más costosa de revertir | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -340,7 +459,7 @@ Detalle completo, con código y pruebas de cada fila, en
 | API → PostgreSQL (principal) | Conexión con límite de 3 s → 503; arranque tolerante; `/health/ready` en 503. **Probado** | `statement_timeout` 2 s y `query_timeout` 2,5 s → 503. **Probado con dobles** | Inserción atómica `ON CONFLICT (id) DO NOTHING` para reintentos. **Probado** |
 | Cliente → API | Reintentos de `/health` y límite de 10 s al crear. **Implementado, sin prueba automática** | El reintento conserva la clave de idempotencia. **Probado en el servidor** | `Idempotency-Key`: 200 con la original o 422 si los datos cambian. **Probado** |
 | Publicaciones → Emparejamiento | El manejador captura el error; la publicación no se afecta. **Probado** | Evento asíncrono, no bloquea. **Probado** | Id determinista por par: no duplica. **Probado** |
-| Emparejamiento y Reclamaciones → Notificaciones | El manejador captura el error; publicar y reclamar no se afectan. **Implementado** | Evento asíncrono, no bloquea. **Probado** | Id del aviso derivado del evento: no duplica. **Probado** |
+| Emparejamiento, Reclamaciones y Moderación → Notificaciones | Reintenta 3 veces con espera creciente y, si sigue fallando, guarda el evento en la cola de fallidos y lo reprocesa cada 5 min; publicar y reclamar no se afectan ([ADR-0026](../adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md)). **Probado** | Evento asíncrono, no bloquea. **Probado** | Id del aviso derivado del dato: no duplica, ni por entrega repetida ni por reproceso. **Probado** |
 
 ### 11.2 Riesgos y deuda
 
@@ -373,3 +492,5 @@ Ver [`docs/glosarios.md`](../glosarios.md) para el glosario completo de término
 - [`docs/context-map.md`](../context-map.md) — contextos delimitados.
 - [`docs/modulo-datos.md`](../modulo-datos.md) — propiedad de datos por módulo.
 - [`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).
+- [`docs/contracts/eventos.md`](../contracts/eventos.md) — contrato de los eventos entre contextos y criterio de compatibilidad (ADR-0026).
+- [`docs/taller-mensajes.md`](../taller-mensajes.md) — evidencia del taller de mensajes y consistencia (S12).

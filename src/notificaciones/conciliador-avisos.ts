@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConciliarAvisos } from '../application/use-cases/conciliar-avisos';
+import { ReprocesarEventosFallidos } from '../application/use-cases/entrega-de-eventos';
 
 const PRIMERA_PASADA_MS = 60 * 1000;
 const CADA_MS = 5 * 60 * 1000;
@@ -15,7 +16,10 @@ export class ConciliadorAvisos implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ConciliadorAvisos.name);
   private temporizadores: NodeJS.Timeout[] = [];
 
-  constructor(private readonly conciliar: ConciliarAvisos) {}
+  constructor(
+    private readonly conciliar: ConciliarAvisos,
+    private readonly reprocesar: ReprocesarEventosFallidos,
+  ) {}
 
   onModuleInit(): void {
     if (process.env.NODE_ENV === 'test') return;
@@ -36,6 +40,8 @@ export class ConciliadorAvisos implements OnModuleInit, OnModuleDestroy {
       if (r.coincidencias + r.reclamaciones + r.moderaciones > 0) {
         this.logger.warn(`Avisos que faltaban, recreados: ${JSON.stringify(r)}`);
       }
+      // La cola de eventos fallidos se reprocesa en la misma pasada (ADR-0026).
+      await this.reprocesar.ejecutar();
     } catch (error) {
       this.logger.warn(`No se pudo conciliar los avisos: ${(error as Error).message}`);
     }

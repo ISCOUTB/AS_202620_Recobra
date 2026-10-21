@@ -6,7 +6,7 @@ import { ConflictoError, NoEncontradoError } from '../../domain/errors/errores-d
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { CoincidenciaRepository } from '../../domain/ports/coincidencia-repository';
 import { calcularParecido } from '../../domain/emparejamiento/parecido';
-import { COINCIDENCIA_DETECTADA } from '../events/eventos-dominio';
+import { COINCIDENCIA_DETECTADA, cargaCoincidencia, emitirEvento } from '../events/eventos-dominio';
 import { CrearPublicacion } from './crear-publicacion';
 
 export interface DatosHallazgo {
@@ -59,7 +59,7 @@ export class ReportarHallazgo {
       creadoEn: new Date().toISOString(),
     });
     await this.coincidencias.guardar(coincidencia);
-    this.eventos.emit(COINCIDENCIA_DETECTADA, coincidencia);
+    emitirEvento(this.eventos, COINCIDENCIA_DETECTADA, cargaCoincidencia(coincidencia));
     return encontrado;
   }
 

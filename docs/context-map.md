@@ -77,6 +77,10 @@ modelo de datos.
   `reclamacion.creada` y `reclamacion.resuelta`; `NotificacionesListener` los
   consume en proceso y guarda avisos en su propia tabla. Un fallo de
   Notificaciones no afecta a quien publicó o reclamó (S4a).
+  Desde el taller de la S12 cada evento lleva un sobre con identificador de
+  correlación y el contrato está escrito en
+  [`docs/contracts/eventos.md`](contracts/eventos.md); la entrega tiene reintentos
+  y cola de fallidos ([ADR-0026](adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md)).
 - **Reclamaciones → Publicaciones (Conformista):** Reclamaciones referencia
   una publicación por su `id` y no copia ni reinterpreta sus campos; si
   Publicaciones cambia su modelo, Reclamaciones se ajusta, no al revés.

@@ -43,19 +43,26 @@ declarado con su plan.
 | **Responde tarde** (emparejamiento lento) | Si fuera síncrono, la publicación esperaría al emparejamiento | El evento se procesa de forma asíncrona (`async: true`, ADR-0004): quien publica no espera. Hoy el cálculo tarda ~2 ms ([`docs/medicion-emparejamiento.md`](medicion-emparejamiento.md)) | `publicacion-creada.listener.ts`; `crear-publicacion.ts` (`notificar`) | `test/emparejamiento.e2e-spec.ts` (consulta con espera: consistencia eventual) | Probado. Si el cálculo se volviera lento, es un criterio de extracción ([ADR-0012](adr/0012-no-extraer-emparejamiento.md)) |
 | **Responde dos veces** (el evento se procesa dos veces) | Coincidencias duplicadas para el mismo par | El id de la coincidencia es determinista por par (`origen__coincidente`) y el repositorio guarda por id, así que repetir el cálculo no duplica. La creación idempotente evita además emitir el evento dos veces | `src/application/use-cases/buscar-coincidencias.ts`; `src/infrastructure/persistence/memoria-coincidencia.repository.ts` | `buscar-coincidencias.spec.ts` («si el evento llega dos veces…»); `test/idempotencia.e2e-spec.ts` («el reintento no duplica la coincidencia») | Probado |
 
-### I4 · Emparejamiento y Reclamaciones → Notificaciones (eventos en proceso)
+### I4 · Emparejamiento, Reclamaciones y Moderación → Notificaciones (eventos en proceso)
 
 | Modo | Qué pasaría sin mitigación | Mitigación asignada | Código | Prueba | Estado |
 |---|---|---|---|---|---|
-| **No responde** (guardar el aviso falla, p. ej. la base cae) | Un rechazo no manejado podría tumbar el proceso | El manejador captura el error y registra una advertencia; quien publicó o reclamó ya recibió su respuesta. El aviso se pierde (no hay reintento) | `src/notificaciones/notificaciones.listener.ts` | Sin prueba dedicada del fallo; misma estructura que I3 | Implementado. **Pendiente:** reprocesar el evento (bandeja de salida en la S12) |
-| **Responde tarde** | Si fuera síncrono, publicar o reclamar esperarían al aviso | Eventos asíncronos (ADR-0004); el cliente ve el aviso en su siguiente consulta | `notificaciones.listener.ts` | `test/notificaciones.e2e-spec.ts` (consulta con espera y medida del tiempo frente a los 60 s de S3) | Probado |
-| **Responde dos veces** (el evento se procesa dos veces) | Avisos repetidos | El id del aviso se deriva del evento y se guarda con `ON CONFLICT (id) DO NOTHING` | `src/application/use-cases/notificaciones.ts`; `postgres-notificacion.repository.ts` | `notificaciones.spec.ts` («el mismo evento procesado dos veces no duplica el aviso») | Probado |
+| **No responde** (guardar el aviso falla, p. ej. la base cae) | El aviso se perdería sin dejar rastro | **Tres redes de seguridad, con alcance distinto** ([ADR-0026](adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md), [ADR-0024](adr/0024-conciliacion-de-avisos.md)): (1) **reintento** hasta 3 veces con espera creciente (200 ms, 800 ms, ±20 %); (2) si sigue fallando, el evento va a la **cola de fallidos** (`eventos_fallidos`) y se reprocesa cada 5 min durante 7 días; (3) si el proceso murió con el evento en memoria, la **conciliación** recrea los avisos desde el dato durante 3 días. Quien publicó o reclamó ya recibió su respuesta | `entrega-de-eventos.ts`, `notificaciones.listener.ts`, `conciliar-avisos.ts` | `entrega-de-eventos.spec.ts` («un fallo recuperable…», «un fallo que no se recupera…», «cuando lo que falló se recupera, el reproceso entrega…»), `conciliar-avisos.spec.ts` | Probado (con repositorio simulado; no con una base real caída) |
+| **Responde tarde** | Si fuera síncrono, publicar o reclamar esperarían al aviso | Eventos asíncronos (ADR-0004, [ADR-0026](adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md), alternativa A descartada); el cliente ve el aviso en su siguiente consulta | `notificaciones.listener.ts` | `test/notificaciones.e2e-spec.ts` (consulta con espera y medida del tiempo frente a los 60 s de S3) | Probado |
+| **Responde dos veces** (el evento se procesa dos veces, o se reprocesa) | Avisos repetidos | El id del aviso se deriva **del dato que lo origina**, no del mensaje, y se guarda con `ON CONFLICT (id) DO NOTHING`: ni la entrega repetida, ni el reproceso, ni la conciliación duplican | `src/application/use-cases/notificaciones.ts`; `postgres-notificacion.repository.ts` | `entrega-de-eventos.spec.ts` («un evento duplicado…», «el mismo hecho emitido dos veces con otro identificador tampoco duplica»), `notificaciones.spec.ts` | Probado |
+| **Mensaje que el consumidor no entiende** (otra versión o tipo) | Se procesaría mal o se descartaría en silencio | `Notificar.procesar` lanza; tras los intentos va a la cola de fallidos, donde se ve ([contrato](contracts/eventos.md)) | `notificaciones.ts` (`procesar`) | `entrega-de-eventos.spec.ts` («un mensaje de una versión que no se entiende…») | Probado |
 
 ## Diseño de idempotencia
 
-**Qué operación se puede repetir:** la única escritura del sistema,
-`POST /publicaciones`. Las demás rutas son lecturas, que se pueden repetir sin
-efectos.
+**Qué operación lleva clave de idempotencia explícita:** la creación de
+publicaciones (`POST /publicaciones`, cabecera `Idempotency-Key`). El resto de las
+escrituras del sistema (cuentas, sesiones, reclamaciones, reportes, fotos, avisos)
+no usan esa cabecera: se pueden repetir sin efecto duplicado por su propio
+diseño, y la tabla de §8.2 de arc42 dice cuál es la garantía de cada una. Por
+ejemplo, crear una cuenta con un correo ya usado no inserta (`guardarSiCorreoLibre`),
+reportar dos veces la misma publicación choca con el índice único, cerrar dos veces
+solo cambia lo que sigue en "publicado", y aprobar o entregar se retoman
+(ADR-0020). Las lecturas se repiten sin efectos.
 
 **Cómo funciona:**
 
@@ -83,9 +90,11 @@ adaptador, sin tablas ni migraciones nuevas, y la atomicidad la da la base.
 - La cabecera es **opcional**: un cliente que no la envía conserva el
   comportamiento anterior (cada envío crea una publicación). Los dos clientes
   del proyecto la envían.
-- Las claves no están ligadas a un usuario, porque aún no hay cuentas. Dos
-  clientes distintos que eligieran la misma clave chocarían; con claves
-  aleatorias de 128 bits es despreciable.
+- El id de la publicación se deriva solo de la clave, sin la cuenta, pero la
+  comparación del reintento **incluye al autor**: la misma clave con otra cuenta
+  responde 422 y no devuelve la publicación de otra persona. No se acota la clave
+  por cuenta, así que dos clientes que eligieran la misma clave chocarían (422);
+  con claves aleatorias de 128 bits es despreciable.
 - No caduca: una clave usada vale para siempre. Es aceptable porque la
   publicación queda guardada igual.
 
@@ -111,9 +120,9 @@ tablas porque rompería el dueño único de los datos.
 
 | Mecanismo | Decisión | Motivo |
 |---|---|---|
-| Reintentos con espera creciente en el servidor hacia la base | No implementado, a propósito | Reintentar contra una base caída multiplica la carga en el peor momento. Se falla rápido (3 s) con 503 y el reintento lo decide el cliente, que puede hacerlo sin duplicar gracias a la idempotencia |
+| Reintentos con espera creciente en el servidor hacia la base, **en las peticiones de los clientes** | No implementado, a propósito | Reintentar contra una base caída multiplica la carga en el peor momento. Se falla rápido (3 s) con 503 y el reintento lo decide el cliente, que puede hacerlo sin duplicar gracias a la idempotencia. (Los eventos entre contextos sí se reintentan, en segundo plano y con espera creciente: no bloquean a nadie; ver I4.) |
 | Circuit breaker hacia la base | Pendiente | Hoy hay una sola dependencia y la conexión falla en 3 s como máximo. Con una caída larga, cada petición esperaría esos 3 s; un breaker respondería 503 de inmediato. Plan: agregarlo en el adaptador si una caída real lo justifica, con una prueba que lo abra y lo cierre |
-| Reprocesar eventos de Emparejamiento perdidos | Pendiente | El evento vive en memoria del proceso: si el proceso cae entre guardar y emitir, o si el cálculo falla, esas coincidencias no se recalculan. Plan: bandeja de salida (outbox) o broker en la S12 |
+| Reprocesar eventos perdidos | **Parcial**: avisos sí, cálculo de coincidencias no | Los **avisos** se recuperan por tres vías (reintento, cola de fallidos y conciliación por estado; [ADR-0026](adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md), [ADR-0024](adr/0024-conciliacion-de-avisos.md)) y no se usó una bandeja de salida (outbox) porque exigiría escribir el dato y el evento de forma atómica entre contextos, que ADR-0020 descartó. **Sigue pendiente** recalcular las coincidencias de una publicación si el proceso cae entre guardarla y calcularlas: el evento `publicacion.creada` no tiene reintentos propios |
 | Vencimiento de publicaciones (desde ADR-0017) | Implementado | `ArchivadorVencidas` corre dentro de la API; si la base no responde, deja una advertencia y lo reintenta en la siguiente pasada (6 h). El `UPDATE` solo toca lo que sigue en "publicado", así que correrlo dos veces no hace daño |
 | Persistencia de coincidencias | Implementado ([ADR-0018](adr/0018-coincidencias-persistidas-y-parecido-ponderado.md)) | Tabla `coincidencias` con id determinista por par (`ON CONFLICT (id) DO UPDATE`): recalcular no duplica |
 | Consistencia entre Publicaciones y Reclamaciones (reclamar, rechazar, aprobar, entregar) | Implementado ([ADR-0020](adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md)) | Cada operación escribe dos tablas sin transacción. El cambio de estado es atómico y anota qué reclamación se aprobó; si falla el segundo paso, el reintento de la misma reclamación lo retoma y `ReconciliarReclamaciones` (cada 5 min) repara las cuatro interrupciones posibles. **Probado** con caídas simuladas (`consistencia-reclamaciones.spec.ts`). Mientras tanto, el estado es eventualmente consistente |

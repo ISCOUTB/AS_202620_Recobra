@@ -7,7 +7,7 @@ import { DecisionModeracion, Reporte } from '../../domain/entities/reporte';
 import { ConflictoError, DatoInvalidoError, NoEncontradoError } from '../../domain/errors/errores-de-dominio';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { ReporteRepository } from '../../domain/ports/reporte-repository';
-import { PUBLICACION_MODERADA } from '../events/eventos-dominio';
+import { PUBLICACION_MODERADA, cargaModeracion, emitirEvento } from '../events/eventos-dominio';
 import { EliminarFotoDe } from './fotos';
 
 /**
@@ -130,7 +130,7 @@ export class ResolverReporte {
         throw new ConflictoError('la publicación cambió mientras tanto; vuelve a cargar el reporte');
       }
       await this.fotos.ejecutar(publicacionId); // lo que se oculta no conserva su imagen (ADR-0023)
-      this.eventos.emit(PUBLICACION_MODERADA, publicacion);
+      emitirEvento(this.eventos, PUBLICACION_MODERADA, cargaModeracion(publicacion));
     } else if (publicacion.estado !== 'cerrado') {
       throw new ConflictoError(
         'la publicación tiene una reclamación o una entrega en curso; espera a que se resuelva antes de ocultarla',

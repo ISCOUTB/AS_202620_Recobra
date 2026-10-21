@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://recobra.iscoutb.dev/contracts/eventos.schema.json",
+  "title": "Eventos entre contextos de Recobra, versión 1",
+  "description": "Contrato de los cuatro eventos que consume Notificaciones (ADR-0026). Todo evento viaja dentro del mismo sobre. Los esquemas permiten campos adicionales a propósito: agregar un campo opcional es un cambio compatible. Ver docs/contracts/eventos.md para el criterio completo.",
+  "definitions": {
+    "sobre": {
+      "type": "object",
+      "required": ["id", "tipo", "version", "ocurridoEn", "carga"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "description": "Identificador de correlación: el mismo en el registro del productor, el del consumidor y la cola de fallidos" },
+        "tipo": { "type": "string", "enum": ["coincidencia.detectada", "reclamacion.creada", "reclamacion.resuelta", "publicacion.moderada"] },
+        "version": { "type": "integer", "const": 1 },
+        "ocurridoEn": { "type": "string", "format": "date-time" },
+        "carga": { "type": "object" }
+      }
+    },
+    "coincidencia.detectada": {
+      "type": "object",
+      "required": ["coincidenciaId", "publicacionOrigenId", "publicacionCoincidenteId", "score"],
+      "properties": {
+        "coincidenciaId": { "type": "string", "minLength": 1 },
+        "publicacionOrigenId": { "type": "string", "minLength": 1 },
+        "publicacionCoincidenteId": { "type": "string", "minLength": 1 },
+        "score": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "reclamacion.creada": {
+      "type": "object",
+      "required": ["reclamacionId", "publicacionId", "publicacionAutorId", "publicacionDescripcion"],
+      "properties": {
+        "reclamacionId": { "type": "string", "minLength": 1 },
+        "publicacionId": { "type": "string", "minLength": 1 },
+        "publicacionAutorId": { "type": ["string", "null"] },
+        "publicacionDescripcion": { "type": "string" }
+      }
+    },
+    "reclamacion.resuelta": {
+      "type": "object",
+      "required": ["reclamacionId", "publicacionId", "reclamanteId", "resultado", "motivoRechazo", "publicacionDescripcion"],
+      "properties": {
+        "reclamacionId": { "type": "string", "minLength": 1 },
+        "publicacionId": { "type": "string", "minLength": 1 },
+        "reclamanteId": { "type": "string", "minLength": 1 },
+        "resultado": { "type": "string", "enum": ["aprobada", "rechazada"] },
+        "motivoRechazo": { "type": ["string", "null"] },
+        "publicacionDescripcion": { "type": "string" }
+      }
+    },
+    "publicacion.moderada": {
+      "type": "object",
+      "required": ["publicacionId", "autorId", "descripcion"],
+      "properties": {
+        "publicacionId": { "type": "string", "minLength": 1 },
+        "autorId": { "type": ["string", "null"] },
+        "descripcion": { "type": "string" }
+      }
+    }
+  }
+}

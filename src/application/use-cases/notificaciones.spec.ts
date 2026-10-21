@@ -7,6 +7,7 @@ import { MemoriaCuentaRepository } from '../../infrastructure/persistence/memori
 import { Coincidencia } from '../../domain/entities/coincidencia';
 import { Reclamacion } from '../../domain/entities/reclamacion';
 import { NoEncontradoError } from '../../domain/errors/errores-de-dominio';
+import { cargaCoincidencia, cargaReclamacionCreada, cargaReclamacionResuelta } from '../events/eventos-dominio';
 
 describe('Notificaciones', () => {
   let publicaciones: MemoriaPublicacionRepository;
@@ -39,13 +40,13 @@ describe('Notificaciones', () => {
       score: 1,
       creadoEn: new Date().toISOString(),
     });
-    return { perdido, encontrado, coincidencia };
+    return { perdido, encontrado, carga: cargaCoincidencia(coincidencia) };
   }
 
   it('una coincidencia avisa a quien perdió el objeto y lleva a la publicación encontrada', async () => {
-    const { encontrado, coincidencia } = await parDeCoincidencia();
+    const { encontrado, carga } = await parDeCoincidencia();
 
-    const [aviso] = await notificar.porCoincidencia(coincidencia);
+    const [aviso] = await notificar.porCoincidencia(carga);
 
     expect(aviso).toMatchObject({ cuentaId: 'ana', tipo: 'coincidencia', publicacionId: encontrado.id, leida: false });
     expect((await consultar.ejecutar('ana')).noLeidas).toBe(1);
@@ -53,15 +54,15 @@ describe('Notificaciones', () => {
   });
 
   it('el mismo evento procesado dos veces no duplica el aviso', async () => {
-    const { coincidencia } = await parDeCoincidencia();
-    await notificar.porCoincidencia(coincidencia);
-    await notificar.porCoincidencia(coincidencia);
+    const { carga } = await parDeCoincidencia();
+    await notificar.porCoincidencia(carga);
+    await notificar.porCoincidencia(carga);
     expect((await consultar.ejecutar('ana')).notificaciones).toHaveLength(1);
   });
 
   it('si el objeto perdido no tiene autor, no hay a quién avisar', async () => {
-    const { coincidencia } = await parDeCoincidencia(null);
-    expect(await notificar.porCoincidencia(coincidencia)).toHaveLength(0);
+    const { carga } = await parDeCoincidencia(null);
+    expect(await notificar.porCoincidencia(carga)).toHaveLength(0);
   });
 
   it('las reclamaciones avisan a quien publicó al crearse y a quien reclamó al resolverse', async () => {
@@ -74,8 +75,10 @@ describe('Notificaciones', () => {
       creadoEn: new Date().toISOString(),
     });
 
-    await notificar.porReclamacionCreada(reclamacion, encontrado);
-    await notificar.porReclamacionResuelta(reclamacion.rechazar(new Date().toISOString(), 'No coincide'), encontrado);
+    await notificar.porReclamacionCreada(cargaReclamacionCreada(reclamacion, encontrado));
+    await notificar.porReclamacionResuelta(
+      cargaReclamacionResuelta(reclamacion.rechazar(new Date().toISOString(), 'No coincide'), encontrado),
+    );
 
     const deBea = await consultar.ejecutar('bea');
     expect(deBea.notificaciones.map((n) => n.tipo)).toEqual(['reclamacion_nueva']);
@@ -85,8 +88,8 @@ describe('Notificaciones', () => {
   });
 
   it('marcar como leída solo funciona con avisos propios', async () => {
-    const { coincidencia } = await parDeCoincidencia();
-    const [aviso] = await notificar.porCoincidencia(coincidencia);
+    const { carga } = await parDeCoincidencia();
+    const [aviso] = await notificar.porCoincidencia(carga);
 
     await expect(consultar.marcarLeida(aviso.id, 'bea')).rejects.toBeInstanceOf(NoEncontradoError);
     await consultar.marcarLeida(aviso.id, 'ana');

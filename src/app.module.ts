@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { join } from 'node:path';
@@ -13,6 +13,7 @@ import { PrivacidadModule } from './privacidad/privacidad.module';
 import { ModeracionModule } from './moderacion/moderacion.module';
 import { FotosModule } from './fotos/fotos.module';
 import { ConciliacionAvisosModule } from './notificaciones/conciliacion-avisos.module';
+import { politicaDeCache } from './observabilidad/politica-de-cache.middleware';
 
 @Module({
   imports: [
@@ -40,4 +41,8 @@ import { ConciliacionAvisosModule } from './notificaciones/conciliacion-avisos.m
     ConciliacionAvisosModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(politicaDeCache).forRoutes('*');
+  }
+}

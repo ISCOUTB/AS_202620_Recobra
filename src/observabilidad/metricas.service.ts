@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { metricasDeEventos } from '../application/events/metricas-eventos';
 
 const MAX_MUESTRAS = 200;
 
@@ -87,6 +88,12 @@ export class MetricasService {
       busqueda: {
         escenario: 'S1 (rendimiento de búsqueda) — ver docs/calidad/escenarios_calidad.md y docs/medicion-busqueda.md',
         ...this.busqueda.resumir('latencia_get_publicaciones_ms', 400),
+      },
+      // Eventos entre contextos (ADR-0026): lo emitido debe cerrar como procesado,
+      // reintentado, en la cola de fallidos o reprocesado.
+      eventos: {
+        ...metricasDeEventos.resumen(),
+        ventana: 'desde que arrancó el proceso (en memoria, se reinicia con él)',
       },
     };
   }

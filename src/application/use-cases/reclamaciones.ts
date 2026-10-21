@@ -8,7 +8,13 @@ import { CuentaRepository } from '../../domain/ports/cuenta-repository';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { ReclamacionRepository } from '../../domain/ports/reclamacion-repository';
 import { CambiarEstadoPublicacion } from './cambiar-estado-publicacion';
-import { RECLAMACION_CREADA, RECLAMACION_RESUELTA } from '../events/eventos-dominio';
+import {
+  RECLAMACION_CREADA,
+  RECLAMACION_RESUELTA,
+  cargaReclamacionCreada,
+  cargaReclamacionResuelta,
+  emitirEvento,
+} from '../events/eventos-dominio';
 
 const MENSAJE_NO_RECLAMABLE: Partial<Record<string, string>> = {
   por_entregar: 'quien lo encontró ya aprobó otra reclamación',
@@ -62,7 +68,7 @@ export class CrearReclamacion {
       // Si otra reclamación ya la puso en verificación, no hay nada que cambiar.
       await this.cambiarEstado.ejecutar(publicacionId, 'publicado', 'en_verificacion');
     }
-    this.eventos.emit(RECLAMACION_CREADA, { reclamacion, publicacion });
+    emitirEvento(this.eventos, RECLAMACION_CREADA, cargaReclamacionCreada(reclamacion, publicacion));
     return reclamacion;
   }
 }
@@ -118,11 +124,11 @@ export class ResolverReclamacion {
     const pendientes = (await this.reclamaciones.listarPorPublicacion(aprobada.publicacionId)).filter(
       (r) => r.estado === 'pendiente' && r.id !== aprobada.id,
     );
-    this.eventos.emit(RECLAMACION_RESUELTA, { reclamacion: aprobada, publicacion });
+    emitirEvento(this.eventos, RECLAMACION_RESUELTA, cargaReclamacionResuelta(aprobada, publicacion));
     for (const otra of pendientes) {
       const rechazada = otra.rechazar(aprobada.resueltaEn as string, 'Otra reclamación fue aprobada');
       await this.reclamaciones.guardar(rechazada);
-      this.eventos.emit(RECLAMACION_RESUELTA, { reclamacion: rechazada, publicacion });
+      emitirEvento(this.eventos, RECLAMACION_RESUELTA, cargaReclamacionResuelta(rechazada, publicacion));
     }
   }
 
@@ -131,7 +137,7 @@ export class ResolverReclamacion {
     const { reclamacion, publicacion } = await this.cargarParaResolver(reclamacionId, solicitanteId);
     const rechazada = reclamacion.rechazar(new Date().toISOString(), motivo);
     await this.reclamaciones.guardar(rechazada);
-    this.eventos.emit(RECLAMACION_RESUELTA, { reclamacion: rechazada, publicacion });
+    emitirEvento(this.eventos, RECLAMACION_RESUELTA, cargaReclamacionResuelta(rechazada, publicacion));
 
     const quedan = (await this.reclamaciones.listarPorPublicacion(reclamacion.publicacionId)).some(
       (r) => r.estado === 'pendiente',

@@ -3,6 +3,7 @@ import { CoincidenciaRepository } from '../../domain/ports/coincidencia-reposito
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { ReclamacionRepository } from '../../domain/ports/reclamacion-repository';
 import { ReporteRepository } from '../../domain/ports/reporte-repository';
+import { cargaCoincidencia, cargaModeracion, cargaReclamacionCreada, cargaReclamacionResuelta } from '../events/eventos-dominio';
 import { Notificar } from './notificaciones';
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
@@ -50,7 +51,7 @@ export class ConciliarAvisos {
   private async deCoincidencias(desde: string): Promise<number> {
     let creados = 0;
     for (const c of await this.coincidencias.listarCreadasDesde(desde, LIMITE_POR_TIPO)) {
-      creados += (await this.notificar.porCoincidencia(c)).length;
+      creados += (await this.notificar.porCoincidencia(cargaCoincidencia(c))).length;
     }
     return creados;
   }
@@ -60,8 +61,11 @@ export class ConciliarAvisos {
     for (const r of await this.reclamaciones.listarCreadasDesde(desde, LIMITE_POR_TIPO)) {
       const publicacion = await this.publicaciones.buscarPorId(r.publicacionId);
       if (!publicacion) continue;
-      creados += (await this.notificar.porReclamacionCreada(r, publicacion)).length;
-      creados += (await this.notificar.porReclamacionResuelta(r, publicacion)).length;
+      creados += (await this.notificar.porReclamacionCreada(cargaReclamacionCreada(r, publicacion))).length;
+      // Una reclamación todavía pendiente no tiene resolución que avisar.
+      if (r.estado !== 'pendiente') {
+        creados += (await this.notificar.porReclamacionResuelta(cargaReclamacionResuelta(r, publicacion))).length;
+      }
     }
     return creados;
   }
@@ -73,7 +77,7 @@ export class ConciliarAvisos {
       if (vistas.has(reporte.publicacionId)) continue;
       vistas.add(reporte.publicacionId);
       const publicacion = await this.publicaciones.buscarPorId(reporte.publicacionId);
-      if (publicacion) creados += (await this.notificar.porModeracion(publicacion)).length;
+      if (publicacion) creados += (await this.notificar.porModeracion(cargaModeracion(publicacion))).length;
     }
     return creados;
   }
