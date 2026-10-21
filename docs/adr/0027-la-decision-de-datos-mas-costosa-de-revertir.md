@@ -71,13 +71,17 @@ no encuentra nada).
    personas reales (hoy no hay copias de seguridad configuradas).
 4. **Ventana: es la única que exige parar el servicio** para migrar, más allá de
    los 30 a 50 segundos de un redespliegue.
-5. **Costo de verificarla hoy: alto.** El CI ejecuta las pruebas e2e contra los
-   adaptadores **en memoria**; los adaptadores de PostgreSQL no tienen una
-   prueba que los ejercite contra un motor real en CI: la única prueba de un
-   adaptador (`postgres-publicacion.repository.spec.ts`) simula el paquete `pg` y
-   comprueba el manejo de caídas y de TLS, no la semántica de las consultas. Reemplazar el motor
-   no tendría una prueba automática que diga "se comporta igual", y eso encarece
-   la reversión: habría que escribirla primero.
+5. **Costo de verificarla: era alto y se redujo, sin desaparecer.** Las pruebas
+   e2e de la aplicación corren contra los adaptadores **en memoria**, y la única
+   prueba de un adaptador de PostgreSQL (`postgres-publicacion.repository.spec.ts`)
+   simula el paquete `pg` y comprueba el manejo de caídas y de TLS, no la
+   semántica de las consultas. Al escribir este ADR eso se vio como la debilidad
+   concreta que más encarecía la reversión, y se atacó: ahora existe una suite
+   de contrato de los puertos (`test/adaptadores.e2e-spec.ts`, 10 propiedades) que
+   corre contra memoria y contra un **PostgreSQL real en CI** (trabajo
+   «Adaptadores contra PostgreSQL real»). Lo que **no** cubre: solo ejercita 7 de
+   los 9 adaptadores (faltan Reclamaciones y Sesiones), y las pruebas e2e de la
+   aplicación completa siguen corriendo solo en memoria.
 
 **Por qué las otras no ganan:**
 
@@ -102,6 +106,16 @@ se estiman entre 1 y 3 días, y D2 entre 0 y imposible según la dirección.
 
 Ya existe:
 
+- **Una suite de contrato de los puertos que corre contra PostgreSQL real en CI**
+  (`test/adaptadores.e2e-spec.ts` y el trabajo del mismo nombre en
+  `.github/workflows/ci.yml`, con `postgres:16` fijado por digest y efímero).
+  Comprueba, contra el motor real y en paralelo contra memoria, las propiedades
+  que el sistema delega al motor: crear sin duplicar y comparar y fijar bajo
+  **concurrencia** (cinco operaciones simultáneas, una gana), unicidad del correo,
+  del aviso y del reporte (índice único), que las coincidencias se actualicen sin
+  duplicarse, y que los bytes (`BYTEA`, los 256 valores) y los JSON (`JSONB`)
+  sobrevivan intactos. Un motor nuevo tendría una prueba que le dice si respeta
+  las mismas propiedades.
 - **Puertos como clases abstractas** y un adaptador en memoria por cada uno de
   ellos: una referencia de comportamiento y la prueba de que la sustitución
   funciona (se activa con `DATABASE_URL`).
@@ -112,9 +126,9 @@ Ya existe:
 
 Pendiente (no se afirma como hecho):
 
-- **Ejecutar las pruebas e2e y una prueba de contrato de cada puerto contra un
-  PostgreSQL real en CI** (un servicio de base en el flujo de trabajo). Es lo
-  que más abarataría la reversión y la verificación de cualquier cambio de SQL.
+- **Extender la suite a los dos adaptadores que faltan** (Reclamaciones y
+  Sesiones) y correr las pruebas e2e completas de la aplicación contra
+  PostgreSQL; hoy esas pruebas suponen una base vacía y adaptadores en memoria.
 - **Copias de seguridad con retención corta** en Dokploy: limitan el daño de una
   migración fallida y de D2.
 
@@ -124,12 +138,15 @@ Pendiente (no se afirma como hecho):
   y no lo descubre en medio de un cambio.
 - Cualquier cambio de SQL en los adaptadores se trata con más cuidado que el
   resto, porque es donde viven las garantías.
-- Escribir esto deja a la vista una debilidad concreta (la falta de pruebas contra
-  PostgreSQL en CI), que es la acción más útil que se desprende del ADR.
+- Escribir esto dejó a la vista una debilidad concreta (la falta de pruebas contra
+  PostgreSQL en CI), y fue la primera acción que se desprendió del ADR: ya está
+  cubierta en parte (7 de 9 adaptadores).
 
 ## Qué haría revisar esta decisión
 
 - Que aparezca una segunda base o un servicio de almacenamiento: el reparto del
   costo cambiaría.
-- Que las pruebas contra PostgreSQL en CI existan: D1 bajaría de "alto" a "medio".
+- Que la suite cubra los 9 adaptadores y las pruebas e2e completas corran contra
+  PostgreSQL: D1 bajaría de "alto" a "medio" (hoy, "alto" con la verificación
+  parcialmente cubierta).
 - Un volumen de datos que haga más lenta o riesgosa una migración.

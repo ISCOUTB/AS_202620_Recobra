@@ -102,7 +102,7 @@ describe('Conciliación de avisos (ADR-0024)', () => {
     expect(await avisosDe('leo')).toEqual(['reclamacion_aprobada']);
 
     expect(await conciliar.ejecutar(ahora)).toEqual({ coincidencias: 0, reclamaciones: 0, moderaciones: 0 });
-    expect((await avisos.listarPorCuenta('ana', 50)).length).toBe(2);
+    expect(await avisos.listarPorCuenta('ana', 50)).toHaveLength(2);
   });
 
   it('con una reclamación pendiente solo avisa a quien publicó; no inventa una resolución', async () => {

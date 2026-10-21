@@ -395,8 +395,9 @@ Contrato de los mensajes y criterio de compatibilidad:
 La decisión de datos más costosa de revertir es **PostgreSQL como único almacén,
 con la consistencia apoyada en escrituras atómicas de una sola sentencia**, por
 alcance (9 de 9 adaptadores y tablas), datos (todos los reales), error en
-silencio (duplicados o estados incoherentes) y verificación (el CI no ejercita
-los adaptadores contra un motor real). Comparación con las demás y estimación:
+silencio (duplicados o estados incoherentes). Su verificación está cubierta en
+parte: una suite de contrato de 10 propiedades corre contra PostgreSQL real en CI
+(7 de los 9 adaptadores). Comparación con las demás y estimación:
 [ADR-0027](../adr/0027-la-decision-de-datos-mas-costosa-de-revertir.md).
 
 ## 9. Decisiones de arquitectura

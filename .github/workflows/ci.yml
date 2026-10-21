@@ -61,7 +61,7 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts
       - name: Puertos de persistencia contra PostgreSQL
-        run: npx jest --config ./test/jest-e2e.json test/adaptadores.e2e-spec.ts --forceExit
+        run: npm run test:e2e -- test/adaptadores.e2e-spec.ts --forceExit
 
   sonarcloud:
     name: SonarCloud Scan

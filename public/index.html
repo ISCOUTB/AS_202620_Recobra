@@ -1353,16 +1353,8 @@
       : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
   let claveIdempotencia = nuevaClave();
 
-  formCrear.addEventListener('submit', async (evento) => {
-    evento.preventDefault();
-    if (botonPublicar.disabled) return;
-    if (!sesion) {
-      pedirSesion('publicar', formCrear);
-      return;
-    }
-    mensajeCrear.textContent = '';
-    mensajeCrear.className = '';
-
+  /** Lo que escribió la persona en el formulario de publicar, con la forma que espera la API. */
+  function leerFormularioDePublicar() {
     const campos = Object.fromEntries(new FormData(formCrear).entries());
     const datos = {
       tipo: campos.tipo,
@@ -1375,6 +1367,31 @@
       datos.custodia = campos.custodia;
       if (campos.custodia === 'punto_de_entrega') datos.puntoCustodia = (campos.puntoCustodia || '').trim();
     }
+    return datos;
+  }
+
+  function reiniciarFormularioDePublicar() {
+    formCrear.reset();
+    ajustarFormularioPorTipo();
+    etiquetaOtroLugar.hidden = true;
+    etiquetaPiso.hidden = true;
+    inputFoto.value = '';
+    vistaPreviaFoto.hidden = true;
+    vistaPreviaFoto.src = '';
+    textoZonaFoto.textContent = TEXTO_FOTO;
+  }
+
+  formCrear.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    if (botonPublicar.disabled) return;
+    if (!sesion) {
+      pedirSesion('publicar', formCrear);
+      return;
+    }
+    mensajeCrear.textContent = '';
+    mensajeCrear.className = '';
+
+    const datos = leerFormularioDePublicar();
     if (!datos.ubicacion) {
       mensajeCrear.textContent = 'Dinos dónde fue.';
       mensajeCrear.className = 'error';
@@ -1413,14 +1430,7 @@
       mensajeCrear.textContent = (respuesta.status === 200 ? 'Ya estaba publicada (reintento).' : 'Publicación creada.') + mensajeFoto;
       mensajeCrear.className = mensajeFoto ? 'error' : 'ok';
       claveIdempotencia = nuevaClave();
-      formCrear.reset();
-      ajustarFormularioPorTipo();
-      etiquetaOtroLugar.hidden = true;
-      etiquetaPiso.hidden = true;
-      inputFoto.value = '';
-      vistaPreviaFoto.hidden = true;
-      vistaPreviaFoto.src = '';
-      textoZonaFoto.textContent = TEXTO_FOTO;
+      reiniciarFormularioDePublicar();
       buscar();
     } catch (error) {
       mensajeCrear.textContent =
@@ -2258,8 +2268,8 @@
   const dialogoAviso = document.getElementById('dialogo-aviso');
   const mensajeDatos = document.getElementById('mensaje-datos');
 
-  /** El aviso lo sirve la API: es el mismo texto que ve la app. */
-  async function abrirAviso() {
+  /** El aviso de privacidad lo sirve la API: es el mismo texto que ve la app. */
+  async function abrirAvisoDePrivacidad() {
     const cuerpo = document.getElementById('cuerpo-aviso');
     dialogoAviso.showModal();
     dialogoAviso.scrollTop = 0; // el foco inicial cae en "Cerrar", al final: se vuelve al principio
@@ -2279,7 +2289,7 @@
       cuerpo.textContent = 'No pudimos cargar el aviso. Revisa tu conexión e inténtalo de nuevo.';
     }
   }
-  for (const boton of document.querySelectorAll('[data-abrir-aviso]')) boton.addEventListener('click', abrirAviso);
+  for (const boton of document.querySelectorAll('[data-abrir-aviso]')) boton.addEventListener('click', abrirAvisoDePrivacidad);
 
   /** Derecho de acceso: baja un archivo JSON con todo lo que se guarda de la cuenta. */
   document.getElementById('boton-descargar-datos').addEventListener('click', async () => {
