@@ -28,6 +28,41 @@ jobs:
       - name: Docker build (valida Dockerfile, evidencia S8)
         run: docker build -t recobra-backend-ci .
 
+  postgres:
+    name: Adaptadores contra PostgreSQL real
+    # ADR-0027: la consistencia (crear sin duplicar, comparar y fijar, unicidad) se
+    # apoya en el motor, y las pruebas e2e del trabajo anterior corren contra los
+    # adaptadores en memoria. Este trabajo ejecuta las mismas propiedades contra un
+    # PostgreSQL de verdad, para que un cambio de SQL o de motor falle aquí y no en
+    # producción. La imagen va fijada por su digest; el servicio es efimero y local
+    # al trabajo, sin contrasena (trust), asi que no hay secreto que guardar.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16@sha256:a902560563d3a5661228585f53474c5065e7f273b21ffd77e555a8b5682c5690
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: recobra_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d recobra_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL_PRUEBAS: postgresql://postgres@localhost:5432/recobra_test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install
+        run: npm ci --ignore-scripts
+      - name: Puertos de persistencia contra PostgreSQL
+        run: npx jest --config ./test/jest-e2e.json test/adaptadores.e2e-spec.ts --forceExit
+
   sonarcloud:
     name: SonarCloud Scan
     runs-on: ubuntu-latest
