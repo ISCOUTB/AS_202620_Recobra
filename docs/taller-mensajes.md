@@ -60,10 +60,11 @@ base.
 - Pruebas: `npm test` (todas las unitarias, incluidas `entrega-de-eventos.spec.ts`
   y `eventos-contrato.spec.ts`) y `npm run test:e2e`, en el flujo de integración
   continua (`.github/workflows/ci.yml`, trabajo «Backend NestJS»).
-- Run del commit `d61fd21` que las ejecutó, con todos los trabajos en verde
-  (pruebas del backend, adaptadores contra PostgreSQL real, cliente Flutter,
-  análisis y Quality Gate de SonarCloud):
-  https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/39692259031
+- Run del commit `3d7f6be`, con todos los trabajos en verde: pruebas del backend
+  (incluidas `test/entrega-eventos.e2e-spec.ts`, `entrega-de-eventos.spec.ts` y
+  `eventos-contrato.spec.ts`), adaptadores contra PostgreSQL real (con el ensayo
+  de respaldo y restauración), cliente Flutter, análisis y Quality Gate de
+  SonarCloud: https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/40100601685
 
 ## 5. Límites del experimento (qué no cubre y qué haría falta en producción)
 
