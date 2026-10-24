@@ -1,3 +1,10 @@
+/**
+ * Con tantos eventos esperando en la cola de fallidos (o más) se emite la alerta:
+ * una línea de nivel `error` en el registro y la marca `alertaCola` en `/metrics`.
+ * Uno o dos eventos son una caída breve; cinco juntos ya son algo que mirar.
+ */
+export const UMBRAL_ALERTA_COLA = 5;
+
 export type ContadorDeEventos = 'emitidos' | 'procesados' | 'reintentos' | 'enColaDeFallidos' | 'reprocesados';
 
 /**
@@ -8,17 +15,24 @@ export type ContadorDeEventos = 'emitidos' | 'procesados' | 'reintentos' | 'enCo
  */
 class MetricasDeEventos {
   private contadores: Record<ContadorDeEventos, number> = this.inicial();
+  private pendientes = 0;
 
   registrar(contador: ContadorDeEventos): void {
     this.contadores[contador] += 1;
   }
 
-  resumen(): Record<ContadorDeEventos, number> {
-    return { ...this.contadores };
+  /** Cuántos eventos esperan en la cola de fallidos tras la última pasada de reproceso. */
+  fijarPendientesEnCola(n: number): void {
+    this.pendientes = n;
+  }
+
+  resumen(): Record<ContadorDeEventos, number> & { pendientesEnCola: number } {
+    return { ...this.contadores, pendientesEnCola: this.pendientes };
   }
 
   reiniciar(): void {
     this.contadores = this.inicial();
+    this.pendientes = 0;
   }
 
   private inicial(): Record<ContadorDeEventos, number> {

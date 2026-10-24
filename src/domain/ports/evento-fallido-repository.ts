@@ -1,6 +1,6 @@
 import { EventoFallido } from '../entities/evento-fallido';
 
-/** Puerto de la cola de eventos fallidos (contexto Notificaciones, dueño único de `eventos_fallidos`). */
+/** Puerto de la cola de eventos fallidos / dead-letter queue, DLQ (contexto Notificaciones, dueño único de `eventos_fallidos`). */
 export abstract class EventoFallidoRepository {
   /** Inserta o reemplaza por id (el id del evento). */
   abstract guardar(evento: EventoFallido): Promise<void>;

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { metricasDeEventos } from '../application/events/metricas-eventos';
+import { UMBRAL_ALERTA_COLA, metricasDeEventos } from '../application/events/metricas-eventos';
 
 const MAX_MUESTRAS = 200;
 
@@ -93,6 +93,8 @@ export class MetricasService {
       // reintentado, en la cola de fallidos o reprocesado.
       eventos: {
         ...metricasDeEventos.resumen(),
+        // Verdadero si la última pasada de reproceso dejó en la cola tantos eventos como el umbral de alerta (ADR-0026).
+        alertaCola: metricasDeEventos.resumen().pendientesEnCola >= UMBRAL_ALERTA_COLA,
         ventana: 'desde que arrancó el proceso (en memoria, se reinicia con él)',
       },
     };

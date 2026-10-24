@@ -88,21 +88,40 @@ saber cuántos mensajes se habían perdido.
    emite (`evento.emitido`) y de quien procesa (`evento.procesado`,
    `evento.reintento`, `evento.en_cola_de_fallidos`, `evento.reprocesado`), y los
    contadores salen en `GET /metrics` (`eventos`: emitidos, procesados,
-   reintentos, enColaDeFallidos, reprocesados). Ejemplo de un mensaje seguido de
-   punta a punta:
+   reintentos, enColaDeFallidos, reprocesados, pendientesEnCola y `alertaCola`).
+   Ejemplo de un mensaje seguido de punta a punta:
 
    ```json
    {"timestamp":"…","level":"info","context":"Eventos","message":{"evento":"evento.emitido","eventoId":"3f1c…","tipo":"reclamacion.creada","version":1}}
    {"timestamp":"…","level":"warn","context":"Eventos","message":{"evento":"evento.reintento","eventoId":"3f1c…","tipo":"reclamacion.creada","intento":1,"esperaMs":187,"error":"connect ECONNREFUSED…"}}
    {"timestamp":"…","level":"info","context":"Eventos","message":{"evento":"evento.procesado","eventoId":"3f1c…","tipo":"reclamacion.creada","intento":2}}
    ```
-7. **Las cargas no llevan datos que el aviso no muestre ya:** en particular, no
+7. **Alerta de la cola:** al terminar cada pasada de reproceso se cuenta lo que
+   sigue esperando; con **5 o más** eventos pendientes (`UMBRAL_ALERTA_COLA`) se
+   escribe una línea de nivel `error` (`alerta.cola_de_fallidos`, con la cantidad
+   y el umbral) y `GET /metrics` marca `alertaCola: true`. Uno o dos pendientes son
+   una caída breve; cinco juntos ya son algo que mirar. La alerta se apaga sola
+   cuando la cola se vacía. **Es una alerta en el registro y en la métrica: no
+   avisa a nadie por sí sola** (ver los límites).
+8. **Las cargas no llevan datos que el aviso no muestre ya:** en particular, no
    llevan el texto de la prueba de una reclamación, de modo que guardarlas en la
    cola de fallidos no suma datos personales (`eventos-contrato.spec.ts` lo comprueba).
 
 ## Qué se probó
 
-`src/application/use-cases/entrega-de-eventos.spec.ts` (nombres literales):
+**Contra la aplicación completa** (`test/entrega-eventos.e2e-spec.ts`), con un
+repositorio de avisos que falla a propósito, sobre la operación real de reclamar:
+
+- «**fallo recuperable**: el consumidor falla dos veces, se reintenta con espera
+  creciente y el aviso llega» (3 intentos, esperas que crecen, un solo aviso);
+- «un mensaje **duplicado** (entregado dos veces) no duplica el aviso»;
+- «un fallo que no se recupera deja el evento en la **cola de fallidos** y el
+  reproceso lo entrega cuando la base vuelve»;
+- «**trazabilidad**: el mismo identificador de correlación sale en el registro del
+  productor y del consumidor» (`evento.emitido`, `evento.reintento`,
+  `evento.procesado` con el mismo `eventoId`).
+
+**Unitarias** (`src/application/use-cases/entrega-de-eventos.spec.ts`, nombres literales):
 
 - «un evento duplicado … no duplica el aviso» y «el mismo hecho emitido dos veces
   con otro identificador tampoco duplica»;
@@ -112,7 +131,9 @@ saber cuántos mensajes se habían perdido.
   falló se recupera, el reproceso entrega lo que quedó en la cola, una sola vez»;
 - «un mensaje de una versión que no se entiende no se descarta en silencio»;
 - «trazabilidad: el mismo identificador aparece en el registro de quien emite y en
-  el de quien procesa».
+  el de quien procesa»;
+- «alerta: con cinco eventos esperando en la cola se emite una línea de error y se
+  marca en las métricas; con menos, no» (y se apaga al vaciarse la cola).
 
 ## Consecuencias
 
@@ -140,8 +161,10 @@ saber cuántos mensajes se habían perdido.
   repositorio. El fallo real de PostgreSQL se probó antes en `docs/modos-de-fallo.md`
   (I1) con dobles.
 - Los contadores viven en la memoria del proceso y se reinician con él.
-- No hay alerta cuando la cola de fallidos crece: hoy se ve en el registro y en
-  `eventos_fallidos`.
+- **La alerta de la cola no avisa a nadie por sí sola.** Escribe una línea de
+  error y marca `alertaCola` en `/metrics`; que alguien la vea depende de mirar
+  los registros de Dokploy o de conectar esa línea o esa métrica a un aviso
+  (correo, mensaje), algo que todavía no está configurado.
 - El evento `publicacion.creada` (que dispara Emparejamiento) no está bajo este
   contrato: sigue siendo un evento en proceso sin reintentos propios. Su fallo se
   registra, y recalcular coincidencias no está cubierto (riesgo vigente, arc42 §11.2).

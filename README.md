@@ -28,6 +28,14 @@ cerrar publicaciones y ver avisos. La imagen de Docker compila la app web
 (etapa `app-web` del `Dockerfile`) y la API la sirve en `/app/`, en el mismo
 origen.
 
+**URL oficial (subdominio de iscoutb.dev) y qué hay en cada dirección:**
+
+| Qué | Dirección | Es |
+|---|---|---|
+| Sitio de Recobra (vitrina web) | https://recobra.iscoutb.dev/ | Interfaz |
+| App de Recobra (Flutter, versión web) | https://recobra.iscoutb.dev/app/ | Interfaz |
+| API REST (mismo host, sin prefijo) | https://recobra.iscoutb.dev/publicaciones, `/lugares`, `/health`, `/health/ready`, `/metrics`… | API: contrato en [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) |
+
 ## Stack
 
 Backend **NestJS** (TypeScript) + frontend **Flutter**, según
@@ -132,6 +140,7 @@ dominio al servicio `backend` con el puerto 3000 y desplegar. Cada commit a
 **Observabilidad:**
 - Logs estructurados en JSON (`src/observabilidad/json-logger.service.ts`), un objeto por línea con `timestamp`, `level`, `context`, `message`.
 - `GET /metrics`: latencia p50/p95 de `POST /publicaciones` (escenario S5, objetivo 100 ms) y, en el bloque `busqueda`, de `GET /publicaciones` con sus errores aparte (escenario S1, objetivo 400 ms). Ver [`docs/medicion-s10.md`](docs/medicion-s10.md).
+- Respaldo y restauración de la base: procedimiento verificado en CI y lo que falta para producción en [`docs/despliegue/respaldos.md`](docs/despliegue/respaldos.md).
 - `GET /metrics` incluye además el bloque `eventos` (emitidos, procesados, reintentos, en cola de fallidos, reprocesados) de los eventos entre contextos ([ADR-0026](docs/adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md)).
 - `GET /health` dice que el proceso está vivo; `GET /health/ready` dice si la base responde y su esquema está preparado (200, o 503 si no).
 

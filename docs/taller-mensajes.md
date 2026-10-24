@@ -25,7 +25,7 @@ Decisión frente a la alternativa síncrona:
 | **2. Garantía de entrega y consecuencias asumidas** | **Al menos una vez, con consumidor idempotente** (reintentos y cola de fallidos), y "como máximo una vez" si el proceso muere con el evento en memoria, caso que cubre la conciliación. Consecuencias asumidas (repetición posible, sin orden garantizado, no es un broker durable): ADR-0026, decisión 2, y arc42 §8.4 |
 | **3. Duplicados** | Idempotencia con clave derivada **del dato**, no del mensaje: `reclamacion-nueva:<reclamacionId>`, `reclamacion-resuelta:<reclamacionId>`, `coincidencia:<id>:<cuenta>`, `moderacion:<publicacionId>`; guardado con `ON CONFLICT (id) DO NOTHING`. Código: `src/application/use-cases/notificaciones.ts` (`guardar`), `postgres-notificacion.repository.ts` |
 | **4. Reintentos con espera creciente y cola de fallidos** | 3 intentos con espera de 200 ms y 800 ms (×4, ±20 %): `esperaCreciente` y `ProcesadorDeEventos` en `src/application/use-cases/entrega-de-eventos.ts`. **Cola de fallidos:** tabla `eventos_fallidos` (`postgres-evento-fallido.repository.ts`), reprocesada cada 5 min por `ReprocesarEventosFallidos` y limpiada a los 7 días |
-| **5. Pruebas de un duplicado y de un fallo recuperable** | `src/application/use-cases/entrega-de-eventos.spec.ts`: «**un evento duplicado** (el mismo mensaje entregado dos veces) no duplica el aviso»; «**un fallo recuperable**: falla dos veces, espera cada vez más y el tercer intento lo procesa»; además, el fallo que no se recupera, el reproceso y el mensaje de versión desconocida. Contrato: `src/application/events/eventos-contrato.spec.ts`. Run que las ejecutó: ver §4 |
+| **5. Pruebas de un duplicado y de un fallo recuperable** | **Contra la aplicación completa:** `test/entrega-eventos.e2e-spec.ts` («**fallo recuperable**: el consumidor falla dos veces, se reintenta con espera creciente y el aviso llega», «un mensaje **duplicado** (entregado dos veces) no duplica el aviso», cola de fallidos con reproceso y trazabilidad). **Unitarias:** `src/application/use-cases/entrega-de-eventos.spec.ts`: «**un evento duplicado** (el mismo mensaje entregado dos veces) no duplica el aviso»; «**un fallo recuperable**: falla dos veces, espera cada vez más y el tercer intento lo procesa»; además, el fallo que no se recupera, el reproceso y el mensaje de versión desconocida. Contrato: `src/application/events/eventos-contrato.spec.ts`. Run que las ejecutó: ver §4 |
 | **6. Métrica o log para seguir un mensaje de productor a consumidor** | El identificador del sobre aparece en el registro del productor y del consumidor, y los contadores salen en `GET /metrics` (`eventos`). Ejemplo real en §3 |
 | **7. ADR que compara con la alternativa síncrona** | [ADR-0026](adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md): alternativa A (llamada síncrona) y B (broker externo) comparadas por acoplamiento, latencia, disponibilidad y operación |
 
@@ -82,8 +82,9 @@ base.
   configurables. Una caída de la base de más de unos segundos se atiende con la
   cola de fallidos, no con los reintentos.
 - **Sin orden garantizado** entre eventos; los avisos son independientes entre sí.
-- **Sin alertas.** El tamaño de la cola de fallidos solo se ve en el registro y en
-  la tabla, no genera un aviso a quien opera el sistema.
+- **La alerta no avisa a nadie por sí sola.** Con 5 o más eventos en la cola de
+  fallidos se escribe una línea de error y `GET /metrics` marca `alertaCola`, pero
+  alguien tiene que mirar los registros o conectarlos a un aviso.
 - **Métricas en memoria**, que se reinician con el proceso.
 - **El evento `publicacion.creada`** (el que dispara el emparejamiento) no está bajo
   este contrato ni tiene reintentos: si falla, no se recalculan las coincidencias.

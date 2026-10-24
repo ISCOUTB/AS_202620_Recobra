@@ -5,6 +5,7 @@ import { EventoFallido } from '../src/domain/entities/evento-fallido';
 import { Foto } from '../src/domain/entities/foto';
 import { Notificacion } from '../src/domain/entities/notificacion';
 import { Publicacion } from '../src/domain/entities/publicacion';
+import { PRUEBA_ANONIMIZADA, Reclamacion } from '../src/domain/entities/reclamacion';
 import { Reporte } from '../src/domain/entities/reporte';
 import { CoincidenciaRepository } from '../src/domain/ports/coincidencia-repository';
 import { CuentaRepository } from '../src/domain/ports/cuenta-repository';
@@ -12,6 +13,8 @@ import { EventoFallidoRepository } from '../src/domain/ports/evento-fallido-repo
 import { FotoRepository } from '../src/domain/ports/foto-repository';
 import { NotificacionRepository } from '../src/domain/ports/notificacion-repository';
 import { PublicacionRepository } from '../src/domain/ports/publicacion-repository';
+import { ReclamacionRepository } from '../src/domain/ports/reclamacion-repository';
+import { SesionRepository } from '../src/domain/ports/sesion-repository';
 import { ReporteRepository } from '../src/domain/ports/reporte-repository';
 import { MemoriaCoincidenciaRepository } from '../src/infrastructure/persistence/memoria-coincidencia.repository';
 import { MemoriaCuentaRepository } from '../src/infrastructure/persistence/memoria-cuenta.repository';
@@ -19,6 +22,8 @@ import { MemoriaEventoFallidoRepository } from '../src/infrastructure/persistenc
 import { MemoriaFotoRepository } from '../src/infrastructure/persistence/memoria-foto.repository';
 import { MemoriaNotificacionRepository } from '../src/infrastructure/persistence/memoria-notificacion.repository';
 import { MemoriaPublicacionRepository } from '../src/infrastructure/persistence/memoria-publicacion.repository';
+import { MemoriaReclamacionRepository } from '../src/infrastructure/persistence/memoria-reclamacion.repository';
+import { MemoriaSesionRepository } from '../src/infrastructure/persistence/memoria-sesion.repository';
 import { MemoriaReporteRepository } from '../src/infrastructure/persistence/memoria-reporte.repository';
 
 /**
@@ -46,10 +51,22 @@ interface Adaptadores {
   reportes: ReporteRepository;
   fotos: FotoRepository;
   fallidos: EventoFallidoRepository;
+  reclamaciones: ReclamacionRepository;
+  sesiones: SesionRepository;
   cerrar?: () => Promise<void>;
 }
 
-const TABLAS = ['publicaciones', 'cuentas', 'notificaciones', 'coincidencias', 'reportes', 'fotos', 'eventos_fallidos'];
+const TABLAS = [
+  'publicaciones',
+  'cuentas',
+  'notificaciones',
+  'coincidencias',
+  'reportes',
+  'fotos',
+  'eventos_fallidos',
+  'reclamaciones',
+  'sesiones',
+];
 
 async function conMemoria(): Promise<Adaptadores> {
   return {
@@ -60,6 +77,8 @@ async function conMemoria(): Promise<Adaptadores> {
     reportes: new MemoriaReporteRepository(),
     fotos: new MemoriaFotoRepository(),
     fallidos: new MemoriaEventoFallidoRepository(),
+    reclamaciones: new MemoriaReclamacionRepository(),
+    sesiones: new MemoriaSesionRepository(),
   };
 }
 
@@ -72,6 +91,8 @@ async function conPostgres(): Promise<Adaptadores> {
   const { PostgresReporteRepository } = await import('../src/infrastructure/persistence/postgres-reporte.repository');
   const { PostgresFotoRepository } = await import('../src/infrastructure/persistence/postgres-foto.repository');
   const { PostgresEventoFallidoRepository } = await import('../src/infrastructure/persistence/postgres-evento-fallido.repository');
+  const { PostgresReclamacionRepository } = await import('../src/infrastructure/persistence/postgres-reclamacion.repository');
+  const { PostgresSesionRepository } = await import('../src/infrastructure/persistence/postgres-sesion.repository');
   const { obtenerPoolCompartido } = await import('../src/infrastructure/persistence/postgres-comun');
 
   const publicaciones = new PostgresPublicacionRepository();
@@ -83,6 +104,8 @@ async function conPostgres(): Promise<Adaptadores> {
     new PostgresReporteRepository(),
     new PostgresFotoRepository(),
     new PostgresEventoFallidoRepository(),
+    new PostgresReclamacionRepository(),
+    new PostgresSesionRepository(),
   ];
   for (const o of otros) o.onModuleInit(); // el esquema se prepara en segundo plano: se espera abajo
 
@@ -100,6 +123,8 @@ async function conPostgres(): Promise<Adaptadores> {
     reportes: otros[3] as ReporteRepository,
     fotos: otros[4] as FotoRepository,
     fallidos: otros[5] as EventoFallidoRepository,
+    reclamaciones: otros[6] as ReclamacionRepository,
+    sesiones: otros[7] as SesionRepository,
     cerrar: async () => {
       await pool.end();
       await (publicaciones as unknown as { pool: { end(): Promise<void> } }).pool.end();
@@ -232,6 +257,13 @@ describe.each(implementaciones)('Puertos de persistencia contra %s', (nombre, cr
       expect(await a.fotos.buscarPorPublicacion(publicacionId)).toBeNull();
     });
 
+    it('deja una foto con todos los bytes guardada: es lo que la verificación de respaldos compara después', async () => {
+      const bytes = Buffer.from(Array.from({ length: 256 }, (_, i) => 255 - i));
+      const publicacionId = id('foto-respaldo');
+      await a.fotos.guardar(new Foto({ publicacionId, completa: bytes, miniatura: Buffer.from([0xff, 0xd8, 0xff, 0xd9]), creadoEn: ahora() }));
+      expect(Buffer.compare((await a.fotos.buscarPorPublicacion(publicacionId))?.completa as Buffer, bytes)).toBe(0);
+    });
+
     it('un reporte se guarda y se lista como abierto', async () => {
       const reporte = new Reporte({ id: id('rep'), publicacionId: id('pub'), reportanteId: id('cta'), motivo: 'spam', creadoEn: ahora() });
       await a.reportes.guardar(reporte);
@@ -265,6 +297,114 @@ describe.each(implementaciones)('Puertos de persistencia contra %s', (nombre, cr
       const futuro = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       expect(await a.fallidos.eliminarAnterioresA(futuro)).toBeGreaterThanOrEqual(1);
       expect(await a.fallidos.buscarPorId(e.id)).toBeNull();
+
+      // Uno queda guardado, con su JSON, para que la verificación de respaldos lo compare.
+      await a.fallidos.guardar(new EventoFallido({ id: id('evt-respaldo'), tipo: 'reclamacion.creada', version: 1, carga, ocurridoEn: ahora(), intentos: 3, ultimoError: 'caída', creadoEn: ahora() }));
+    });
+  });
+
+  describe('Reclamaciones', () => {
+    const PRUEBA = 'Tiene una calcomanía de la UTB por dentro y las iniciales C.C.';
+    const reclamacion = (extra: Partial<ConstructorParameters<typeof Reclamacion>[0]> = {}) =>
+      new Reclamacion({ id: id('rec'), publicacionId: id('pub'), reclamanteId: id('cta'), prueba: PRUEBA, creadoEn: ahora(), ...extra });
+
+    it('guardar inserta o reemplaza por id: el mismo registro pasa de pendiente a aprobada y a entregada sin duplicarse', async () => {
+      const r = reclamacion();
+      await a.reclamaciones.guardar(r);
+      const aprobada = r.aprobar(ahora());
+      await a.reclamaciones.guardar(aprobada);
+      await a.reclamaciones.guardar(aprobada.confirmarEntrega(ahora()));
+
+      const leida = await a.reclamaciones.buscarPorId(r.id);
+      expect(leida).toMatchObject({ estado: 'aprobada', creadoEn: r.creadoEn });
+      expect(leida?.entregadaEn).not.toBeNull();
+      expect(await a.reclamaciones.listarPorPublicacion(r.publicacionId)).toHaveLength(1);
+    });
+
+    it('las abiertas son las pendientes y las aprobadas sin entrega: lo que recorre el reconciliador', async () => {
+      const pendiente = reclamacion();
+      const sinEntrega = reclamacion();
+      const entregada = reclamacion();
+      const rechazada = reclamacion();
+      await a.reclamaciones.guardar(pendiente);
+      await a.reclamaciones.guardar(sinEntrega.aprobar(ahora()));
+      await a.reclamaciones.guardar(entregada.aprobar(ahora()).confirmarEntrega(ahora()));
+      await a.reclamaciones.guardar(rechazada.rechazar(ahora(), 'No coincide'));
+
+      const abiertas = (await a.reclamaciones.listarAbiertas(500)).map((r) => r.id);
+
+      expect(abiertas).toEqual(expect.arrayContaining([pendiente.id, sinEntrega.id]));
+      expect(abiertas).not.toContain(entregada.id);
+      expect(abiertas).not.toContain(rechazada.id);
+    });
+
+    it('la conciliación de avisos pide lo creado desde una fecha, sin lo anterior', async () => {
+      const vieja = reclamacion({ creadoEn: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() });
+      const reciente = reclamacion();
+      await a.reclamaciones.guardar(vieja);
+      await a.reclamaciones.guardar(reciente);
+
+      const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const ids = (await a.reclamaciones.listarCreadasDesde(desde, 500)).map((r) => r.id);
+
+      expect(ids).toContain(reciente.id);
+      expect(ids).not.toContain(vieja.id);
+    });
+
+    it('al eliminar una cuenta se reemplaza el texto de sus pruebas y se dice cuántas', async () => {
+      const reclamanteId = id('cta');
+      await a.reclamaciones.guardar(reclamacion({ reclamanteId }));
+      await a.reclamaciones.guardar(reclamacion({ reclamanteId }));
+
+      expect(await a.reclamaciones.anonimizarPruebasDe(reclamanteId)).toBe(2);
+      expect((await a.reclamaciones.listarPorReclamante(reclamanteId)).map((r) => r.prueba)).toEqual([
+        PRUEBA_ANONIMIZADA,
+        PRUEBA_ANONIMIZADA,
+      ]);
+      expect(await a.reclamaciones.anonimizarPruebasDe(reclamanteId)).toBe(0); // repetirlo no cambia nada
+    });
+  });
+
+  describe('Sesiones', () => {
+    const sesion = (extra: Partial<{ tokenHash: string; cuentaId: string; expiraEn: string }> = {}) => ({
+      tokenHash: id('hash'),
+      cuentaId: id('cta'),
+      creadaEn: ahora(),
+      expiraEn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      ...extra,
+    });
+
+    it('se guarda y se encuentra por el hash del token, con sus fechas intactas, y se puede cerrar', async () => {
+      const s = sesion();
+      await a.sesiones.guardar(s);
+
+      expect(await a.sesiones.buscarPorTokenHash(s.tokenHash)).toEqual(s);
+      await a.sesiones.eliminar(s.tokenHash);
+      expect(await a.sesiones.buscarPorTokenHash(s.tokenHash)).toBeNull();
+    });
+
+    it('al eliminar una cuenta se cierran todas sus sesiones y solo las suyas', async () => {
+      const cuentaId = id('cta');
+      const suyas = [sesion({ cuentaId }), sesion({ cuentaId })];
+      const ajena = sesion();
+      for (const s of [...suyas, ajena]) await a.sesiones.guardar(s);
+
+      await a.sesiones.eliminarDeCuenta(cuentaId);
+
+      for (const s of suyas) expect(await a.sesiones.buscarPorTokenHash(s.tokenHash)).toBeNull();
+      expect(await a.sesiones.buscarPorTokenHash(ajena.tokenHash)).not.toBeNull();
+    });
+
+    it('la retención borra las vencidas y deja las vigentes, y dice cuántas', async () => {
+      const vencida = sesion({ expiraEn: new Date(Date.now() - 60 * 1000).toISOString() });
+      const vigente = sesion();
+      await a.sesiones.guardar(vencida);
+      await a.sesiones.guardar(vigente);
+
+      expect(await a.sesiones.eliminarExpiradas(ahora())).toBeGreaterThanOrEqual(1);
+
+      expect(await a.sesiones.buscarPorTokenHash(vencida.tokenHash)).toBeNull();
+      expect(await a.sesiones.buscarPorTokenHash(vigente.tokenHash)).not.toBeNull();
     });
   });
 });

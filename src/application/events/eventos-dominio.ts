@@ -24,7 +24,8 @@ export const PUBLICACION_MODERADA = 'publicacion.moderada';
 export const VERSION_DE_EVENTOS = 1;
 
 /**
- * Sobre de todo evento. `id` es el identificador de correlación: aparece en el
+ * Sobre de todo evento. `id` es el identificador de correlación (correlation id,
+ * el mismo que identifica el mensaje, message_id): aparece en el
  * registro de quien emite y en el de quien procesa, y en la cola de fallidos.
  */
 export interface EventoDominio<T = unknown> {

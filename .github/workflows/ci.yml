@@ -62,6 +62,16 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Puertos de persistencia contra PostgreSQL
         run: npm run test:e2e -- test/adaptadores.e2e-spec.ts --forceExit
+      # Evidencia de restauración (docs/despliegue/respaldos.md): con los datos que dejó
+      # la suite anterior, se hace un respaldo, se restaura en otra base y se compara
+      # cada tabla (filas y huella del contenido, incluidos los bytes de las fotos). Las
+      # herramientas son las de la misma imagen de PostgreSQL, así coincide la versión.
+      - name: Respaldo y restauración verificados
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          BASE_ORIGEN: recobra_test
+        run: docker run --rm --network host -e PGHOST -e PGUSER -e BASE_ORIGEN -v "$PWD/scripts:/scripts:ro" postgres:16@sha256:a902560563d3a5661228585f53474c5065e7f273b21ffd77e555a8b5682c5690 bash /scripts/verificar-respaldo-postgres.sh
 
   sonarcloud:
     name: SonarCloud Scan

@@ -3,9 +3,11 @@ import { CATALOGO_LUGARES, LugarCampus } from '../domain/lugares/catalogo-lugare
 
 /**
  * Catálogo de lugares del campus con sus pisos, para los submenús de los clientes.
- * Es la única respuesta de datos que se deja guardar una hora: solo cambia con un
- * despliegue (ADR-0025), así que una hora de desfase es lo máximo que tarda un
- * cliente en ver un lugar nuevo.
+ * Es la única respuesta de datos que se deja guardar una hora (ADR-0025). Solo
+ * cambia con un despliegue, pero desplegar no invalida la copia de un navegador:
+ * un cliente puede tardar hasta una hora en ver un lugar nuevo, y se acepta
+ * porque el lugar de una publicación es texto libre que el servidor no valida
+ * contra este catálogo.
  */
 @Controller('lugares')
 export class LugaresController {

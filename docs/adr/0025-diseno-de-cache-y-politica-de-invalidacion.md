@@ -34,7 +34,7 @@ Dos hechos medidos condicionan la decisión:
 | Búsqueda `GET /publicaciones` y detalle `GET /publicaciones/{id}` | Se revalida siempre (`no-cache`) | Navegador o intermediario, con **ETag** del contenido | 0 s de frescura: cada uso pregunta al servidor; si no cambió, responde **304** sin cuerpo | **Automática**: cualquier escritura cambia el contenido y, por tanto, el ETag; la siguiente pregunta recibe lo nuevo | Tras **aprobar** una reclamación el objeto seguiría "publicado" y otra persona podría intentar reclamarlo (409 confuso); tras **cerrar**, lo ya entregado seguiría en la búsqueda; tras **ocultar por moderación**, una publicación abusiva seguiría visible durante la vida de la caché |
 | Resolver sesión → cuenta en cada petición autenticada | **No** | — | — | — | Cerrar sesión, vencimiento o eliminación de la cuenta tardarían en aplicarse: es un retroceso de seguridad a cambio de ahorrar dos consultas de ~1 ms |
 | Lo de una persona (`/publicaciones/mias`, avisos, reclamaciones, `/cuentas/yo`, descarga de datos) | **No** (`private, no-store`) | — | — | — | Es información personal (contacto, pruebas): no debe quedar en ninguna caché compartida |
-| Catálogo de lugares `GET /lugares` | Sí (`public, max-age=3600`) | Navegador y proxies | 1 hora | **Un despliegue**: el catálogo está en el código (`catalogo-lugares.ts`) y solo cambia al desplegar | Un lugar nuevo tarda como máximo una hora en verse; no afecta ninguna operación |
+| Catálogo de lugares `GET /lugares` | Sí (`public, max-age=3600`) | Navegador y proxies | 1 hora | **Solo el tiempo.** El catálogo está en el código (`catalogo-lugares.ts`) y solo cambia al desplegar, pero **desplegar no invalida** la copia que ya tiene un navegador: la conserva hasta que se cumpla la hora. No hay forma de forzarla desde el servidor | Un lugar nuevo (o un piso corregido) tarda **hasta 1 hora después del despliegue** en verse en quien ya había abierto la vitrina o la app; no afecta ninguna operación, porque el lugar se envía como texto y el servidor no lo valida contra el catálogo |
 | Miniatura de una foto `GET /publicaciones/{id}/foto/miniatura` | Sí (`public, max-age=60`) | Navegador y proxies | 60 s | **Por tiempo** (60 s): reemplazar, quitar o moderar la foto deja la miniatura vieja hasta 60 s en quien ya la pidió | Una miniatura de 24 px (borrosa, ADR-0023) sigue visible hasta 60 s tras quitarla; se acepta porque ya era pública y no identifica el objeto |
 | Foto completa `GET /publicaciones/{id}/foto` | **No** (`private, no-store`) | — | — | — | Puede ser privada (la de un encontrado): no se guarda nunca |
 | Vitrina y app web (archivos estáticos) | Sí, con revalidación | Navegador | Express: `public, max-age=0` + ETag/Last-Modified | Un despliegue cambia los archivos y su validador | Ninguno: siempre se pregunta antes de usar |
@@ -74,8 +74,12 @@ está acotado y no afecta ninguna operación.
 1. **Lo que cambia con el ciclo de vida** no tiene tiempo de vida: se revalida
    en cada uso. La escritura invalida porque cambia el contenido y su ETag. No
    hay código de invalidación que olvidar.
-2. **Lo que solo cambia con un despliegue** (lugares) vive una hora; el
-   despliegue lo renueva.
+2. **Lo que solo cambia con un despliegue** (lugares) vive una hora y **no se
+   invalida**: se renueva por tiempo, no porque se despliegue. El desfase máximo
+   tras un despliegue es esa hora, y es aceptable porque el catálogo es solo una
+   ayuda para elegir y el servidor acepta cualquier lugar escrito (hay una opción
+   "Otra…"). Si algún día un cambio del catálogo no pudiera esperar una hora, se
+   baja el tiempo o se pasa a `no-cache` con ETag, como el resto.
 3. **Lo que no puede mostrarse tras quitarse** (foto completa, lo personal) no se
    guarda.
 4. **La miniatura** envejece 60 s: es el único caso en que un dato borrado puede

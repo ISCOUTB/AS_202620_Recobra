@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventoFallido } from '../../domain/entities/evento-fallido';
 import { EventoFallidoRepository } from '../../domain/ports/evento-fallido-repository';
 import { EventoDominio } from '../events/eventos-dominio';
-import { metricasDeEventos } from '../events/metricas-eventos';
+import { UMBRAL_ALERTA_COLA, metricasDeEventos } from '../events/metricas-eventos';
 import { Notificar } from './notificaciones';
 
 /** Intentos por evento antes de mandarlo a la cola de fallidos (el primero cuenta). */
@@ -11,6 +11,7 @@ export const ESPERA_BASE_MS = 200;
 export const FACTOR_DE_ESPERA = 4;
 /** Cuánto se conserva un evento fallido, reprocesado o no. */
 export const DIAS_RETENCION_FALLIDOS = 7;
+export { UMBRAL_ALERTA_COLA };
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
 /**
@@ -31,7 +32,9 @@ function mensajeDe(error: unknown): string {
 export type ResultadoDeEntrega = 'procesado' | 'en_cola_de_fallidos' | 'sin_registro';
 
 /**
- * Entrega de un evento a su consumidor con reintentos (ADR-0026). Garantía:
+ * Entrega de un evento a su consumidor con reintentos (ADR-0026): retry con
+ * backoff exponencial (espera creciente), cola de mensajes fallidos
+ * (dead-letter queue, DLQ) y reproceso (requeue). Garantía:
  * **al menos una vez** mientras el proceso viva (si el consumidor falla se
  * reintenta con espera creciente y, agotados los intentos, el evento queda en la
  * cola de fallidos para reprocesarlo) y **como máximo una vez** si el proceso
@@ -114,10 +117,15 @@ export interface ResumenDeReproceso {
   reprocesados: number;
   siguenFallando: number;
   borrados: number;
+  /** Eventos que siguen esperando en la cola tras esta pasada. */
+  pendientes: number;
+  /** Si `pendientes` llegó al umbral y se emitió la alerta. */
+  alerta: boolean;
 }
 
 /**
- * Reproceso de la cola de fallidos (ADR-0026): vuelve a entregar, una vez por
+ * Reproceso de la cola de fallidos / dead-letter queue (ADR-0026, requeue):
+ * vuelve a entregar, una vez por
  * pasada, cada evento pendiente y lo marca como reprocesado si ahora sí se
  * pudo. Los que siguen fallando suman un intento y se reintentan en la pasada
  * siguiente; los de más de 7 días se borran (retención).
@@ -166,6 +174,13 @@ export class ReprocesarEventosFallidos {
     }
     const limite = new Date(ahora.getTime() - DIAS_RETENCION_FALLIDOS * MS_POR_DIA).toISOString();
     const borrados = await this.fallidos.eliminarAnterioresA(limite);
-    return { reprocesados, siguenFallando, borrados };
+    const pendientes = (await this.fallidos.listarPendientes(1000)).length;
+    metricasDeEventos.fijarPendientesEnCola(pendientes);
+    const alerta = pendientes >= UMBRAL_ALERTA_COLA;
+    if (alerta) {
+      // Alerta operativa: queda en el registro con nivel error, donde la ven los paneles de logs y los avisos de la plataforma.
+      this.logger.error({ evento: 'alerta.cola_de_fallidos', pendientes, umbral: UMBRAL_ALERTA_COLA });
+    }
+    return { reprocesados, siguenFallando, borrados, pendientes, alerta };
   }
 }

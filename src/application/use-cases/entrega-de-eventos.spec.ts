@@ -12,6 +12,7 @@ import {
   INTENTOS_MAXIMOS,
   ProcesadorDeEventos,
   ReprocesarEventosFallidos,
+  UMBRAL_ALERTA_COLA,
   esperaCreciente,
 } from './entrega-de-eventos';
 import { Notificar } from './notificaciones';
@@ -155,6 +156,34 @@ describe('Entrega de eventos: reintentos, duplicados y cola de fallidos (ADR-002
     const pasados = new Date(Date.now() + (DIAS_RETENCION_FALLIDOS + 1) * 24 * 60 * 60 * 1000);
     expect((await reprocesar.ejecutar(pasados)).borrados).toBe(1);
     expect(await fallidos.buscarPorId(evento.id)).toBeNull();
+  });
+
+  it('alerta: con cinco eventos esperando en la cola se emite una línea de error y se marca en las métricas; con menos, no', async () => {
+    avisos.fallos = Infinity;
+    const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar);
+    const errores: unknown[] = [];
+    const espia = jest.spyOn(Logger.prototype, 'error').mockImplementation((m: unknown) => {
+      errores.push(m);
+    });
+    try {
+      for (let i = 0; i < UMBRAL_ALERTA_COLA - 1; i++) await procesador.procesar(nuevoEvento(), (e) => notificar.procesar(e));
+      const bajo = await reprocesar.ejecutar();
+      expect(bajo).toMatchObject({ pendientes: UMBRAL_ALERTA_COLA - 1, alerta: false });
+      expect(errores.filter((e) => (e as { evento?: string }).evento === 'alerta.cola_de_fallidos')).toHaveLength(0);
+
+      await procesador.procesar(nuevoEvento(), (e) => notificar.procesar(e)); // el quinto
+      const alto = await reprocesar.ejecutar();
+
+      expect(alto).toMatchObject({ pendientes: UMBRAL_ALERTA_COLA, alerta: true });
+      expect(errores).toContainEqual({ evento: 'alerta.cola_de_fallidos', pendientes: UMBRAL_ALERTA_COLA, umbral: UMBRAL_ALERTA_COLA });
+      expect(metricasDeEventos.resumen().pendientesEnCola).toBe(UMBRAL_ALERTA_COLA);
+
+      avisos.fallos = 0; // la base vuelve: la cola se vacía y la alerta se apaga
+      expect(await reprocesar.ejecutar()).toMatchObject({ pendientes: 0, alerta: false });
+      expect(metricasDeEventos.resumen().pendientesEnCola).toBe(0);
+    } finally {
+      espia.mockRestore();
+    }
   });
 
   it('si ni siquiera se puede guardar en la cola (la misma caída), no tumba nada y queda el registro', async () => {

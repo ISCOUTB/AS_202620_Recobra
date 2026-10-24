@@ -355,7 +355,7 @@ ocultar). Lo que sí hay es **caché HTTP**, con esta política:
 |---|---|---|---|
 | Búsqueda y detalle de publicaciones | Navegador o intermediario | **0 s**: `no-cache`, se revalida en cada uso con **ETag** (304 si no cambió) | Automática: toda escritura cambia el contenido y su ETag. Probado en `test/cache.e2e-spec.ts` (consulta condicional 304 → escritura → ya no 304) |
 | Lo de una persona (sus publicaciones, avisos, reclamaciones, cuenta, datos) | — | **No se guarda**: `private, no-store` | — |
-| Catálogo de lugares | Navegador y proxies | **1 hora**: `public, max-age=3600` | Un despliegue (el catálogo está en el código) |
+| Catálogo de lugares | Navegador y proxies | **1 hora**: `public, max-age=3600` | **Solo el tiempo**: cambia únicamente al desplegar, pero un despliegue no invalida la copia de un navegador; un lugar nuevo puede tardar hasta 1 hora en verse (aceptado: el lugar viaja como texto libre y no se valida contra el catálogo) |
 | Miniatura de una foto | Navegador y proxies | **60 s**: `public, max-age=60` | Por tiempo; es el único caso en que algo ya quitado puede seguir visible, hasta 60 s |
 | Foto completa | — | **No se guarda**: `private, no-store` | — |
 | Vitrina y app web | Navegador | Express: se revalida con ETag y `Last-Modified` | Un despliegue |
@@ -382,10 +382,12 @@ Contrato de los mensajes y criterio de compatibilidad:
 - **Lo que se asume:** el consumidor tiene que ser idempotente y no se garantiza
   el orden entre eventos. La idempotencia se apoya en un id de aviso derivado
   del dato que lo origina, con `ON CONFLICT DO NOTHING`.
-- **Trazabilidad:** el identificador de correlación del sobre aparece en el
-  registro de quien emite y de quien procesa; los contadores (emitidos,
+- **Trazabilidad y alerta:** el identificador de correlación del sobre aparece en
+  el registro de quien emite y de quien procesa; los contadores (emitidos,
   procesados, reintentos, en cola de fallidos, reprocesados) salen en
-  `GET /metrics`.
+  `GET /metrics`. Con 5 o más eventos esperando en la cola se escribe una línea de
+  error (`alerta.cola_de_fallidos`) y `alertaCola` pasa a verdadero; no notifica a
+  nadie por sí sola.
 - **Lo que no se promete:** no es un broker durable ni exactamente una vez; una
   caída del proceso en el momento equivocado puede perder un evento que la
   conciliación solo recupera si se puede rehacer desde el dato.
@@ -396,8 +398,10 @@ La decisión de datos más costosa de revertir es **PostgreSQL como único almac
 con la consistencia apoyada en escrituras atómicas de una sola sentencia**, por
 alcance (9 de 9 adaptadores y tablas), datos (todos los reales), error en
 silencio (duplicados o estados incoherentes). Su verificación está cubierta en
-parte: una suite de contrato de 10 propiedades corre contra PostgreSQL real en CI
-(7 de los 9 adaptadores). Comparación con las demás y estimación:
+parte: una suite de contrato (los 9 adaptadores) y un ensayo de respaldo y
+restauración corren contra PostgreSQL real en CI; falta el respaldo programado de
+producción y las pruebas e2e completas sobre PostgreSQL. Comparación con las demás
+y estimación:
 [ADR-0027](../adr/0027-la-decision-de-datos-mas-costosa-de-revertir.md).
 
 ## 9. Decisiones de arquitectura
@@ -480,7 +484,7 @@ Detalle completo, con código y pruebas de cada fila, en
 - Todos los contextos del mapa tienen código (Notificaciones desde ADR-0015). Lo que sigue siendo diseño es el canal de correo o push.
 - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
 - **Transporte hacia la base:** con `DATABASE_SSL=false` (base interna de Dokploy) no hay TLS; con TLS activo el adaptador usa `rejectUnauthorized: false`, así que cifra pero **no valida** el certificado del servidor y no debe describirse como verificación de identidad de la base. No se verificó el aislamiento de la red interna.
-- **La plataforma es el servidor del laboratorio (Dokploy), no del equipo:** si deja de estar disponible o cambia su política, hay que redesplegar en otro lado (el `Dockerfile` se reutiliza; ver el costo de revertir en ADR-0010). Un redespliegue deja el dominio sin servicio ~30-50 s. Las copias de seguridad de la base en Dokploy no están configuradas. Lo ya mitigado: los redespliegues de código no requieren cuentas (cada commit a `master` redespliega solo).
+- **La plataforma es el servidor del laboratorio (Dokploy), no del equipo:** si deja de estar disponible o cambia su política, hay que redesplegar en otro lado (el `Dockerfile` se reutiliza; ver el costo de revertir en ADR-0010). Un redespliegue deja el dominio sin servicio ~30-50 s. El **respaldo programado de la base en Dokploy no está configurado** (acción del equipo): el procedimiento de respaldo y restauración sí está verificado en CI, pero no se ha restaurado nunca un respaldo de producción (`docs/despliegue/respaldos.md`). Lo ya mitigado: los redespliegues de código no requieren cuentas (cada commit a `master` redespliega solo).
 
 ## 12. Glosario
 

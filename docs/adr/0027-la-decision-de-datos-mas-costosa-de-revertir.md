@@ -68,7 +68,9 @@ no encuentra nada).
    derivables o ninguno (D3, D4, D6) o una fracción (D2, D5). D1 mueve las nueve
    tablas, con cuentas, contraseñas cifradas y pruebas de reclamaciones, y una
    migración defectuosa es la única que puede **perder** información de
-   personas reales (hoy no hay copias de seguridad configuradas).
+   personas reales (el procedimiento de respaldo y restauración está verificado
+   en CI, pero el respaldo programado de producción todavía no está configurado:
+   [`docs/despliegue/respaldos.md`](../despliegue/respaldos.md)).
 4. **Ventana: es la única que exige parar el servicio** para migrar, más allá de
    los 30 a 50 segundos de un redespliegue.
 5. **Costo de verificarla: era alto y se redujo, sin desaparecer.** Las pruebas
@@ -79,9 +81,9 @@ no encuentra nada).
    concreta que más encarecía la reversión, y se atacó: ahora existe una suite
    de contrato de los puertos (`test/adaptadores.e2e-spec.ts`, 10 propiedades) que
    corre contra memoria y contra un **PostgreSQL real en CI** (trabajo
-   «Adaptadores contra PostgreSQL real»). Lo que **no** cubre: solo ejercita 7 de
-   los 9 adaptadores (faltan Reclamaciones y Sesiones), y las pruebas e2e de la
-   aplicación completa siguen corriendo solo en memoria.
+   «Adaptadores contra PostgreSQL real»). Cubre **los 9 adaptadores**. Lo que
+   **no** cubre: las pruebas e2e de la aplicación completa siguen corriendo solo
+   en memoria.
 
 **Por qué las otras no ganan:**
 
@@ -89,7 +91,8 @@ no encuentra nada).
   supresión, ADR-0021), afecta solo a quien lo pidió, y su costo de volver a
   "borrar de verdad" es casi nulo. Su irreversibilidad se acota con lo que sí
   está en nuestras manos: una política de copias de seguridad con retención corta
-  (pendiente, ver abajo).
+  (el procedimiento está verificado; configurarlo en producción es acción del
+  equipo, ver abajo).
 - **D3, D4, D6** tocan una parte del sistema, sin datos que no se puedan
   reconstruir.
 - **D5** es costosa de explicar a las personas, no de ejecutar.
@@ -106,6 +109,11 @@ se estiman entre 1 y 3 días, y D2 entre 0 y imposible según la dirección.
 
 Ya existe:
 
+- **Un procedimiento de respaldo y restauración verificado en cada commit**
+  (`scripts/verificar-respaldo-postgres.sh`): respaldo con `pg_dump`, restauración
+  en una base nueva y comparación de cada tabla por filas y huella del contenido,
+  incluidos los bytes de las fotos. Prueba el procedimiento, no el respaldo
+  programado de producción.
 - **Una suite de contrato de los puertos que corre contra PostgreSQL real en CI**
   (`test/adaptadores.e2e-spec.ts` y el trabajo del mismo nombre en
   `.github/workflows/ci.yml`, con `postgres:16` fijado por digest y efímero).
@@ -126,11 +134,12 @@ Ya existe:
 
 Pendiente (no se afirma como hecho):
 
-- **Extender la suite a los dos adaptadores que faltan** (Reclamaciones y
-  Sesiones) y correr las pruebas e2e completas de la aplicación contra
-  PostgreSQL; hoy esas pruebas suponen una base vacía y adaptadores en memoria.
-- **Copias de seguridad con retención corta** en Dokploy: limitan el daño de una
-  migración fallida y de D2.
+- **Correr las pruebas e2e completas de la aplicación contra PostgreSQL**; hoy
+  esas pruebas suponen una base vacía y adaptadores en memoria (y alguna comprueba
+  literalmente que el almacenamiento es "memoria").
+- **Configurar el respaldo programado en Dokploy**, con retención corta, y hacer
+  el primer ensayo con datos reales: limita el daño de una migración fallida y de
+  D2. Está escrito en [`docs/despliegue/respaldos.md`](../despliegue/respaldos.md).
 
 ## Consecuencias
 
@@ -140,13 +149,13 @@ Pendiente (no se afirma como hecho):
   resto, porque es donde viven las garantías.
 - Escribir esto dejó a la vista una debilidad concreta (la falta de pruebas contra
   PostgreSQL en CI), y fue la primera acción que se desprendió del ADR: ya está
-  cubierta en parte (7 de 9 adaptadores).
+  cubierta (9 de 9 adaptadores).
 
 ## Qué haría revisar esta decisión
 
 - Que aparezca una segunda base o un servicio de almacenamiento: el reparto del
   costo cambiaría.
-- Que la suite cubra los 9 adaptadores y las pruebas e2e completas corran contra
-  PostgreSQL: D1 bajaría de "alto" a "medio" (hoy, "alto" con la verificación
-  parcialmente cubierta).
+- Que las pruebas e2e completas corran contra PostgreSQL y exista un respaldo de
+  producción restaurado con éxito: D1 bajaría de "alto" a "medio" (hoy, "alto" con
+  los adaptadores cubiertos pero sin ensayo con datos reales).
 - Un volumen de datos que haga más lenta o riesgosa una migración.

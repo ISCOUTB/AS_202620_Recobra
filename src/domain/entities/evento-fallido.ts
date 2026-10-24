@@ -18,8 +18,8 @@ export interface DatosEventoFallido {
 }
 
 /**
- * Un evento que no se pudo procesar tras sus reintentos (ADR-0026): la cola de
- * mensajes fallidos. Queda guardado para verlo y reprocesarlo cuando lo que
+ * Un evento que no se pudo procesar tras sus reintentos (retry, ADR-0026): la
+ * cola de mensajes fallidos (dead-letter queue, DLQ). Queda guardado para verlo y reprocesarlo cuando lo que
  * falló (por ejemplo, la base) se recupere, en vez de perderse.
  */
 export class EventoFallido {
