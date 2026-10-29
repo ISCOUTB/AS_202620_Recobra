@@ -404,6 +404,32 @@ producción y las pruebas e2e completas sobre PostgreSQL. Comparación con las d
 y estimación:
 [ADR-0027](../adr/0027-la-decision-de-datos-mas-costosa-de-revertir.md).
 
+### 8.6 Arquitectura de seguridad
+
+Las amenazas, su prioridad y el estado de cada mitigación están en
+[`docs/seguridad/modelo-de-amenazas.md`](../seguridad/modelo-de-amenazas.md) (26 amenazas
+ancladas en el C4, con tres fronteras de confianza). Aquí está **cómo se ve la seguridad
+en el sistema**: qué mecanismo hay en cada capa y dónde vive en el código.
+
+| Capa | Mecanismo | Dónde | Amenazas |
+|---|---|---|---|
+| **Borde** (Traefik → API) | HTTPS en el proxy; `trust proxy` de un salto (`PROXY_CONFIABLES`) para que `req.ip` y `req.secure` salgan solo de Traefik; HSTS de 6 meses | `src/seguridad/configurar-seguridad.ts` | T04, T24 |
+| **Cabeceras** | CSP por superficie (la vitrina permite solo su script y su estilo **por hash**, calculado al arrancar; `/app/` sin scripts en línea; la API `default-src 'none'`), `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, COOP | `cabeceras-de-seguridad.ts`, [ADR-0029](../adr/0029-cabeceras-de-seguridad-csp-y-cors.md) | T03, T22, T27 |
+| **CORS** | Lista blanca (`CORS_ORIGENES`); `localhost` solo fuera de producción | `cors.ts` | T21 |
+| **Cuerpo de la petición** | Se rechaza todo `Content-Encoding` distinto de `identity` (415); tope de tamaño; el único endpoint binario recibe `image/jpeg` crudo | `configurar-seguridad.ts`, `FotosController` | T07, T25 |
+| **Límites de uso** | Ventanas fijas por cuenta o por origen, con 429 y `Retry-After`; huella del origen en el registro | `limite-de-uso.ts`, [ADR-0028](../adr/0028-limites-de-uso-por-cuenta-y-por-origen.md) | T05, T06, T08 |
+| **Autenticación** | Cuenta con correo `@utb.edu.co`; contraseña con `scrypt` y sal propia; sesión opaca de 256 bits de la que solo se guarda el resumen; vence a los 7 días; 5 fallos por correo en 15 min | Contexto Identidad, [ADR-0013](../adr/0013-cuentas-con-correo-institucional-y-sesiones-opacas.md), [ADR-0021](../adr/0021-privacidad-y-datos-personales.md) | T02, T08 |
+| **Autorización** | La cuenta sale siempre del token, nunca del cuerpo; cada caso de uso comprueba autoría o rol; los administradores (`ADMIN_CORREOS`) moderan, con registro de auditoría; la foto completa de un encontrado solo la ven su autor y quien tiene la reclamación aprobada | Guardias y casos de uso, [ADR-0014](../adr/0014-reclamacion-con-prueba-y-aprobacion.md), [ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md), [ADR-0023](../adr/0023-fotos-con-privacidad.md) | T01, T09, T12, T13 |
+| **Validación de entradas** | Los DTO validan forma y longitud en el borde; el dominio vuelve a validar sus invariantes; las fotos se revisan sin decodificarlas y se les quita el EXIF | `src/application`, `src/domain/fotos/jpeg.ts` | T10, T11, T25 |
+| **Datos** | Solo consultas parametrizadas (con una prueba de entradas hostiles contra PostgreSQL real); lo personal mínimo; eliminación que anonimiza | Adaptadores de persistencia, [`privacidad.md`](../seguridad/privacidad.md) | T11, T14, T26 |
+| **Registros y métricas** | Ids y huellas, nunca correos ni textos; `GET /metrics` expone `seguridad.limitesExcedidos` y `administradoresSinCuenta`; alerta a los administradores cuando la cola de fallidos llega a 5 | `src/observabilidad`, [ADR-0026](../adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md) | T18, T23 |
+| **Cadena de suministro** | Análisis de dependencias de producción y de la app contra un registro de hallazgos **revisados y con vencimiento**; barrido de secretos de todo el historial; Dependabot; permisos mínimos del flujo; acciones fijadas por SHA | `scripts/`, `.github/`, [ADR-0030](../adr/0030-seguridad-en-el-pipeline-dependencias-secretos-y-permisos.md) | T15, T16, T17 |
+
+Principios que sostienen la tabla: (1) toda entrada se trata como hostil en las fronteras
+TB1 y TB2; (2) se prefiere un control que **falle en el flujo** a una guía que alguien deba
+recordar; (3) lo que no se puede arreglar se **acepta por escrito, con motivo y fecha**
+(§11.2) en vez de callarse.
+
 ## 9. Decisiones de arquitectura
 
 | ADR | Tema | Estado |
@@ -435,6 +461,9 @@ y estimación:
 | [ADR-0025](../adr/0025-diseno-de-cache-y-politica-de-invalidacion.md) | Diseño de caché y política de invalidación | Aceptada |
 | [ADR-0026](../adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md) | Entrega de avisos con eventos, reintentos y cola de fallidos, frente a una llamada síncrona | Aceptada |
 | [ADR-0027](../adr/0027-la-decision-de-datos-mas-costosa-de-revertir.md) | La decisión de datos más costosa de revertir | Aceptada |
+| [ADR-0028](../adr/0028-limites-de-uso-por-cuenta-y-por-origen.md) | Límites de uso por cuenta y por origen | Aceptada |
+| [ADR-0029](../adr/0029-cabeceras-de-seguridad-csp-y-cors.md) | Cabeceras de seguridad, CSP y CORS con lista blanca | Aceptada |
+| [ADR-0030](../adr/0030-seguridad-en-el-pipeline-dependencias-secretos-y-permisos.md) | Seguridad en el pipeline: dependencias, secretos y permisos | Aceptada |
 
 
 ## 10. Requisitos de calidad
@@ -443,7 +472,7 @@ Los escenarios de [`escenarios_calidad.md`](../calidad/escenarios_calidad.md) gu
 decisiones:
 
 - **S1 Rendimiento:** búsqueda con filtros implementada y medida (aspecto A6; ADR-0008; `docs/medicion-busqueda.md`). La búsqueda de texto libre sigue fuera de alcance.
-- **S2 Seguridad:** reclamación con prueba y aprobación (aspecto A3; ADR-0014).
+- **S2 Seguridad:** reclamación con prueba y aprobación (aspecto A3; ADR-0014); modelo de amenazas, límites de uso, cabeceras y control de dependencias y secretos en el flujo (S13; §8.6, ADR-0028 a 0030).
 - **S3 Notificaciones:** coincidencia y bandeja de avisos en la app (aspectos A5 y A9; ADR-0015); correo o push, futuro.
 - **S4 / S4a / S4b Disponibilidad:** aislar fallos de infraestructura del
   dominio (aspecto A1; hexagonal).
@@ -473,10 +502,13 @@ Detalle completo, con código y pruebas de cada fila, en
 - **Vitrina sin pruebas automáticas:** sus reintentos, límites de tiempo y el bloqueo del botón están implementados pero no tienen prueba.
 - **Idempotencia:** la clave ya se compara junto con el autor (una misma clave con otra cuenta responde 422), pero no se acota por cuenta; ver los límites en `docs/modos-de-fallo.md`.
 - **Datos personales ([ADR-0021](../adr/0021-privacidad-y-datos-personales.md)):** hay aviso, consentimiento, descarga, eliminación (anonimizando) y retención de sesiones y avisos. Pendientes: revisión del texto por la universidad, plazo de las publicaciones cerradas, copias de seguridad y limpieza de datos personales que alguien escriba en una descripción.
-- **Correo sin verificar por propiedad:** se exige `@utb.edu.co`, pero no hay código por correo (sin proveedor gratuito); lo mitiga que la entrega la aprueba una persona (ADR-0013, ADR-0014).
-- **Moderación ([ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md)):** cualquier cuenta reporta y los administradores (`ADMIN_CORREOS`) ocultan o descartan; no hay roles en base de datos, alertas ni apelación desde la aplicación. Una publicación oculta no se reabre. Pendiente: que la universidad defina un procedimiento propio.
+- **Correo sin verificar por propiedad (T01, T02):** se exige `@utb.edu.co`, pero no hay código por correo (sin proveedor gratuito); lo mitiga que la entrega la aprueba una persona (ADR-0013, ADR-0014). Para los administradores se agregó detección: aviso al arrancar y cada 6 h por cada correo de `ADMIN_CORREOS` sin cuenta, y métrica. Ver §11.3.
+- **Moderación ([ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md)):** cualquier cuenta reporta y los administradores (`ADMIN_CORREOS`) ocultan o descartan, con una línea de auditoría en el registro; no hay roles en base de datos ni apelación desde la aplicación. Una publicación oculta no se reabre. Pendiente: que la universidad defina un procedimiento propio.
 - **Fotos ([ADR-0023](../adr/0023-fotos-con-privacidad.md)):** la foto completa de un encontrado solo la ven su autor y quien tiene la reclamación aprobada; el público ve una miniatura de 24 px, y el servidor quita el EXIF. Se guardan en PostgreSQL (hasta 1 MB cada una); no se revisa qué hay en la imagen y todavía no hay copias de seguridad que respeten la retención.
-- **Seguridad de la cuenta pendiente:** hay límite de intentos de inicio de sesión (5 por correo en 15 minutos, en memoria del proceso, ADR-0021) pero no recuperación de contraseña; el token vive en `localStorage` de la vitrina y en las preferencias del dispositivo en la app (riesgo ante XSS o ante alguien con el dispositivo desbloqueado; el token vence a los 7 días y se revoca al cerrar sesión). Para el modelado de amenazas de la S13.
+- **Seguridad de la cuenta:** hay límite de intentos de inicio de sesión (5 por correo en 15 minutos, en memoria del proceso, ADR-0021) pero no recuperación de contraseña. El token vive en `localStorage` de la vitrina (la CSP de ADR-0029 impide que un script ajeno lo lea o lo envíe fuera, T03) y en las preferencias del dispositivo en la app (T19, §11.3).
+- **Límites de uso en memoria (ADR-0028):** se reinician con el proceso y, con más de una instancia, cada una contaría por su lado; la ventana es fija (en su borde se puede hacer hasta el doble). No hay un tope global de escrituras a la base.
+- **Credencial filtrada fuera del repositorio (T15, riesgo 25):** la contraseña de la base y la URL del webhook de despliegue aparecieron en capturas de pantalla. El repositorio está limpio (barrido de 180 commits), pero **hasta que se rote la contraseña, se cierre el puerto externo y se regenere el webhook, el riesgo sigue abierto**. Es una acción de quien administra el panel de Dokploy.
+- **Dependencias con avisos (T16):** 7 paquetes de producción con 13 avisos, todos por NestJS 10, revisados uno por uno (la función afectada no se usa; lo vigila `alcance-de-dependencias.spec.ts`). Las decisiones **vencen el 15-dic-2026**; el plan es migrar a NestJS 11 o 12 antes (ADR-0030).
 - **Consistencia al aprobar o entregar:** se escriben dos tablas sin transacción; resuelto con pasos retomables y un reconciliador ([ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md)). Queda un margen de minutos de consistencia eventual; los avisos perdidos los recrea la conciliación (ADR-0024).
 
 
@@ -485,6 +517,24 @@ Detalle completo, con código y pruebas de cada fila, en
 - Participación desigual del equipo en el historial de commits (ver `docs/no-conformidades.md`).
 - **Transporte hacia la base:** con `DATABASE_SSL=false` (base interna de Dokploy) no hay TLS; con TLS activo el adaptador usa `rejectUnauthorized: false`, así que cifra pero **no valida** el certificado del servidor y no debe describirse como verificación de identidad de la base. No se verificó el aislamiento de la red interna.
 - **La plataforma es el servidor del laboratorio (Dokploy), no del equipo:** si deja de estar disponible o cambia su política, hay que redesplegar en otro lado (el `Dockerfile` se reutiliza; ver el costo de revertir en ADR-0010). Un redespliegue deja el dominio sin servicio ~30-50 s. El **respaldo programado de la base en Dokploy no está configurado** (acción del equipo): el procedimiento de respaldo y restauración sí está verificado en CI, pero no se ha restaurado nunca un respaldo de producción (`docs/despliegue/respaldos.md`). Lo ya mitigado: los redespliegues de código no requieren cuentas (cada commit a `master` redespliega solo).
+
+### 11.3 Amenazas aceptadas y por qué (S13)
+
+Las amenazas que el equipo **decidió no mitigar del todo**, con su motivo. Cualquier otra del
+[modelo de amenazas](../seguridad/modelo-de-amenazas.md) está mitigada o figura como pendiente
+(T15, T26, T16) con su dueño.
+
+| ID | Riesgo | Por qué se acepta | Qué lo haría revisar |
+|---|:-:|---|---|
+| **T02** (y el residuo de T01) | 9 | Verificar la propiedad del correo exige un proveedor de correo que el proyecto no tiene (ADR-0013). Lo contiene que la entrega la **aprueba una persona**, que el contacto solo se revela tras aprobar y que borrar la cuenta pide la contraseña. Para los administradores hay detección, no prevención | Conseguir un proveedor de correo gratuito; o que la UTB ofrezca inicio de sesión institucional |
+| **T19** | 6 | El token de la app queda en las preferencias del dispositivo sin cifrar: leerlo exige acceso físico o malware, y el token **vence a los 7 días y se revoca al cerrar sesión**. El almacenamiento seguro del sistema agrega una dependencia nativa y es una mejora, no un hueco explotable a distancia | Que la app maneje datos más sensibles, o un incidente |
+| **T14** | 4 | El mensaje de registro revela que un correo institucional ya tiene cuenta. Los correos `@utb.edu.co` no son secretos y ocultarlo empeoraría el registro; el inicio de sesión no lo revela | Que se admitan correos que no sean públicos |
+| **T08** (residuo) | 6 | Quien falla a propósito puede bloquear 15 min el inicio de sesión de un correo ajeno. Es el costo de limitar los intentos por correo; el bloqueo es corto y no revela nada | Quejas reales, o un segundo factor |
+| **T24** (residuo) | 6 | Si el servicio se expusiera **sin** el proxy, un cliente podría falsificar `X-Forwarded-For`. En el despliegue real todo pasa por Traefik; el salto de confianza es configurable | Cambiar de plataforma o de topología de red |
+| **T16** (avisos de NestJS 10) | 12 → menor | 13 avisos que no se pueden quitar sin migrar a Express 5. Cada uno se probó **no alcanzable** (la función afectada no se usa) y la decisión **vence el 15-dic-2026** | El vencimiento, o cualquier uso nuevo de las funciones afectadas (la prueba de alcance lo avisa) |
+
+Una amenaza **aceptada** tiene dueño y fecha de revisión; una **pendiente** (T15, T26) es una
+mitigación que sí se quiere y falta, y no se acepta aunque dependa de otra persona.
 
 ## 12. Glosario
 
@@ -499,3 +549,5 @@ Ver [`docs/glosarios.md`](../glosarios.md) para el glosario completo de término
 - [`docs/contracts/openapi.yaml`](../contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).
 - [`docs/contracts/eventos.md`](../contracts/eventos.md) — contrato de los eventos entre contextos y criterio de compatibilidad (ADR-0026).
 - [`docs/taller-mensajes.md`](../taller-mensajes.md) — evidencia del taller de mensajes y consistencia (S12).
+- [`docs/seguridad/modelo-de-amenazas.md`](../seguridad/modelo-de-amenazas.md) — modelo de amenazas, prioridad y plan de mitigación (S13).
+- [`docs/seguridad/analisis-de-dependencias.md`](../seguridad/analisis-de-dependencias.md), [`barrido-de-secretos.md`](../seguridad/barrido-de-secretos.md), [`privacidad.md`](../seguridad/privacidad.md) — evidencia de la S13.

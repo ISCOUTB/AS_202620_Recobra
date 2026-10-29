@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Barrido de secretos del repositorio y de TODO su historial (docs/seguridad/barrido-de-secretos.md,
+ * Barrido de secretos del repositorio y de todo su historial (docs/seguridad/barrido-de-secretos.md,
  * ADR-0030). El repositorio es público: quitar un secreto del último commit no lo
  * quita del historial, así que se revisan todas las líneas que alguna vez se
  * agregaron, en todas las ramas.
@@ -22,7 +22,7 @@ const REPO = argRepo >= 0 ? path.resolve(process.argv[argRepo + 1]) : path.join(
 const FIRMAS = [
   ['llave de acceso de AWS', /AKIA[0-9A-Z]{16}/],
   ['clave privada', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
-  ['token de GitHub', /\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\b|github_pat_[A-Za-z0-9_]{22,}/],
+  ['token de GitHub', /\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\b|github_pat_\w{22,}/],
   ['token de Slack', /\bxox[baprs]-[A-Za-z0-9-]{10,}/],
   ['llave de API (sk-)', /\bsk-[A-Za-z0-9]{20,}/],
   ['cadena de conexión con contraseña', /\bpostgres(?:ql)?:\/\/[^:@/\s]+:[^@/\s]{4,}@/i],
@@ -33,11 +33,19 @@ const FIRMAS = [
 const EXCEPCIONES = [
   [/contrasena(-[a-z]+)*-?\d*|clave-local|contrasena-segura/i, 'contraseñas de cuentas de PRUEBA locales (pruebas y comandos de ejemplo), sin acceso a nada'],
   [/token-viejo|tok-\d+|token-de-prueba|token-123/i, 'tokens de sesión inventados en las pruebas de la app, sin valor fuera de ellas'],
-  [/ejemplo|example|xxxx|\*{3,}|<[^>]*(contrase|clave|password)[^>]*>|desde-el-panel/i, 'marcadores de posición en la documentación'],
+  [/ejemplo|example|xxxx|\*{3,}|<[^>]{0,40}(?:contrase|clave|password)[^>]{0,40}>|desde-el-panel/i, 'marcadores de posición en la documentación'],
   [/postgres(?:ql)?:\/\/postgres@localhost/i, 'base efímera del flujo de integración, sin contraseña (trust)'],
 ];
 
-const ARCHIVOS_SENSIBLES = /(^|\/)\.env($|\.(?!example$)[a-z]+$)|\.(pem|p12|jks|keystore)$|(^|\/)id_(rsa|dsa|ed25519)$|google-services\.json$/i;
+const ARCHIVOS_SENSIBLES = [
+  /(^|\/)\.env$/i,
+  /(^|\/)\.env\.(?!example$)[a-z]+$/i,
+  /\.(pem|p12|jks|keystore)$/i,
+  /(^|\/)id_(rsa|dsa|ed25519)$/i,
+  /google-services\.json$/i,
+];
+
+const esArchivoSensible = (nombre) => ARCHIVOS_SENSIBLES.some((patron) => patron.test(nombre));
 
 function excepcion(linea) {
   return EXCEPCIONES.find(([patron]) => patron.test(linea));
@@ -48,7 +56,7 @@ async function barrerHistorial() {
   let commit = '(sin commit)';
   let archivo = '';
   await new Promise((resolver, rechazar) => {
-    const git = spawn('git', ['-C', REPO, 'log', '--all', '-p', '--no-color', '--format=@@commit %H'], { maxBuffer: Infinity });
+    const git = spawn('git', ['-C', REPO, 'log', '--all', '-p', '--no-color', '--format=@@commit %H'], { maxBuffer: Infinity }); // NOSONAR S4036: herramienta de desarrollo; git se busca en el PATH del ejecutor, nombre fijo
     let resto = '';
     const procesar = (linea) => {
       if (linea.startsWith('@@commit ')) commit = linea.slice(9, 16);
@@ -71,12 +79,12 @@ async function barrerHistorial() {
 }
 
 function archivosSensibles() {
-  const r = spawnSync('git', ['-C', REPO, 'log', '--all', '--name-only', '--pretty=format:'], { encoding: 'utf-8', maxBuffer: 256 * 1024 * 1024 });
-  return [...new Set(r.stdout.split('\n').filter(Boolean))].filter((f) => ARCHIVOS_SENSIBLES.test(f));
+  const r = spawnSync('git', ['-C', REPO, 'log', '--all', '--name-only', '--pretty=format:'], { encoding: 'utf-8', maxBuffer: 256 * 1024 * 1024 }); // NOSONAR S4036: igual que arriba
+  return [...new Set(r.stdout.split('\n').filter(Boolean))].filter(esArchivoSensible);
 }
 
 async function main() {
-  const commits = spawnSync('git', ['-C', REPO, 'rev-list', '--all', '--count'], { encoding: 'utf-8' }).stdout.trim();
+  const commits = spawnSync('git', ['-C', REPO, 'rev-list', '--all', '--count'], { encoding: 'utf-8' }).stdout.trim(); // NOSONAR S4036: igual que arriba
   const hallazgos = await barrerHistorial();
   const sensibles = archivosSensibles();
   console.log(`Barrido de ${commits} commits (todas las ramas): ${FIRMAS.length} firmas, ${EXCEPCIONES.length} excepciones revisadas.`);

@@ -63,7 +63,8 @@ export class LimiteDeUso {
   reloj: () => number = Date.now;
 
   /** Cuenta un uso; lanza `LimiteDeUsoExcedidoError` si ya se pasó del máximo de la ventana. */
-  consumir(nombre: NombreDeRegla, clave: string): void {
+  /** Cuenta la petición y devuelve cuántas quedan en la ventana; si se pasó del máximo, lanza `LimiteDeUsoExcedidoError`. */
+  consumir(nombre: NombreDeRegla, clave: string): number {
     const regla = this.reglas[nombre];
     const ahora = this.reloj();
     if (this.ventanas.size >= CLAVES_MAXIMAS) this.podar(ahora);
@@ -82,6 +83,7 @@ export class LimiteDeUso {
       this.logger.warn({ evento: 'seguridad.limite_excedido', regla: nombre, origen: huellaDe(clave), esperarSegundos });
       throw new LimiteDeUsoExcedidoError(regla.descripcion, esperarSegundos);
     }
+    return regla.maximo - ventana.cuenta;
   }
 
   private podar(ahora: number): void {
@@ -122,7 +124,6 @@ export class LimiteGuard implements CanActivate {
     const peticion = contexto.switchToHttp().getRequest<PeticionConCuenta>();
     const regla = this.limite.reglas[nombre];
     const clave = regla.por === 'cuenta' && peticion.cuenta ? `cuenta:${peticion.cuenta.id}` : `origen:${peticion.ip ?? 'desconocido'}`;
-    this.limite.consumir(nombre, clave);
-    return true;
+    return this.limite.consumir(nombre, clave) >= 0;
   }
 }

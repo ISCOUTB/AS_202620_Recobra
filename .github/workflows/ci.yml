@@ -82,7 +82,7 @@ jobs:
     name: Seguridad (dependencias y secretos)
     # ADR-0030, docs/seguridad/: (1) análisis de dependencias con decisiones revisadas: falla si aparece
     # un aviso de seguridad que no esté en docs/seguridad/hallazgos-dependencias.json o si una decisión
-    # venció (npm audit de producción + OSV para la app Flutter); (2) barrido de secretos de TODO el
+    # venció (npm audit de producción + OSV para la app Flutter); (2) barrido de secretos de todo el
     # historial (el repositorio es público: quitar un secreto del último commit no lo quita del historial).
     runs-on: ubuntu-latest
     steps:

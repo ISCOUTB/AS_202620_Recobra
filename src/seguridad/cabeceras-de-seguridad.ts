@@ -41,12 +41,12 @@ export interface PoliticasCsp {
 
 /** Hash `sha256` en base64 del contenido en línea, como lo calcula el navegador (con saltos de línea normalizados). */
 export function hashCsp(contenido: string): string {
-  return `'sha256-${createHash('sha256').update(contenido.replace(/\r\n/g, '\n')).digest('base64')}'`;
+  return `'sha256-${createHash('sha256').update(contenido.replaceAll('\r\n', '\n')).digest('base64')}'`;
 }
 
 /** Contenido de los bloques en línea `<tag>…</tag>` sin atributos (los que la política debe permitir por hash). */
 function bloquesEnLinea(html: string, etiqueta: 'script' | 'style'): string[] {
-  const patron = new RegExp(`<${etiqueta}>([\\s\\S]*?)</${etiqueta}>`, 'g');
+  const patron = new RegExp(String.raw`<${etiqueta}>([\s\S]*?)</${etiqueta}>`, 'g');
   return [...html.matchAll(patron)].map((m) => m[1]);
 }
 

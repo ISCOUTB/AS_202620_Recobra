@@ -26,7 +26,7 @@ const sinRed = process.argv.includes('--sin-red');
 const hoy = (process.env.HOY ?? new Date().toISOString()).slice(0, 10);
 
 function auditoriaNpm() {
-  const r = spawnSync('npm', ['audit', '--omit=dev', '--json'], { cwd: RAIZ, encoding: 'utf-8', shell: process.platform === 'win32', maxBuffer: 64 * 1024 * 1024 });
+  const r = spawnSync('npm', ['audit', '--omit=dev', '--json'], { cwd: RAIZ, encoding: 'utf-8', shell: process.platform === 'win32', maxBuffer: 64 * 1024 * 1024 }); // NOSONAR S4036: herramienta de desarrollo; npm se busca en el PATH del ejecutor del flujo, nombre fijo y sin entrada externa
   // npm audit sale con 1 si hay hallazgos: el resultado útil está en stdout.
   const datos = JSON.parse(r.stdout);
   if (datos.error) throw new Error(`npm audit falló: ${datos.error.summary ?? JSON.stringify(datos.error)}`);
@@ -43,13 +43,13 @@ function auditoriaNpm() {
 }
 
 function paquetesDePub() {
-  const texto = fs.readFileSync(path.join(RAIZ, 'mobile', 'pubspec.lock'), 'utf-8').replace(/\r\n/g, '\n');
+  const texto = fs.readFileSync(path.join(RAIZ, 'mobile', 'pubspec.lock'), 'utf-8').replaceAll('\r\n', '\n');
   const cuerpo = texto.split('packages:\n')[1].split('\nsdks:')[0];
   const paquetes = [];
-  for (const m of cuerpo.matchAll(/^  (\S+):\n((?:    .*\n?)+)/gm)) {
+  for (const m of cuerpo.matchAll(/^ {2}(\S+):\n((?: {4}.*\n?)+)/gm)) {
     const version = /version: "?([^"\n]+)"?/.exec(m[2]);
     const fuente = /source: (\w+)/.exec(m[2]);
-    if (version && fuente && fuente[1] === 'hosted') paquetes.push({ nombre: m[1], version: version[1] });
+    if (version && fuente?.[1] === 'hosted') paquetes.push({ nombre: m[1], version: version[1] });
   }
   return paquetes;
 }
@@ -95,7 +95,8 @@ async function main() {
   const ya_no_aparecen = registro.hallazgos.filter((h) => !todos.some((a) => a.id === h.id));
 
   console.log(`Dependencias de producción (npm): ${JSON.stringify(npm.resumen)}`);
-  console.log(`Aplicación Flutter (OSV): ${sinRed ? 'omitida (--sin-red)' : `${pub.total} paquetes, ${pub.avisos.size} con avisos`}`);
+  const resumenPub = sinRed ? 'omitida (--sin-red)' : `${pub.total} paquetes, ${pub.avisos.size} con avisos`;
+  console.log(`Aplicación Flutter (OSV): ${resumenPub}`);
   console.log(`Avisos encontrados: ${todos.length} · revisados en el registro: ${todos.length - sinRevisar.length} · registro del ${registro.revisadoEn}`);
   for (const a of todos.filter((x) => porId.has(x.id))) {
     const h = porId.get(a.id);

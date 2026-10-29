@@ -120,6 +120,8 @@ repositorio; ver [`.env.example`](.env.example)):
 | `CONTACTO_PRIVACIDAD` | Texto con el canal de contacto que muestra el aviso de privacidad (por ejemplo, un correo del equipo) | Indica abrir una solicitud en el repositorio |
 | `ADMIN_CORREOS` | Correos `@utb.edu.co` (separados por comas) de quienes pueden resolver reportes de abuso | Nadie es administrador: se puede reportar, pero nadie resuelve |
 | `DIAS_VIGENCIA_PUBLICACION` | Días sin movimiento antes de cerrar una publicación sola | 60 |
+| `CORS_ORIGENES` | Orígenes (separados por comas) de otros sitios que pueden leer la API desde un navegador. La vitrina y `/app/` son del mismo origen y no lo necesitan | Ninguno (fuera de producción también se admite `localhost`) |
+| `PROXY_CONFIABLES` | Saltos de proxy de confianza para conocer la dirección real del cliente (los límites de uso la usan) | 1 en producción (Traefik), 0 fuera de ella |
 
 El `compose` de producción ([`deploy/compose.lab.yaml`](deploy/compose.lab.yaml)) solo reenvía al contenedor las variables que lista; una variable nueva que se defina en Dokploy debe agregarse también allí. Tras cambiar una variable en el panel hay que volver a desplegar el servicio.
 
@@ -253,6 +255,15 @@ curl "http://localhost:3000/coincidencias?publicacionId=<id>"
 
 `200` con un arreglo (vacío si aún no hay coincidencias o no se envía `publicacionId`).
 
+## Seguridad
+
+Resumen de lo que protege a Recobra (detalle en [`docs/seguridad/`](docs/seguridad/) y arc42 §8.6):
+
+- **Cabeceras y CSP** en todas las respuestas; la vitrina solo ejecuta su propio script (por hash) y CORS admite solo los orígenes de `CORS_ORIGENES`.
+- **Límites de uso** por cuenta y por origen: pasarse devuelve `429` con `Retry-After` ([ADR-0028](docs/adr/0028-limites-de-uso-por-cuenta-y-por-origen.md)).
+- **Dependencias y secretos** revisados en cada commit: `npm run seguridad:dependencias` y `npm run seguridad:secretos` (también corren en el flujo de integración).
+- **Qué sigue abierto**, sin adornos: rotar la contraseña de la base y el webhook de Dokploy (T15), el respaldo programado (T26) y migrar NestJS antes del 15-dic-2026 (T16).
+
 ## Documentación
 
 La documentación del proyecto se encuentra en la carpeta `docs/`.
@@ -272,6 +283,7 @@ La documentación del proyecto se encuentra en la carpeta `docs/`.
 - [`docs/diseno-ui.md`](docs/diseno-ui.md) — paleta y patrones de interfaz tomados de la app UTB.
 - [`docs/no-conformidades.md`](docs/no-conformidades.md) — no conformidades detectadas y su plan de corrección.
 - [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) — contrato ejecutable de la API (ADR-0004).
+- [`docs/seguridad/`](docs/seguridad/) — S13: [modelo de amenazas](docs/seguridad/modelo-de-amenazas.md), [análisis de dependencias](docs/seguridad/analisis-de-dependencias.md), [barrido de secretos](docs/seguridad/barrido-de-secretos.md) y [privacidad](docs/seguridad/privacidad.md).
 - [`docs/despliegue/costo-mensual.md`](docs/despliegue/costo-mensual.md) — estimación de costo del despliegue (ADR-0005).
 - [`correcciones.md`](correcciones.md) — trazabilidad de hallazgos S1-S5 con su corrección.
 
