@@ -2,6 +2,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { NextFunction, Request, Response } from 'express';
 import { crearCabecerasDeSeguridad } from './cabeceras-de-seguridad';
 import { opcionesCors } from './cors';
+import { usarOrigenDeCloudflare } from './origen-del-cliente';
 
 /**
  * Las dos formas de un cuerpo de petición que el servidor acepta son JSON sin
@@ -38,6 +39,7 @@ export function saltosDeProxy(entorno: NodeJS.ProcessEnv = process.env): number 
 export function configurarSeguridad(app: NestExpressApplication): void {
   app.set('trust proxy', saltosDeProxy());
   app.disable('x-powered-by');
+  app.use(usarOrigenDeCloudflare);
   app.use(crearCabecerasDeSeguridad());
   app.enableCors(opcionesCors());
   app.use(rechazarCuerpoComprimido);

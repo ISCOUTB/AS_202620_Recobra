@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import { calcularPoliticas, crearCabecerasDeSeguridad, hashCsp, politicaPara } from './cabeceras-de-seguridad';
 import { rechazarCuerpoComprimido, saltosDeProxy } from './configurar-seguridad';
 import { origenPermitido } from './cors';
+import { esDeCloudflare, usarOrigenDeCloudflare } from './origen-del-cliente';
 
 describe('Seguridad HTTP (ADR-0029)', () => {
   const vitrina = readFileSync(join(__dirname, '..', '..', 'public', 'index.html'), 'utf-8');
@@ -129,6 +130,39 @@ describe('Seguridad HTTP (ADR-0029)', () => {
   });
 
   describe('Origen de la petición detrás del proxy', () => {
+    const peticion = (ip: string, cabeceras: Record<string, string> = {}) => ({ ip, headers: cabeceras }) as unknown as Request;
+    const origenTras = (ip: string, cabeceras: Record<string, string>) => {
+      const req = peticion(ip, cabeceras);
+      usarOrigenDeCloudflare(req, {} as Response, () => undefined);
+      return req.ip;
+    };
+
+    it('reconoce las direcciones de Cloudflare (IPv4, IPv6 y la IPv4 escrita como IPv6) y no las demás', () => {
+      expect(esDeCloudflare('162.158.1.10')).toBe(true);
+      expect(esDeCloudflare('172.69.0.1')).toBe(true);
+      expect(esDeCloudflare('2606:4700::1')).toBe(true);
+      expect(esDeCloudflare('::ffff:104.16.0.1')).toBe(true);
+      expect(esDeCloudflare('203.0.113.9')).toBe(false);
+      expect(esDeCloudflare('10.0.1.5')).toBe(false);
+      expect(esDeCloudflare('no-es-una-ip')).toBe(false);
+      expect(esDeCloudflare(undefined)).toBe(false);
+    });
+
+    it('si la conexión vino de Cloudflare, el origen es la dirección que Cloudflare declara', () => {
+      expect(origenTras('162.158.1.10', { 'cf-connecting-ip': '190.1.2.3' })).toBe('190.1.2.3');
+      expect(origenTras('2606:4700::1', { 'cf-connecting-ip': '2800:484::1' })).toBe('2800:484::1');
+    });
+
+    it('si NO vino de Cloudflare, el encabezado se ignora: nadie elige su origen escribiéndolo', () => {
+      expect(origenTras('203.0.113.9', { 'cf-connecting-ip': '1.1.1.1' })).toBe('203.0.113.9');
+      expect(origenTras('172.18.0.5', { 'cf-connecting-ip': '1.1.1.1' })).toBe('172.18.0.5');
+    });
+
+    it('sin encabezado, o con basura en él, se queda con la dirección de la conexión', () => {
+      expect(origenTras('162.158.1.10', {})).toBe('162.158.1.10');
+      expect(origenTras('162.158.1.10', { 'cf-connecting-ip': 'no-es-una-ip' })).toBe('162.158.1.10');
+    });
+
     it('en producción se confía en un salto (Traefik); fuera de producción, en ninguno; y se puede configurar', () => {
       expect(saltosDeProxy({ NODE_ENV: 'production' } as NodeJS.ProcessEnv)).toBe(1);
       expect(saltosDeProxy({} as NodeJS.ProcessEnv)).toBe(0);

@@ -413,7 +413,7 @@ en el sistema**: qué mecanismo hay en cada capa y dónde vive en el código.
 
 | Capa | Mecanismo | Dónde | Amenazas |
 |---|---|---|---|
-| **Borde** (Traefik → API) | HTTPS en el proxy; `trust proxy` de un salto (`PROXY_CONFIABLES`) para que `req.ip` y `req.secure` salgan solo de Traefik; HSTS de 6 meses | `src/seguridad/configurar-seguridad.ts` | T04, T24 |
+| **Borde** (Cloudflare → Traefik → API) | HTTPS en el proxy; `trust proxy` de un salto (`PROXY_CONFIABLES`); la dirección real del cliente sale de `CF-Connecting-IP` solo si la conexión vino de un rango de Cloudflare; HSTS de 6 meses; `GET /metrics` muestra la huella del origen que el servidor ve, para comprobarlo | `configurar-seguridad.ts`, `origen-del-cliente.ts` | T04, T24 |
 | **Cabeceras** | CSP por superficie (la vitrina permite solo su script y su estilo **por hash**, calculado al arrancar; `/app/` sin scripts en línea; la API `default-src 'none'`), `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, COOP | `cabeceras-de-seguridad.ts`, [ADR-0029](../adr/0029-cabeceras-de-seguridad-csp-y-cors.md) | T03, T22, T27 |
 | **CORS** | Lista blanca (`CORS_ORIGENES`); `localhost` solo fuera de producción | `cors.ts` | T21 |
 | **Cuerpo de la petición** | Se rechaza todo `Content-Encoding` distinto de `identity` (415); tope de tamaño; el único endpoint binario recibe `image/jpeg` crudo | `configurar-seguridad.ts`, `FotosController` | T07, T25 |

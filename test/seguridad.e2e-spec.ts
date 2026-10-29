@@ -55,6 +55,12 @@ describe('Seguridad HTTP (e2e)', () => {
     expect(JSON.stringify(r.body)).not.toContain('203.0.113.9');
   });
 
+  it('CF-Connecting-IP de quien no viene de Cloudflare no cambia el origen que se cuenta', async () => {
+    const a = await request(srv()).get('/metrics').set('CF-Connecting-IP', '1.1.1.1');
+    const b = await request(srv()).get('/metrics').set('CF-Connecting-IP', '8.8.8.8');
+    expect(a.body.seguridad.cliente.origen).toBe(b.body.seguridad.cliente.origen);
+  });
+
   describe('Cuerpo comprimido (GHSA-27r3-jxmh-p828 en body-parser)', () => {
     it('el ataque real —un marco gzip válido seguido de bytes de más— se rechaza con 415 y el servidor sigue vivo', async () => {
       const ataque = Buffer.concat([gzipSync(Buffer.from('{"correo":"a@utb.edu.co"}')), Buffer.from('basura-despues-del-marco')]);

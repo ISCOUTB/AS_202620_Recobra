@@ -66,6 +66,26 @@ inyectar un script, lo leería y se llevaría la cuenta. Además:
    la app ya no pide nada a `fonts.gstatic.com`, y la CSP puede decir `connect-src 'self'`.
 7. **`configurarSeguridad(app)`** reúne todo y lo usan **`main.ts` y las pruebas e2e**: lo que se prueba es lo que corre.
 
+## Ajuste del 28-oct-2026, tras medir en producción
+
+Al desplegar se midió (con la huella del origen que `GET /metrics` expone en `seguridad.cliente`, sin mostrar la dirección)
+y aparecieron dos errores de la primera versión de esta decisión:
+
+1. **`PROXY_CONFIABLES` vacía apagaba el proxy de confianza.** El `compose` la reenvía vacía cuando no se define y
+   `Number('')` es 0: en producción la API no confiaba en ningún proxy (sin HSTS). Una variable vacía vale ahora lo
+   mismo que no estar; lo prueba `seguridad-http.spec.ts`.
+2. **Hay dos proxys, no uno.** Delante de Traefik está **Cloudflare**, y Traefik reemplaza `X-Forwarded-For` por la
+   dirección de quien le habló: la API veía la dirección del borde de Cloudflare, no la de la persona, y los límites
+   por origen (ADR-0028) habrían contado por borde de Cloudflare. La dirección real llega en `CF-Connecting-IP`, que
+   `origen-del-cliente.ts` cree **solo si la conexión salió de un rango publicado de Cloudflare**; de cualquier otro
+   origen el encabezado se ignora. Después de este ajuste la huella que ve el servidor es la de la dirección real
+   (se comparó contra la huella calculada de una conexión propia).
+
+Los rangos de Cloudflare están escritos en el código (se revisaron el 28-oct-2026 en `cloudflare.com/ips-v4` y `/ips-v6`)
+y cambian muy rara vez; si Cloudflare agregara uno y no se actualizara, esas conexiones caerían a la dirección del
+borde (el límite sería más grueso, no más permisivo). Si el servicio dejara de estar detrás de Cloudflare, el encabezado
+simplemente no se usa.
+
 ## Qué se comprobó
 
 - **En un navegador real** (la vitrina servida por la API): funciona (inicio de sesión, aviso de privacidad), sin
