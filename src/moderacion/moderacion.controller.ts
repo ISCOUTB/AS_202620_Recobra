@@ -3,6 +3,7 @@ import { Cuenta } from '../domain/entities/cuenta';
 import { ListarReportesAbiertos, ReportarPublicacion, ResolverReporte } from '../application/use-cases/moderacion';
 import { AdministradorGuard } from '../identidad/administrador.guard';
 import { AutenticacionGuard, CuentaActual } from '../identidad/autenticacion.guard';
+import { Limitar, LimiteGuard } from '../seguridad/limite-de-uso';
 
 /** Moderación mínima (ADR-0022): reportar una publicación y, para administradores, resolver los reportes. */
 @Controller()
@@ -15,7 +16,8 @@ export class ModeracionController {
 
   @Post('publicaciones/:id/reportar')
   @HttpCode(201)
-  @UseGuards(AutenticacionGuard)
+  @UseGuards(AutenticacionGuard, LimiteGuard)
+  @Limitar('reportar')
   async reportarPublicacion(
     @Param('id') id: string,
     @Body() cuerpo: { motivo: string; detalle?: string },

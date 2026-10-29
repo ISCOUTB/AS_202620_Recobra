@@ -64,7 +64,13 @@ ThemeData temaUtb() {
     outline: ColoresUtb.borde,
     error: ColoresUtb.rojo,
   );
-  final base = ThemeData(colorScheme: esquema, useMaterial3: true, brightness: Brightness.dark);
+  final base = ThemeData(
+    colorScheme: esquema,
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    // La fuente va empaquetada (pubspec.yaml): la app no le pide nada a terceros al abrir.
+    fontFamily: 'Roboto',
+  );
   return base.copyWith(
     scaffoldBackgroundColor: ColoresUtb.fondo,
     materialTapTargetSize: MaterialTapTargetSize.padded,

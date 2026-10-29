@@ -41,6 +41,27 @@ export class DemasiadosIntentosError extends Error {
   }
 }
 
+/**
+ * Se pasó del límite de uso de una operación (ADR-0028): demasiadas publicaciones,
+ * reportes, fotos… en poco tiempo. Es un 429 con `Retry-After`, como el de los
+ * intentos de inicio de sesión, pero no es un intento fallido: es volumen.
+ */
+export class LimiteDeUsoExcedidoError extends Error {
+  constructor(
+    readonly descripcion: string,
+    readonly esperarSegundos: number,
+  ) {
+    super(`Hiciste demasiados ${descripcion} en poco tiempo. Vuelve a intentarlo en ${formatearEspera(esperarSegundos)}.`);
+    this.name = 'LimiteDeUsoExcedidoError';
+  }
+}
+
+function formatearEspera(segundos: number): string {
+  if (segundos < 90) return `${segundos} segundo(s)`;
+  if (segundos < 90 * 60) return `${Math.ceil(segundos / 60)} minuto(s)`;
+  return `${Math.ceil(segundos / 3600)} hora(s)`;
+}
+
 /** La operación choca con el estado actual (correo ya usado, reclamación repetida, transición inválida). */
 export class ConflictoError extends Error {
   constructor(mensaje: string) {

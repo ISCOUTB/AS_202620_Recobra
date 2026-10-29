@@ -5,6 +5,11 @@ on:
     branches: [master, main]
   pull_request:
 
+# Permisos mínimos (amenaza T17, ADR-0030): el flujo solo lee el repositorio. Ningún trabajo
+# necesita escribir, publicar paquetes ni comentar en solicitudes de cambio.
+permissions:
+  contents: read
+
 jobs:
   backend:
     name: Backend NestJS
@@ -72,6 +77,28 @@ jobs:
           PGUSER: postgres
           BASE_ORIGEN: recobra_test
         run: docker run --rm --network host -e PGHOST -e PGUSER -e BASE_ORIGEN -v "$PWD/scripts:/scripts:ro" postgres:16@sha256:a902560563d3a5661228585f53474c5065e7f273b21ffd77e555a8b5682c5690 bash /scripts/verificar-respaldo-postgres.sh
+
+  seguridad:
+    name: Seguridad (dependencias y secretos)
+    # ADR-0030, docs/seguridad/: (1) análisis de dependencias con decisiones revisadas: falla si aparece
+    # un aviso de seguridad que no esté en docs/seguridad/hallazgos-dependencias.json o si una decisión
+    # venció (npm audit de producción + OSV para la app Flutter); (2) barrido de secretos de TODO el
+    # historial (el repositorio es público: quitar un secreto del último commit no lo quita del historial).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0 # el barrido necesita todo el historial
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install
+        run: npm ci --ignore-scripts
+      - name: Análisis de dependencias (producción y Flutter)
+        run: node scripts/revisar-dependencias.js
+      - name: Barrido de secretos (árbol e historial)
+        run: node scripts/barrido-secretos.js
 
   sonarcloud:
     name: SonarCloud Scan

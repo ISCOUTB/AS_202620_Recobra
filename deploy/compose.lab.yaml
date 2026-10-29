@@ -29,6 +29,11 @@ services:
       ADMIN_CORREOS: ${ADMIN_CORREOS:-}
       CONTACTO_PRIVACIDAD: ${CONTACTO_PRIVACIDAD:-}
       DIAS_VIGENCIA_PUBLICACION: ${DIAS_VIGENCIA_PUBLICACION:-}
+      # Seguridad HTTP (ADR-0029): orígenes extra que pueden leer la API desde un navegador
+      # (vacío = ninguno; la vitrina y la app web son del mismo origen) y saltos de proxy de
+      # confianza para conocer la dirección real del cliente (1 = Traefik de Dokploy).
+      CORS_ORIGENES: ${CORS_ORIGENES:-}
+      PROXY_CONFIABLES: ${PROXY_CONFIABLES:-}
     expose:
       - "3000"
     networks:

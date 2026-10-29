@@ -1,0 +1,27 @@
+# Actualizaciones automáticas de dependencias (docs/seguridad/analisis-de-dependencias.md, ADR-0030).
+# Dependabot abre una solicitud de cambio por actualización; el flujo de integración la prueba
+# (pruebas, contrato, análisis de dependencias) antes de que alguien la revise y la una.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      desarrollo:
+        dependency-type: development
+        update-types: [minor, patch]
+  - package-ecosystem: pub
+    directory: /mobile
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

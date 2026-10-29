@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import * as jestOpenAPI from 'jest-openapi';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import * as request from 'supertest';
 import { crearAppDePrueba } from './support/crear-app-prueba';
 import { UsuarioDePrueba, crearUsuario } from './support/autenticar';
@@ -91,6 +91,28 @@ describe('Moderación (e2e)', () => {
     expect(lista).toSatisfyApiSpec();
     const item = lista.body.find((x: { reporte: { id: string } }) => x.reporte.id === reporte.body.id);
     expect(item.publicacion).toMatchObject({ id, descripcion: 'Publicación con reporte' });
+  });
+
+  it('cada decisión de un administrador queda en el registro de auditoría con quién, qué y sobre qué (amenaza T13)', async () => {
+    const lineas: Array<Record<string, unknown>> = [];
+    const espia = jest.spyOn(Logger.prototype, 'log').mockImplementation((m: unknown) => {
+      if (typeof m === 'object' && m) lineas.push(m as Record<string, unknown>);
+    });
+    try {
+      const id = await publicar(leo, 'Publicación para auditar');
+      const reporte = await reportar(ana, id, { motivo: 'falso' });
+      await request(srv()).post(`/moderacion/reportes/${reporte.body.id}/resolver`).set(con(admin)).send({ decision: 'ocultar' });
+
+      expect(lineas).toContainEqual({
+        evento: 'auditoria.moderacion',
+        reporteId: reporte.body.id,
+        publicacionId: id,
+        decision: 'ocultar',
+        administradorId: admin.id,
+      });
+    } finally {
+      espia.mockRestore();
+    }
   });
 
   it('descartar deja la publicación como está', async () => {

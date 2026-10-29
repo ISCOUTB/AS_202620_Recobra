@@ -4,6 +4,7 @@ import { ResolverSesion } from '../application/use-cases/identidad';
 import { ObtenerFoto, QuitarFoto, SubirFoto, VarianteFoto } from '../application/use-cases/fotos';
 import { Cuenta } from '../domain/entities/cuenta';
 import { AutenticacionGuard, CuentaActual, tokenDe } from '../identidad/autenticacion.guard';
+import { Limitar, LimiteGuard } from '../seguridad/limite-de-uso';
 
 /**
  * Fotos de las publicaciones (ADR-0023). Subir y quitar exigen sesión y ser
@@ -22,7 +23,8 @@ export class FotosController {
   /** Cuerpo: el JPEG (`Content-Type: image/jpeg`); cabecera `X-Miniatura`: un JPEG de hasta 32 px en base64. */
   @Put()
   @HttpCode(200)
-  @UseGuards(AutenticacionGuard)
+  @UseGuards(AutenticacionGuard, LimiteGuard)
+  @Limitar('foto')
   agregar(
     @Param('id') id: string,
     @Req() peticion: Request,
@@ -34,7 +36,8 @@ export class FotosController {
 
   @Delete()
   @HttpCode(200)
-  @UseGuards(AutenticacionGuard)
+  @UseGuards(AutenticacionGuard, LimiteGuard)
+  @Limitar('foto')
   eliminar(@Param('id') id: string, @CuentaActual() cuenta: Cuenta) {
     return this.quitar.ejecutar(id, cuenta);
   }

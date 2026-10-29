@@ -15,6 +15,8 @@ import {
   UMBRAL_ALERTA_COLA,
   esperaCreciente,
 } from './entrega-de-eventos';
+import { AlertarAdministradores } from './alertas-operativas';
+import { Cuenta } from '../../domain/entities/cuenta';
 import { Notificar } from './notificaciones';
 
 /**
@@ -52,6 +54,8 @@ describe('Entrega de eventos: reintentos, duplicados y cola de fallidos (ADR-002
   let avisos: AvisosQueFallan;
   let fallidos: MemoriaEventoFallidoRepository;
   let notificar: Notificar;
+  let cuentas: MemoriaCuentaRepository;
+  let alertas: AlertarAdministradores;
   let procesador: ProcesadorDeEventos;
   let esperas: number[];
 
@@ -59,7 +63,9 @@ describe('Entrega de eventos: reintentos, duplicados y cola de fallidos (ADR-002
     metricasDeEventos.reiniciar();
     avisos = new AvisosQueFallan(0);
     fallidos = new MemoriaEventoFallidoRepository();
-    notificar = new Notificar(avisos, new MemoriaPublicacionRepository(), new MemoriaCuentaRepository());
+    cuentas = new MemoriaCuentaRepository();
+    notificar = new Notificar(avisos, new MemoriaPublicacionRepository(), cuentas);
+    alertas = new AlertarAdministradores(cuentas, avisos);
     procesador = new ProcesadorDeEventos(fallidos);
     esperas = [];
     procesador.dormir = async (ms) => {
@@ -119,7 +125,7 @@ describe('Entrega de eventos: reintentos, duplicados y cola de fallidos (ADR-002
     avisos.fallos = Infinity;
     const evento = nuevoEvento();
     await procesador.procesar(evento, (e) => notificar.procesar(e));
-    const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar);
+    const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar, alertas);
 
     // La base sigue caída: el evento sigue en la cola y suma un intento.
     expect(await reprocesar.ejecutar()).toMatchObject({ reprocesados: 0, siguenFallando: 1 });
@@ -142,7 +148,7 @@ describe('Entrega de eventos: reintentos, duplicados y cola de fallidos (ADR-002
 
     expect(await procesador.procesar(desconocido, (e) => notificar.procesar(e))).toBe('en_cola_de_fallidos');
 
-    const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar);
+    const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar, alertas);
     expect(await reprocesar.ejecutar()).toMatchObject({ reprocesados: 0, siguenFallando: 1 });
     expect((await fallidos.buscarPorId(desconocido.id))?.ultimoError).toContain('versión 2');
   });
@@ -151,7 +157,7 @@ describe('Entrega de eventos: reintentos, duplicados y cola de fallidos (ADR-002
     avisos.fallos = Infinity;
     const evento = nuevoEvento();
     await procesador.procesar(evento, (e) => notificar.procesar(e));
-    const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar);
+    const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar, alertas);
 
     const pasados = new Date(Date.now() + (DIAS_RETENCION_FALLIDOS + 1) * 24 * 60 * 60 * 1000);
     expect((await reprocesar.ejecutar(pasados)).borrados).toBe(1);
@@ -160,7 +166,7 @@ describe('Entrega de eventos: reintentos, duplicados y cola de fallidos (ADR-002
 
   it('alerta: con cinco eventos esperando en la cola se emite una línea de error y se marca en las métricas; con menos, no', async () => {
     avisos.fallos = Infinity;
-    const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar);
+    const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar, alertas);
     const errores: unknown[] = [];
     const espia = jest.spyOn(Logger.prototype, 'error').mockImplementation((m: unknown) => {
       errores.push(m);
@@ -184,6 +190,72 @@ describe('Entrega de eventos: reintentos, duplicados y cola de fallidos (ADR-002
     } finally {
       espia.mockRestore();
     }
+  });
+
+  describe('la alerta llega a una persona: un aviso en la aplicación de cada administrador', () => {
+    const correoAdmin = 'admin.cola@utb.edu.co';
+    const anterior = process.env.ADMIN_CORREOS;
+    const hoy = new Date('2026-10-28T15:00:00.000Z');
+    const manana = new Date('2026-10-29T15:00:00.000Z');
+
+    beforeEach(async () => {
+      process.env.ADMIN_CORREOS = ` ${correoAdmin.toUpperCase()}, otro.admin@utb.edu.co `; // el segundo no tiene cuenta
+      await cuentas.guardarSiCorreoLibre(
+        new Cuenta({ id: 'admin-1', correo: correoAdmin, nombre: 'Admin', hashContrasena: 'h', creadoEn: hoy.toISOString() }),
+      );
+    });
+    afterEach(() => {
+      if (anterior === undefined) delete process.env.ADMIN_CORREOS;
+      else process.env.ADMIN_CORREOS = anterior;
+    });
+
+    /** Mensajes que este consumidor no entiende: con la base sana, quedan en la cola (caso que la alerta sí puede avisar). */
+    const llenarLaCola = async (n: number) => {
+      for (let i = 0; i < n; i++) {
+        await procesador.procesar({ ...nuevoEvento(), version: 2 }, (e) => notificar.procesar(e));
+      }
+    };
+    const alertasDe = async (cuentaId: string) =>
+      (await avisos.listarPorCuenta(cuentaId, 20)).filter((a) => a.tipo === 'alerta_operativa');
+
+    it('al llegar al umbral, el administrador con cuenta recibe una alerta operativa; con menos, nada', async () => {
+      const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar, alertas);
+      await llenarLaCola(UMBRAL_ALERTA_COLA - 1);
+      await reprocesar.ejecutar(hoy);
+      expect(await alertasDe('admin-1')).toHaveLength(0);
+
+      await llenarLaCola(1); // el quinto
+      await reprocesar.ejecutar(hoy);
+
+      const [alerta] = await alertasDe('admin-1');
+      expect(alerta).toMatchObject({ cuentaId: 'admin-1', tipo: 'alerta_operativa', leida: false });
+      expect(alerta.mensaje).toContain(`${UMBRAL_ALERTA_COLA} pendientes`);
+    });
+
+    it('es una alerta por administrador y por día: una cola atascada no llena la bandeja cada cinco minutos', async () => {
+      const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar, alertas);
+      await llenarLaCola(UMBRAL_ALERTA_COLA);
+
+      await reprocesar.ejecutar(hoy);
+      await reprocesar.ejecutar(hoy); // la pasada siguiente, el mismo día
+      expect(await alertasDe('admin-1')).toHaveLength(1);
+
+      await reprocesar.ejecutar(manana); // otro día y sigue atascada: avisa de nuevo
+      expect(await alertasDe('admin-1')).toHaveLength(2);
+    });
+
+    it('quien no es administrador no recibe nada, y un fallo al guardar la alerta no tumba el reproceso', async () => {
+      await cuentas.guardarSiCorreoLibre(
+        new Cuenta({ id: 'ana', correo: 'ana@utb.edu.co', nombre: 'Ana', hashContrasena: 'h', creadoEn: hoy.toISOString() }),
+      );
+      const reprocesar = new ReprocesarEventosFallidos(fallidos, notificar, alertas);
+      await llenarLaCola(UMBRAL_ALERTA_COLA);
+      await reprocesar.ejecutar(hoy);
+      expect(await alertasDe('ana')).toHaveLength(0);
+
+      jest.spyOn(alertas, 'colaDeFallidos').mockRejectedValue(new Error('base caída'));
+      await expect(reprocesar.ejecutar(manana)).resolves.toMatchObject({ alerta: true });
+    });
   });
 
   it('si ni siquiera se puede guardar en la cola (la misma caída), no tumba nada y queda el registro', async () => {

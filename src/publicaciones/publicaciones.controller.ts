@@ -24,6 +24,7 @@ import { ListarPublicacionesDeAutor } from '../application/use-cases/cambiar-est
 import { CambiarCustodia, CerrarPublicacion } from '../application/use-cases/ciclo-de-vida';
 import { Cuenta } from '../domain/entities/cuenta';
 import { AutenticacionGuard, CuentaActual } from '../identidad/autenticacion.guard';
+import { Limitar, LimiteGuard } from '../seguridad/limite-de-uso';
 
 @Controller('publicaciones')
 export class PublicacionesController {
@@ -39,7 +40,8 @@ export class PublicacionesController {
   /** Publicar exige sesión (ADR-0013): toda publicación queda ligada a su autor. */
   @Post()
   @HttpCode(201)
-  @UseGuards(AutenticacionGuard)
+  @UseGuards(AutenticacionGuard, LimiteGuard)
+  @Limitar('publicar')
   @UseInterceptors(LatenciaPublicacionesInterceptor)
   async crear(
     @Body() body: CrearPublicacionDto,

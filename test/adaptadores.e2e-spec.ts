@@ -206,6 +206,33 @@ describe.each(implementaciones)('Puertos de persistencia contra %s', (nombre, cr
     });
   });
 
+  describe('Entradas hostiles (amenaza T11: inyección SQL)', () => {
+    const hostiles = [
+      "x' OR '1'='1",
+      "'; DROP TABLE publicaciones; --",
+      '" OR ""="',
+      "Robert'); DELETE FROM cuentas; --",
+      '\' UNION SELECT correo, hash_contrasena FROM cuentas --',
+    ];
+
+    it('los filtros de búsqueda, el texto de una publicación y el correo de una cuenta viajan como datos, no como SQL', async () => {
+      for (const texto of hostiles) {
+        // La búsqueda con filtros hostiles no falla ni devuelve de más...
+        expect(await a.publicaciones.buscar({ categoria: texto.toLowerCase(), ubicacion: texto.toLowerCase(), limite: 50 })).toEqual([]);
+        // ...y escribir y leer ese mismo texto lo conserva tal cual.
+        const p = publicacion({ descripcion: `Termo ${texto}`.slice(0, 190), categoria: 'adaptadores-hostil' });
+        await a.publicaciones.guardar(p);
+        expect((await a.publicaciones.buscarPorId(p.id))?.descripcion).toBe(`Termo ${texto}`.slice(0, 190).trim());
+        expect(await a.cuentas.buscarPorCorreo(`${texto}@utb.edu.co`)).toBeNull();
+      }
+      // Nada se borró ni se filtró: las tablas siguen ahí con sus datos.
+      expect((await a.publicaciones.buscar({ categoria: 'adaptadores-hostil', limite: 50 })).length).toBe(hostiles.length);
+      const intacta = publicacion({ categoria: 'adaptadores-despues' });
+      await a.publicaciones.guardar(intacta);
+      expect((await a.publicaciones.buscarPorId(intacta.id))?.id).toBe(intacta.id);
+    });
+  });
+
   describe('Cuentas y avisos', () => {
     it('el correo es único: de cinco registros simultáneos con el mismo correo solo uno entra', async () => {
       const correo = `adaptadores-${randomUUID().slice(0, 8)}@utb.edu.co`;

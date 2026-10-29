@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cuenta } from '../../domain/entities/cuenta';
 import {
   ConflictoError,
@@ -11,6 +11,7 @@ import { CuentaRepository } from '../../domain/ports/cuenta-repository';
 import { HashContrasenas } from '../../domain/ports/hash-contrasenas';
 import { SesionRepository } from '../../domain/ports/sesion-repository';
 import { VERSION_AVISO_PRIVACIDAD } from '../../domain/privacidad/aviso-privacidad';
+import { correosAdministradores } from './administradores';
 
 /** Duración de una sesión (ADR-0013). */
 export const DURACION_SESION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -31,6 +32,8 @@ export interface DatosRegistro {
 /** Contexto Identidad: alta de una cuenta con correo institucional. */
 @Injectable()
 export class RegistrarCuenta {
+  private readonly logger = new Logger('Seguridad');
+
   constructor(
     private readonly cuentas: CuentaRepository,
     private readonly hash: HashContrasenas,
@@ -54,6 +57,10 @@ export class RegistrarCuenta {
     // La unicidad del correo la garantiza el adaptador de forma atómica.
     if (!(await this.cuentas.guardarSiCorreoLibre(cuenta))) {
       throw new ConflictoError('ya existe una cuenta con ese correo');
+    }
+    // Amenaza T01: registrar un correo de administrador da privilegios. Si no fue su dueño, hay que enterarse.
+    if (correosAdministradores().includes(cuenta.correo)) {
+      this.logger.warn({ evento: 'seguridad.registro_de_administrador', cuentaId: cuenta.id, creadaEn: cuenta.creadoEn });
     }
     return cuenta;
   }

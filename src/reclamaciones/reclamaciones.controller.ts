@@ -7,6 +7,7 @@ import {
   ResolverReclamacion,
 } from '../application/use-cases/reclamaciones';
 import { AutenticacionGuard, CuentaActual } from '../identidad/autenticacion.guard';
+import { Limitar, LimiteGuard } from '../seguridad/limite-de-uso';
 
 /** Contexto Reclamaciones (escenario S2, ADR-0014). Todas las rutas exigen sesión. */
 @Controller()
@@ -21,6 +22,8 @@ export class ReclamacionesController {
 
   @Post('publicaciones/:id/reclamaciones')
   @HttpCode(201)
+  @UseGuards(LimiteGuard) // después del guardia de autenticación de la clase
+  @Limitar('reclamar')
   reclamar(@Param('id') publicacionId: string, @Body() cuerpo: { prueba: string }, @CuentaActual() cuenta: Cuenta) {
     return this.crear.ejecutar(publicacionId, cuenta.id, cuerpo?.prueba);
   }

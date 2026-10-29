@@ -21,3 +21,16 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Roboto va dentro de la app (licencia Apache 2.0 en assets/fonts/LICENSE-Roboto.txt):
+  # sin esto, la versión web la descarga de fonts.gstatic.com al abrir, lo que le
+  # cuenta a Google quién usa Recobra y rompe con la política de contenido (CSP)
+  # que solo permite conexiones al propio sitio (ADR-0029, amenaza T27).
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700

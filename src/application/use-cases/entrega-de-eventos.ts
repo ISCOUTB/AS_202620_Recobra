@@ -3,6 +3,7 @@ import { EventoFallido } from '../../domain/entities/evento-fallido';
 import { EventoFallidoRepository } from '../../domain/ports/evento-fallido-repository';
 import { EventoDominio } from '../events/eventos-dominio';
 import { UMBRAL_ALERTA_COLA, metricasDeEventos } from '../events/metricas-eventos';
+import { AlertarAdministradores } from './alertas-operativas';
 import { Notificar } from './notificaciones';
 
 /** Intentos por evento antes de mandarlo a la cola de fallidos (el primero cuenta). */
@@ -137,6 +138,7 @@ export class ReprocesarEventosFallidos {
   constructor(
     private readonly fallidos: EventoFallidoRepository,
     private readonly notificar: Notificar,
+    private readonly alertas: AlertarAdministradores,
   ) {}
 
   async ejecutar(ahora: Date = new Date()): Promise<ResumenDeReproceso> {
@@ -180,6 +182,8 @@ export class ReprocesarEventosFallidos {
     if (alerta) {
       // Alerta operativa: queda en el registro con nivel error, donde la ven los paneles de logs y los avisos de la plataforma.
       this.logger.error({ evento: 'alerta.cola_de_fallidos', pendientes, umbral: UMBRAL_ALERTA_COLA });
+      // Y a una persona: un aviso en la aplicación de cada administrador. Si falla (la misma caída), no tumba el reproceso.
+      await this.alertas.colaDeFallidos(pendientes, UMBRAL_ALERTA_COLA, ahora).catch(() => 0);
     }
     return { reprocesados, siguenFallando, borrados, pendientes, alerta };
   }

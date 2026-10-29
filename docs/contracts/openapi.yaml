@@ -60,7 +60,14 @@ info:
     objeto encontrado solo la ven su autor y quien tiene una reclamación
     aprobada), `GET /publicaciones/{id}/foto/miniatura` (pública) y el campo
     `tieneFoto` de la publicación: cambio compatible.
-  version: "5.2.0"
+    5.3.0 agrega los límites de uso (ADR-0028): las operaciones que crean contenido
+    (`POST /publicaciones`, `/lo-tengo`, reclamaciones, reportes, cambios de foto y
+    crear cuentas) responden `429` con `Retry-After` cuando se pasa el límite de la
+    ventana; cambio compatible (un cliente que ya trataba el 429 de `/sesiones` lo
+    trata igual). El tipo de aviso `alerta_operativa` llega solo a los administradores
+    (cola de eventos fallidos atascada). Además, la API rechaza con `415` los cuerpos comprimidos
+    (`Content-Encoding`), que ningún cliente envía (ADR-0029).
+  version: "5.3.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
@@ -239,6 +246,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: "Más de 20 publicaciones en una hora desde la misma cuenta (ADR-0028)"
+          headers:
+            Retry-After:
+              description: Segundos que hay que esperar
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /publicaciones/{id}/foto:
     put:
       operationId: subirFoto
@@ -315,6 +333,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: "Más de 30 cambios de foto en una hora desde la misma cuenta (ADR-0028)"
+          headers:
+            Retry-After:
+              description: Segundos que hay que esperar
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     delete:
       operationId: quitarFoto
       summary: Quitar la foto de una publicación propia
@@ -354,6 +383,17 @@ paths:
                 $ref: "#/components/schemas/Error"
         "409":
           description: Tiene una reclamación en curso o está cerrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: "Más de 30 cambios de foto en una hora desde la misma cuenta (ADR-0028)"
+          headers:
+            Retry-After:
+              description: Segundos que hay que esperar
+              schema:
+                type: integer
           content:
             application/json:
               schema:
@@ -554,6 +594,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: "Cuenta como publicar: comparte el límite de 20 por hora (ADR-0028)"
+          headers:
+            Retry-After:
+              description: Segundos que hay que esperar
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /publicaciones/{id}/reportar:
     post:
       operationId: reportarPublicacion
@@ -619,6 +670,17 @@ paths:
                 $ref: "#/components/schemas/Error"
         "409":
           description: Es tu publicación, ya está cerrada o ya la reportaste
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: "Más de 20 reportes en un día desde la misma cuenta (ADR-0028)"
+          headers:
+            Retry-After:
+              description: Segundos que hay que esperar
+              schema:
+                type: integer
           content:
             application/json:
               schema:
@@ -885,6 +947,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: "Más de 10 reclamaciones en una hora desde la misma cuenta (ADR-0028)"
+          headers:
+            Retry-After:
+              description: Segundos que hay que esperar
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     get:
       operationId: listarReclamacionesDePublicacion
       summary: Reclamaciones de una publicación propia
@@ -1134,6 +1207,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: "Más de 60 cuentas nuevas en una hora desde la misma conexión (ADR-0028)"
+          headers:
+            Retry-After:
+              description: Segundos que hay que esperar
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /cuentas/yo:
     delete:
       operationId: eliminarMiCuenta
@@ -1257,7 +1341,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "429":
-          description: Demasiados intentos fallidos de inicio de sesión para ese correo (5 en 15 minutos)
+          description: Demasiados intentos fallidos de inicio de sesión para ese correo (5 en 15 minutos), o más de 300 inicios de sesión en 15 minutos desde la misma conexión (ADR-0028)
           headers:
             Retry-After:
               description: Segundos que hay que esperar
@@ -1418,7 +1502,7 @@ components:
           type: string
         tipo:
           type: string
-          enum: [coincidencia, reclamacion_nueva, reclamacion_aprobada, reclamacion_rechazada, publicacion_ocultada]
+          enum: [coincidencia, reclamacion_nueva, reclamacion_aprobada, reclamacion_rechazada, publicacion_ocultada, alerta_operativa]
         titulo:
           type: string
         mensaje:

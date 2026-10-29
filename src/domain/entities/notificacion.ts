@@ -3,7 +3,9 @@ export type TipoNotificacion =
   | 'reclamacion_nueva'
   | 'reclamacion_aprobada'
   | 'reclamacion_rechazada'
-  | 'publicacion_ocultada';
+  | 'publicacion_ocultada'
+  /** Un aviso del sistema para quien lo administra (por ejemplo, la cola de eventos fallidos atascada). */
+  | 'alerta_operativa';
 
 export interface DatosNotificacion {
   /** Determinista por evento y destinatario: el mismo evento repetido no la duplica. */

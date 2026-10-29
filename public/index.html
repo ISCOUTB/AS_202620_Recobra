@@ -171,6 +171,7 @@
   .foto-pub .foto-completa { max-width: 100%; max-height: 320px; border-radius: 12px; }
   .foto-pub button { padding: 0.35rem 0.8rem; font-size: 0.82rem; }
   .foto-pub output { flex-basis: 100%; }
+  .rotulo-chico.margen-superior { margin-top: 1rem; } /* mayor especificidad que .rotulo-chico, que se define más abajo */
   .filtros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
   @media (max-width: 560px) { .filtros { grid-template-columns: minmax(0, 1fr); } }
 
@@ -443,7 +444,7 @@
   .aviso-item::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--azul-claro); }
   .aviso-item.reclamacion_nueva::before { background: var(--naranja); }
   .aviso-item.reclamacion_aprobada::before { background: var(--verde); }
-  .aviso-item.reclamacion_rechazada::before, .aviso-item.publicacion_ocultada::before { background: var(--error); }
+  .aviso-item.reclamacion_rechazada::before, .aviso-item.publicacion_ocultada::before, .aviso-item.alerta_operativa::before { background: var(--error); }
   .aviso-item.leida { opacity: 0.6; }
   .aviso-item .chip { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-suave); }
   .aviso-item strong { display: block; margin: 0.15rem 0; font-size: 0.95rem; }
@@ -533,7 +534,7 @@
       <button type="submit">Crear cuenta</button>
     </form>
     <output id="mensaje-cuenta"></output>
-    <h3 class="rotulo-chico" style="margin-top:1rem">¿POR QUÉ NECESITO UNA CUENTA?</h3>
+    <h3 class="rotulo-chico margen-superior">¿POR QUÉ NECESITO UNA CUENTA?</h3>
     <ul class="razones">
       <li><strong>Cada reclamo tiene un responsable</strong>Queda registrado quién reclamó y cuándo. Así nadie se queda con lo de otra persona.</li>
       <li><strong>Para avisarte</strong>Te contamos cuando aparece algo parecido a lo que perdiste o cuando responden tu reclamo.</li>
@@ -2140,6 +2141,7 @@
     reclamacion_aprobada: 'Reclamación aprobada',
     reclamacion_rechazada: 'Reclamación rechazada',
     publicacion_ocultada: 'Publicación ocultada',
+    alerta_operativa: 'Alerta del sistema',
   };
   const botonAvisos = document.getElementById('boton-avisos');
   const contadorAvisos = document.getElementById('contador-avisos');

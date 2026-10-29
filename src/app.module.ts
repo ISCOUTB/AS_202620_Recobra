@@ -14,6 +14,7 @@ import { ModeracionModule } from './moderacion/moderacion.module';
 import { FotosModule } from './fotos/fotos.module';
 import { ConciliacionAvisosModule } from './notificaciones/conciliacion-avisos.module';
 import { politicaDeCache } from './observabilidad/politica-de-cache.middleware';
+import { SeguridadModule } from './seguridad/seguridad.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { politicaDeCache } from './observabilidad/politica-de-cache.middleware';
     ModeracionModule,
     FotosModule,
     ConciliacionAvisosModule,
+    SeguridadModule,
   ],
 })
 export class AppModule implements NestModule {

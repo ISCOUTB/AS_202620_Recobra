@@ -15,7 +15,9 @@ import {
   RegistrarCuenta,
   ResolverSesion,
 } from '../application/use-cases/identidad';
+import { VerificarAdministradores } from '../application/use-cases/verificar-administradores';
 import { IdentidadController } from './identidad.controller';
+import { VerificadorDeAdministradores } from './verificador-de-administradores';
 import { AutenticacionGuard } from './autenticacion.guard';
 import { ErroresDeDominioFilter } from './errores-de-dominio.filter';
 
@@ -39,6 +41,8 @@ const conBase = Boolean(process.env.DATABASE_URL);
     CerrarSesion,
     ResolverSesion,
     AutenticacionGuard,
+    VerificarAdministradores,
+    VerificadorDeAdministradores,
   ],
   exports: [CuentaRepository, SesionRepository, HashContrasenas, ResolverSesion, AutenticacionGuard],
 })

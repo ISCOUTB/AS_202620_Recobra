@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cuenta } from '../../domain/entities/cuenta';
 import { Publicacion } from '../../domain/entities/publicacion';
@@ -10,21 +10,8 @@ import { ReporteRepository } from '../../domain/ports/reporte-repository';
 import { PUBLICACION_MODERADA, cargaModeracion, emitirEvento } from '../events/eventos-dominio';
 import { EliminarFotoDe } from './fotos';
 
-/**
- * Administradores: las cuentas cuyo correo está en `ADMIN_CORREOS` (separados
- * por comas, se define en el panel de Dokploy, nunca en el repositorio). No hay
- * rol guardado en la base ni pantalla para asignarlo (ADR-0022).
- */
-export function correosAdministradores(): string[] {
-  return (process.env.ADMIN_CORREOS ?? '')
-    .split(',')
-    .map((c) => c.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-export function esAdministrador(cuenta: Cuenta): boolean {
-  return !cuenta.eliminadaEn && correosAdministradores().includes(cuenta.correo);
-}
+// Quién es administrador vive en `administradores.ts`; se reexporta para no cambiar las importaciones.
+export { correosAdministradores, esAdministrador } from './administradores';
 
 /**
  * Reportar una publicación (abuso, spam, datos de terceros…). Una cuenta
@@ -101,6 +88,8 @@ export class ListarReportesAbiertos {
  */
 @Injectable()
 export class ResolverReporte {
+  private readonly logger = new Logger('Auditoria');
+
   constructor(
     private readonly reportes: ReporteRepository,
     private readonly publicaciones: PublicacionRepository,
@@ -119,6 +108,14 @@ export class ResolverReporte {
 
     if (decision === 'ocultar') await this.ocultar(reporte.publicacionId, administrador, nota, ahora);
     await this.reportes.guardar(resuelto);
+    // Auditoría (amenaza T13, repudio): quién decidió qué y cuándo, también en el registro del servidor y no solo en la base.
+    this.logger.log({
+      evento: 'auditoria.moderacion',
+      reporteId: reporte.id,
+      publicacionId: reporte.publicacionId,
+      decision,
+      administradorId: administrador.id,
+    });
     return resuelto;
   }
 

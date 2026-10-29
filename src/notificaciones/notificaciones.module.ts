@@ -4,6 +4,7 @@ import { NotificacionRepository } from '../domain/ports/notificacion-repository'
 import { MemoriaEventoFallidoRepository } from '../infrastructure/persistence/memoria-evento-fallido.repository';
 import { PostgresEventoFallidoRepository } from '../infrastructure/persistence/postgres-evento-fallido.repository';
 import { ProcesadorDeEventos, ReprocesarEventosFallidos } from '../application/use-cases/entrega-de-eventos';
+import { AlertarAdministradores } from '../application/use-cases/alertas-operativas';
 import { MemoriaNotificacionRepository } from '../infrastructure/persistence/memoria-notificacion.repository';
 import { PostgresNotificacionRepository } from '../infrastructure/persistence/postgres-notificacion.repository';
 import { ConsultarNotificaciones, Notificar } from '../application/use-cases/notificaciones';
@@ -33,6 +34,7 @@ import { NotificacionesListener } from './notificaciones.listener';
     ConsultarNotificaciones,
     ProcesadorDeEventos,
     ReprocesarEventosFallidos,
+    AlertarAdministradores,
     NotificacionesListener,
   ],
   exports: [NotificacionRepository, Notificar, ReprocesarEventosFallidos],

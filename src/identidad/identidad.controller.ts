@@ -3,6 +3,7 @@ import { Cuenta } from '../domain/entities/cuenta';
 import { CerrarSesion, IniciarSesion, RegistrarCuenta } from '../application/use-cases/identidad';
 import { esAdministrador } from '../application/use-cases/moderacion';
 import { AutenticacionGuard, CuentaActual, TokenActual } from './autenticacion.guard';
+import { Limitar, LimiteGuard } from '../seguridad/limite-de-uso';
 
 interface CuerpoRegistro {
   correo: string;
@@ -27,6 +28,8 @@ export class IdentidadController {
 
   @Post('cuentas')
   @HttpCode(201)
+  @UseGuards(LimiteGuard)
+  @Limitar('cuentaNueva')
   async registrarCuenta(@Body() cuerpo: CuerpoRegistro) {
     const cuenta = await this.registrar.ejecutar({
       correo: cuerpo?.correo,
@@ -39,6 +42,8 @@ export class IdentidadController {
 
   @Post('sesiones')
   @HttpCode(201)
+  @UseGuards(LimiteGuard)
+  @Limitar('sesion')
   async iniciarSesion(@Body() cuerpo: CuerpoSesion) {
     const { token, expiraEn, cuenta } = await this.iniciar.ejecutar(cuerpo?.correo, cuerpo?.contrasena);
     return { token, expiraEn, cuenta: { ...cuenta.vistaPublica(), esAdministrador: esAdministrador(cuenta) } };
