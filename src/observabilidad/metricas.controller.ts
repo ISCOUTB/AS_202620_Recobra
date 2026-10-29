@@ -27,6 +27,13 @@ export class MetricasController {
           origen: huellaDe(`origen:${peticion.ip ?? 'desconocido'}`),
           conexionSegura: peticion.secure,
           saltosDeProxy: saltosDeProxy(),
+          // Cadena X-Forwarded-For tal como llegó, solo en huellas: cuántos saltos hay entre el cliente y la API.
+          reenvio: String(peticion.headers['x-forwarded-for'] ?? '')
+            .split(',')
+            .map((d) => d.trim())
+            .filter(Boolean)
+            .map((d) => huellaDe(`origen:${d}`)),
+          socketDelProxy: huellaDe(`origen:${peticion.socket.remoteAddress ?? ''}`),
         },
       },
     };

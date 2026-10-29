@@ -135,6 +135,9 @@ describe('Seguridad HTTP (ADR-0029)', () => {
       expect(saltosDeProxy({ NODE_ENV: 'production', PROXY_CONFIABLES: '2' } as NodeJS.ProcessEnv)).toBe(2);
       expect(saltosDeProxy({ NODE_ENV: 'production', PROXY_CONFIABLES: '0' } as NodeJS.ProcessEnv)).toBe(0);
       expect(saltosDeProxy({ NODE_ENV: 'production', PROXY_CONFIABLES: 'basura' } as NodeJS.ProcessEnv)).toBe(1);
+      // El compose de producción reenvía la variable vacía cuando no se define: debe valer lo mismo que no estar.
+      expect(saltosDeProxy({ NODE_ENV: 'production', PROXY_CONFIABLES: '' } as NodeJS.ProcessEnv)).toBe(1);
+      expect(saltosDeProxy({ NODE_ENV: 'production', PROXY_CONFIABLES: '  ' } as NodeJS.ProcessEnv)).toBe(1);
     });
   });
 });

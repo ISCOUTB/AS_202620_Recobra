@@ -21,8 +21,10 @@ export function rechazarCuerpoComprimido(peticion: Request, respuesta: Response,
 
 /** Saltos de proxy de confianza: detrás de Traefik (Dokploy) es 1; sin proxy, 0. Con `PROXY_CONFIABLES` se cambia. */
 export function saltosDeProxy(entorno: NodeJS.ProcessEnv = process.env): number {
-  const configurado = Number(entorno.PROXY_CONFIABLES);
-  if (entorno.PROXY_CONFIABLES !== undefined && Number.isInteger(configurado) && configurado >= 0) return configurado;
+  // Una variable vacía (el compose la reenvía vacía cuando no se define) cuenta como no definida.
+  const crudo = entorno.PROXY_CONFIABLES?.trim();
+  const configurado = Number(crudo);
+  if (crudo && Number.isInteger(configurado) && configurado >= 0) return configurado;
   return entorno.NODE_ENV === 'production' ? 1 : 0;
 }
 
