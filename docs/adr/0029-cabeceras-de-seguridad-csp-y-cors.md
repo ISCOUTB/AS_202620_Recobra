@@ -79,7 +79,7 @@ y aparecieron dos errores de la primera versión de esta decisión:
    por origen (ADR-0028) habrían contado por borde de Cloudflare. La dirección real llega en `CF-Connecting-IP`, que
    `origen-del-cliente.ts` cree **solo si la conexión salió de un rango publicado de Cloudflare**; de cualquier otro
    origen el encabezado se ignora. Después de este ajuste la huella que ve el servidor es la de la dirección real
-   (se comparó contra la huella calculada de una conexión propia).
+   (se comparó contra la huella calculada de una conexión propia, por IPv4 y por IPv6, y coincidieron). Además, Cloudflare mismo rechaza con 403 (error 1000) una petición que traiga `CF-Connecting-IP` puesto por el cliente.
 
 Los rangos de Cloudflare están escritos en el código (se revisaron el 28-oct-2026 en `cloudflare.com/ips-v4` y `/ips-v6`)
 y cambian muy rara vez; si Cloudflare agregara uno y no se actualizara, esas conexiones caerían a la dirección del

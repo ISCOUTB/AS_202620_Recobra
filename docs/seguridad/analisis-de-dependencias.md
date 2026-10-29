@@ -18,7 +18,7 @@ grep -rniE 'snyk|dependabot|trivy|osv|npm audit|owasp' .github/ scripts/ | head 
 npm run seguridad:dependencias                                                      # lo mismo, en local
 ```
 
-- **Run del flujo con el análisis ejecutado:** [run 40804709036 (commit c579bf2)](https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/40804709036), trabajo «Seguridad (dependencias y secretos)» en verde
+- **Run del flujo con el análisis ejecutado:** [run 40806601497 (commit a10e231)](https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/40806601497), todos los trabajos en verde, incluidos «Seguridad (dependencias y secretos)» y el Quality Gate
 - **El resultado** queda en el resumen de cada ejecución (tabla de avisos, decisión y vencimiento).
 
 Por qué un control propio de revisión y no solo `npm audit --audit-level=high` (que fallaría para siempre
