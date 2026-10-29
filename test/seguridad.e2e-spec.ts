@@ -49,6 +49,12 @@ describe('Seguridad HTTP (e2e)', () => {
     expect(falsificada.headers['strict-transport-security']).toBeUndefined();
   });
 
+  it('/metrics dice qué cree el servidor del cliente (para comprobar el proxy), sin mostrar su dirección', async () => {
+    const r = await request(srv()).get('/metrics').set('X-Forwarded-For', '203.0.113.9');
+    expect(r.body.seguridad.cliente).toEqual({ origen: expect.stringMatching(/^[0-9a-f]{8}$/), conexionSegura: false, saltosDeProxy: 0 });
+    expect(JSON.stringify(r.body)).not.toContain('203.0.113.9');
+  });
+
   describe('Cuerpo comprimido (GHSA-27r3-jxmh-p828 en body-parser)', () => {
     it('el ataque real —un marco gzip válido seguido de bytes de más— se rechaza con 415 y el servidor sigue vivo', async () => {
       const ataque = Buffer.concat([gzipSync(Buffer.from('{"correo":"a@utb.edu.co"}')), Buffer.from('basura-despues-del-marco')]);

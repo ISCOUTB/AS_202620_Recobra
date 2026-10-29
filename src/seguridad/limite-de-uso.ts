@@ -94,7 +94,8 @@ export class LimiteDeUso {
   }
 }
 
-function huellaDe(clave: string): string {
+/** Huella corta (8 hex) de una clave de límite: sirve para comparar sin guardar ni mostrar la dirección. */
+export function huellaDe(clave: string): string {
   return createHash('sha256').update(clave).digest('hex').slice(0, 8);
 }
 
