@@ -43,7 +43,7 @@ bloquea en la web).
 | **Finalidad** | Solo que el servicio funcione: publicar, buscar, comparar lo perdido con lo encontrado, verificar quién reclama un objeto y avisar. No se venden, no se usan para publicidad y no se comparten con terceros |
 | **Principios** | *Finalidad* (solo lo anterior), *libertad* (consentimiento al registrarse), *veracidad* (la persona corrige sus datos), *transparencia* (aviso y descarga de datos), *acceso restringido* (cada dato lo ve quien debe, tabla anterior), *seguridad* y *confidencialidad* (§4) |
 | **Responsable** | El equipo del proyecto; el contacto sale de `CONTACTO_PRIVACIDAD` |
-| **Encargados y transferencias** | La base está en el servidor del laboratorio (Dokploy). **No se envía nada a terceros**: la tipografía, que antes se pedía a Google en cada arranque de la app, ahora va empaquetada (T27). GitHub y SonarCloud ven el código, no datos de personas |
+| **Encargados y transferencias** | La base está en el servidor del laboratorio (Dokploy). **Cloudflare intermedia todo el tráfico del dominio** `recobra.iscoutb.dev` (proxy y CDN, delante de Traefik): termina el HTTPS, así que ve las direcciones IP y el contenido de las peticiones en tránsito; es un encargado a declarar, y su configuración es del laboratorio. Cloudflare además inyecta en las páginas un script de analítica propio (*Web Analytics*), que la CSP **bloquea** en el navegador (se comprobó en producción). Fuera de eso, la aplicación no envía nada a terceros: la tipografía, que antes se pedía a Google en cada arranque, ahora va empaquetada (T27). GitHub y SonarCloud ven el código, no datos de personas |
 
 ## 3. Derechos y cómo se atienden
 
@@ -77,6 +77,7 @@ correos ni textos; el aviso de privacidad se versiona y cada cuenta guarda la ve
 ## 6. Pendientes
 
 - Revisión del aviso por la universidad (responsable, plazos y canal propios).
+- Mencionar a Cloudflare como intermediario en el aviso de privacidad (hoy el aviso no lo nombra) y decidir con quien administra el dominio si se desactiva su analítica.
 - Mención de los respaldos en el aviso, cuando existan.
 - Una pantalla para rectificar el nombre (hoy es por el contacto).
 - Limpieza de datos personales que alguien escriba en una descripción (riesgo aceptado, arc42 §11.2).
