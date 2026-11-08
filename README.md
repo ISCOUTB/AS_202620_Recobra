@@ -279,6 +279,7 @@ La documentación del proyecto se encuentra en la carpeta `docs/`.
 - [`docs/modulo-datos.md`](docs/modulo-datos.md) — módulo → datos, con dueño único.
 - [`docs/medicion-corte1.md`](docs/medicion-corte1.md) — línea base y resultado del reto de corte 1.
 - [`docs/medicion-s10.md`](docs/medicion-s10.md) — experimento del segundo corte: escenario S1 sobre el despliegue en Dokploy.
+- [`docs/medicion-s14.md`](docs/medicion-s14.md) — S1 repetido con los controles de S11-S13: resultado contrastado con el umbral de 400 ms p95 y con S10.
 - [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md) — modos de fallo de cada integración, su mitigación, código y prueba (S11).
 - [`docs/diseno-ui.md`](docs/diseno-ui.md) — paleta y patrones de interfaz tomados de la app UTB.
 - [`docs/no-conformidades.md`](docs/no-conformidades.md) — no conformidades detectadas y su plan de corrección.

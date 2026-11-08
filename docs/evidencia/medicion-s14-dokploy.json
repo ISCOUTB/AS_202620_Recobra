@@ -1,0 +1,104 @@
+{
+  "descripcion": "Salidas originales de scripts/measure-busqueda.js y de GET /metrics durante la medicion S14 de S1 (ver docs/medicion-s14.md). Solo lectura: SEMBRAR=0, no se creo ninguna cuenta ni publicacion.",
+  "fecha": "2026-11-08",
+  "ventanaUTC": "2026-11-08T18:34:26Z a 2026-11-08T18:35:25Z",
+  "sistemaMedido": "https://recobra.iscoutb.dev",
+  "commitDesplegado": "0dda9ab (HEAD de master en el remoto al medir; cada commit a master redespliega solo. No se verifico en el panel de Dokploy)",
+  "datosEnProduccion": "2 publicaciones activas en total; el filtro medido devuelve 0 resultados (cuerpo []).",
+  "cliente": "equipo del autor, fuera de la red del servidor, mismo equipo en todas las corridas",
+  "comandos": [
+    "BASE_URL=https://recobra.iscoutb.dev SEMBRAR=0 CONEXIONES=20 DURACION_S=10 node scripts/measure-busqueda.js",
+    "BASE_URL=https://recobra.iscoutb.dev SEMBRAR=0 CONEXIONES={50,100,200} DURACION_S=15 node scripts/measure-busqueda.js"
+  ],
+  "corridas": [
+    {
+      "escenario": "S1 (p95 <= 400 ms con hasta 200 usuarios concurrentes)",
+      "publicacionesSembradas": 0,
+      "conexionesConcurrentes": 20,
+      "duracionSegundos": 10,
+      "peticionesPorSegundo": 176,
+      "respuestas2xx": 1755,
+      "respuestasNo2xx": 0,
+      "errores": 0,
+      "latenciaMs": {
+        "p50": 105,
+        "p90": 118,
+        "p97_5": 149,
+        "p99": 390,
+        "max": 465
+      },
+      "cumpleUmbral": true
+    },
+    {
+      "escenario": "S1 (p95 <= 400 ms con hasta 200 usuarios concurrentes)",
+      "publicacionesSembradas": 0,
+      "conexionesConcurrentes": 50,
+      "duracionSegundos": 15,
+      "peticionesPorSegundo": 445,
+      "respuestas2xx": 6672,
+      "respuestasNo2xx": 0,
+      "errores": 0,
+      "latenciaMs": {
+        "p50": 105,
+        "p90": 122,
+        "p97_5": 151,
+        "p99": 222,
+        "max": 611
+      },
+      "cumpleUmbral": true
+    },
+    {
+      "escenario": "S1 (p95 <= 400 ms con hasta 200 usuarios concurrentes)",
+      "publicacionesSembradas": 0,
+      "conexionesConcurrentes": 100,
+      "duracionSegundos": 15,
+      "peticionesPorSegundo": 846,
+      "respuestas2xx": 12693,
+      "respuestasNo2xx": 0,
+      "errores": 0,
+      "latenciaMs": {
+        "p50": 107,
+        "p90": 131,
+        "p97_5": 173,
+        "p99": 238,
+        "max": 1113
+      },
+      "cumpleUmbral": true
+    },
+    {
+      "escenario": "S1 (p95 <= 400 ms con hasta 200 usuarios concurrentes)",
+      "publicacionesSembradas": 0,
+      "conexionesConcurrentes": 200,
+      "duracionSegundos": 15,
+      "peticionesPorSegundo": 1490,
+      "respuestas2xx": 22345,
+      "respuestasNo2xx": 0,
+      "errores": 0,
+      "latenciaMs": {
+        "p50": 119,
+        "p90": 160,
+        "p97_5": 203,
+        "p99": 227,
+        "max": 1830
+      },
+      "cumpleUmbral": true
+    }
+  ],
+  "metricsDelServidorTrasLaCorridaDe200": {
+    "busqueda": {
+      "escenario": "S1 (rendimiento de búsqueda) — ver docs/calidad/escenarios_calidad.md y docs/medicion-busqueda.md",
+      "metrica": "latencia_get_publicaciones_ms",
+      "n": 200,
+      "errores": 0,
+      "avgMs": 21.65,
+      "p50Ms": 22.16,
+      "p95Ms": 28.74,
+      "objetivoP95Ms": 400,
+      "cumpleObjetivo": true,
+      "ventana": "últimas 200 peticiones (en memoria, se reinicia con el proceso)"
+    },
+    "seguridad": {
+      "limitesExcedidos": {}
+    }
+  }
+}
