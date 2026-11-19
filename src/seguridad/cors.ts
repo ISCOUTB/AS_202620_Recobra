@@ -1,12 +1,12 @@
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 
-/** Orígenes de desarrollo (Flutter web o la vitrina servidas en otro puerto). Solo fuera de producción. */
+/** Orígenes de desarrollo (Flutter web servida en otro puerto). Solo fuera de producción. */
 const ORIGEN_LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 /**
  * Orígenes del navegador que pueden leer las respuestas de la API (ADR-0029).
- * La vitrina y la app web las sirve la propia API, o sea, mismo origen: no
- * necesitan CORS. Antes estaba abierto a cualquier sitio. Ahora, en producción,
+ * La app web la sirve la propia API, o sea, mismo origen: no
+ * necesita CORS. Antes estaba abierto a cualquier sitio. Ahora, en producción,
  * solo se permiten los que se listen en `CORS_ORIGENES` (separados por comas);
  * fuera de producción, además, localhost. Las apps móviles y `curl` no mandan
  * `Origin`, así que no les afecta.

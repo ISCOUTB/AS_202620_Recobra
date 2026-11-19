@@ -1,7 +1,7 @@
 /**
  * Catálogo de lugares del campus en dos niveles: el lugar (edificio o zona) y,
  * si aplica, sus niveles sugeridos (pisos o zonas). Es la única fuente de la
- * lista: la vitrina y la app la piden por `GET /lugares` en vez de copiarla.
+ * lista: la app la pide por `GET /lugares` en vez de copiarla.
  *
  * El lugar viaja en `ubicacion` (filtro de búsqueda y emparejamiento) y el
  * piso, zona, salón o punto de referencia en `detalleUbicacion` (solo se

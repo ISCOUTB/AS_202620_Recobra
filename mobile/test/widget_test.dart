@@ -11,6 +11,7 @@ import 'package:recobra_mobile/estado/almacen_local.dart';
 import 'package:recobra_mobile/main.dart';
 import 'package:recobra_mobile/pantallas/avisos.dart';
 import 'package:recobra_mobile/servicios/fotos.dart';
+import 'package:recobra_mobile/widgets/comunes.dart';
 
 const _json = {'content-type': 'application/json; charset=utf-8'};
 
@@ -78,6 +79,7 @@ final _reclamacionPendiente = jsonEncode([
 MockClient _servidor({
   List<http.Request>? registro,
   bool soyAutor = false,
+  bool esAdmin = false,
   String? mias,
   String? reclamosPropios,
   String? lista,
@@ -90,10 +92,33 @@ MockClient _servidor({
           jsonEncode({
             'token': 'tok-123',
             'expiraEn': '2026-10-24T00:00:00.000Z',
-            'cuenta': {'id': 'yo', 'correo': 'ana@utb.edu.co', 'nombre': 'Ana Pérez'},
+            'cuenta': {'id': 'yo', 'correo': 'ana@utb.edu.co', 'nombre': 'Ana Pérez', 'esAdministrador': esAdmin},
           }),
           201,
         );
+      }
+      if (request.method == 'GET' && ruta == '/moderacion/reportes') {
+        if (!esAdmin) return _resp('{"statusCode":403,"message":"Solo administradores"}', 403);
+        return _resp(
+          jsonEncode([
+            {
+              'reporte': {
+                'id': 'rep1',
+                'publicacionId': 'abc',
+                'motivo': 'spam',
+                'detalle': null,
+                'estado': 'abierto',
+                'creadoEn': '2026-10-18T12:00:00.000Z',
+              },
+              'publicacion': {'id': 'abc', 'tipo': 'encontrado', 'descripcion': 'Termo azul', 'categoria': 'otros', 'ubicacion': 'Biblioteca', 'estado': 'publicado'},
+              'reportesDeLaPublicacion': 2,
+            },
+          ]),
+          200,
+        );
+      }
+      if (request.method == 'POST' && ruta == '/moderacion/reportes/rep1/resolver') {
+        return _resp(jsonEncode({'id': 'rep1', 'estado': 'resuelto'}), 200);
       }
       if (request.method == 'GET' && ruta == '/privacidad') {
         return _resp(
@@ -885,6 +910,46 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(peticiones.where((r) => r.url.path == '/reclamaciones/r7/entregada'), hasLength(1));
+    });
+
+    void pantallaDeComputador(WidgetTester tester) {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+    }
+
+    testWidgets('En computador hay menú lateral con Publicar; en celular, la barra inferior', (tester) async {
+      pantallaDeComputador(tester);
+      await tester.pumpWidget(app(_servidor()));
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuLateralUtb), findsOneWidget);
+      expect(find.byType(BarraNavegacionUtb), findsNothing);
+      expect(find.text('Moderación'), findsNothing);
+
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuLateralUtb), findsNothing);
+      expect(find.byType(BarraNavegacionUtb), findsOneWidget);
+    });
+
+    testWidgets('Un administrador revisa un reporte y oculta la publicación', (tester) async {
+      pantallaDeComputador(tester);
+      final peticiones = <http.Request>[];
+      await tester.pumpWidget(app(_servidor(registro: peticiones, esAdmin: true)));
+      await tester.pumpAndSettle();
+      await entrar(tester);
+
+      await tester.tap(find.text('Moderación').first);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Es spam o publicidad'), findsOneWidget);
+      expect(find.textContaining('2 reporte(s) sobre esta publicación'), findsOneWidget);
+
+      await tester.tap(find.text('Ocultar'));
+      await tester.pumpAndSettle();
+      final resolver = peticiones.where((r) => r.url.path == '/moderacion/reportes/rep1/resolver').single;
+      expect(jsonDecode(resolver.body), {'decision': 'ocultar'});
+      expect(find.textContaining('Publicación ocultada'), findsOneWidget);
     });
   });
 }

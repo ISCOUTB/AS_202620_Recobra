@@ -3,7 +3,8 @@
 # TypeScript fuente a la imagen que corre en producción.
 
 # App Flutter compilada para web y servida por la misma API en /app/
-# (mismo origen: no necesita CORS ni una URL de API aparte).
+# (mismo origen: no necesita CORS ni una URL de API aparte). Es la única
+# interfaz (ADR-0031): la raíz redirige a /app/.
 FROM ghcr.io/cirruslabs/flutter:3.41.5 AS app-web
 WORKDIR /mobile
 COPY mobile/pubspec.yaml mobile/pubspec.lock ./
@@ -26,7 +27,6 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/dist ./dist
-COPY public ./public
 COPY --from=app-web /mobile/build/web ./public/app
 
 # No correr como root (hallazgo SonarCloud docker:S6471): la imagen base

@@ -1,16 +1,14 @@
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { NextFunction, Request, Response } from 'express';
 
 /**
  * Cabeceras de seguridad de todas las respuestas (ADR-0029, arc42 §8.6). Cada
  * una cierra una amenaza del modelo (docs/seguridad/modelo-de-amenazas.md):
  *
- * - `Content-Security-Policy` (T03): si alguien lograra inyectar un script en la
- *   vitrina, el navegador no lo ejecuta, y con él no puede leer el token de
- *   sesión guardado en el navegador. La vitrina solo permite SU script y SU
- *   estilo en línea, identificados por su hash.
+ * - `Content-Security-Policy` (T03): la app web (`/app/`) solo ejecuta sus
+ *   propios archivos — ningún script en línea ni de otro sitio —, así que un
+ *   script inyectado no corre y con él no se puede leer el token de sesión
+ *   guardado en el navegador. Desde ADR-0031 la app Flutter es la única
+ *   interfaz; la vitrina HTML, que tenía su propia política por hash, se retiró.
  * - `frame-ancestors 'none'` y `X-Frame-Options` (T22): nadie puede meter Recobra
  *   en un marco de otra página para engañar con clics (clickjacking).
  * - `Strict-Transport-Security` (T04): una vez visto por HTTPS, el navegador no
@@ -31,39 +29,14 @@ const COMUNES: Record<string, string> = {
 const HSTS = 'max-age=15552000';
 
 export interface PoliticasCsp {
-  /** Para `/` (la vitrina): solo su script y su estilo, por hash. */
-  vitrina: string;
   /** Para `/app/` (Flutter web): sus propios archivos; CanvasKit necesita WebAssembly. */
   app: string;
-  /** Para la API: las respuestas son datos, no documentos; no pueden cargar nada. */
+  /** Para la API (y la raíz, que solo redirige a `/app/`): las respuestas son datos, no documentos; no pueden cargar nada. */
   api: string;
 }
 
-/** Hash `sha256` en base64 del contenido en línea, como lo calcula el navegador (con saltos de línea normalizados). */
-export function hashCsp(contenido: string): string {
-  return `'sha256-${createHash('sha256').update(contenido.replaceAll('\r\n', '\n')).digest('base64')}'`;
-}
-
-/** Contenido de los bloques en línea `<tag>…</tag>` sin atributos (los que la política debe permitir por hash). */
-function bloquesEnLinea(html: string, etiqueta: 'script' | 'style'): string[] {
-  const patron = new RegExp(String.raw`<${etiqueta}>([\s\S]*?)</${etiqueta}>`, 'g');
-  return [...html.matchAll(patron)].map((m) => m[1]);
-}
-
-export function calcularPoliticas(htmlVitrina: string): PoliticasCsp {
-  const scripts = bloquesEnLinea(htmlVitrina, 'script').map(hashCsp);
-  const estilos = bloquesEnLinea(htmlVitrina, 'style').map(hashCsp);
+export function calcularPoliticas(): PoliticasCsp {
   return {
-    vitrina: [
-      "default-src 'none'",
-      `script-src 'self' ${scripts.join(' ')}`.trim(),
-      `style-src 'self' ${estilos.join(' ')}`.trim(),
-      "img-src 'self' data: blob:",
-      "connect-src 'self'",
-      "form-action 'self'",
-      "base-uri 'none'",
-      "frame-ancestors 'none'",
-    ].join('; '),
     app: [
       "default-src 'self'",
       "script-src 'self' 'wasm-unsafe-eval'",
@@ -85,25 +58,13 @@ export function calcularPoliticas(htmlVitrina: string): PoliticasCsp {
 
 /** Qué política corresponde a una ruta. */
 export function politicaPara(ruta: string, politicas: PoliticasCsp): string {
-  if (ruta === '/' || ruta === '/index.html') return politicas.vitrina;
   if (ruta === '/app' || ruta.startsWith('/app/')) return politicas.app;
   return politicas.api;
 }
 
-/**
- * Crea el middleware. La política de la vitrina se calcula una vez al arrancar a
- * partir del propio `public/index.html`, así que editar la vitrina no deja la
- * política desfasada (y la prueba `seguridad-vitrina.spec.ts` avisa si se agrega
- * algo que la política bloquearía).
- */
-export function crearCabecerasDeSeguridad(rutaVitrina = join(__dirname, '..', '..', 'public', 'index.html')) {
-  let html = '';
-  try {
-    html = readFileSync(rutaVitrina, 'utf-8');
-  } catch {
-    // Sin vitrina (por ejemplo, una prueba sin archivos): la política de la vitrina queda sin scripts, que es lo más estricto.
-  }
-  const politicas = calcularPoliticas(html);
+/** Crea el middleware; las políticas son fijas, se calculan una vez al arrancar. */
+export function crearCabecerasDeSeguridad() {
+  const politicas = calcularPoliticas();
 
   return (peticion: Request, respuesta: Response, siguiente: NextFunction): void => {
     for (const [nombre, valor] of Object.entries(COMUNES)) respuesta.setHeader(nombre, valor);

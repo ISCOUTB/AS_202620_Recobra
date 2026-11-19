@@ -15,7 +15,7 @@ import { NextFunction, Request, Response } from 'express';
  *
  * Es el valor por omisión: un controlador que necesite otra cosa la fija en su
  * respuesta (`@Header` o `res.set`), que prevalece. Los archivos estáticos
- * (vitrina y app web) quedan fuera: los sirve Express con su propia política.
+ * de la app web (`/app/`) quedan fuera: los sirve Express con su propia política.
  */
 export function politicaDeCache(peticion: Request, respuesta: Response, siguiente: NextFunction): void {
   // `originalUrl` y no `path`: montado con comodín, Express recorta `path` y siempre vería "/".
@@ -26,5 +26,5 @@ export function politicaDeCache(peticion: Request, respuesta: Response, siguient
 }
 
 function esEstatico(ruta: string): boolean {
-  return ruta === '/' || ruta.startsWith('/app') || /\.[a-z0-9]+$/i.test(ruta);
+  return ruta.startsWith('/app') || /\.[a-z0-9]+$/i.test(ruta);
 }

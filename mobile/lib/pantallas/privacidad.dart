@@ -6,7 +6,7 @@ import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
 
-/// Abre el aviso de privacidad (lo sirve la API, así la app y la vitrina dicen lo mismo).
+/// Abre el aviso de privacidad (lo sirve la API, así la app siempre dice lo vigente).
 Future<void> abrirAvisoPrivacidad(BuildContext context) {
   final sesion = AlcanceSesion.de(context);
   return showModalBottomSheet<void>(

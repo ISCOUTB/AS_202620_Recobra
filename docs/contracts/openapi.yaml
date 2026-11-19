@@ -67,13 +67,30 @@ info:
     trata igual). El tipo de aviso `alerta_operativa` llega solo a los administradores
     (cola de eventos fallidos atascada). Además, la API rechaza con `415` los cuerpos comprimidos
     (`Content-Encoding`), que ningún cliente envía (ADR-0029).
-  version: "5.3.0"
+    5.4.0 una sola interfaz (ADR-0031): `GET /` redirige (302) a la app en `/app/`
+    y la vitrina HTML se retira; una ruta que no existe responde `404` con el
+    esquema `Error` (antes devolvía la vitrina con `200`). Ninguna ruta de la API
+    cambia: compatible.
+  version: "5.4.0"
 servers:
   - url: https://recobra.iscoutb.dev
     description: Producción (Dokploy, servidor del laboratorio)
   - url: http://localhost:3000
     description: Backend local (npm run start)
 paths:
+  /:
+    get:
+      operationId: irALaApp
+      summary: La raíz lleva a la app (Flutter web en /app/, ADR-0031)
+      tags: [Salud]
+      responses:
+        "302":
+          description: Redirección a la app
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /app/
   /privacidad:
     get:
       operationId: avisoDePrivacidad

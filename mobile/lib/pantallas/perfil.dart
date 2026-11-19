@@ -14,10 +14,13 @@ const pasosRecobra = ['Publicas', 'Te avisamos si coincide', 'Reclamas con una p
 /// Perfil de la cuenta, con el estilo de la pantalla "Perfil" de la app UTB:
 /// avatar sobre el degradado, chip de tipo de cuenta e indicadores.
 class PerfilPantalla extends StatefulWidget {
-  const PerfilPantalla({super.key, this.registroInicial = false});
+  const PerfilPantalla({super.key, this.registroInicial = false, this.alModerar});
 
   /// Sin sesión, abrir el acceso en "Crear cuenta" (desde la bienvenida).
   final bool registroInicial;
+
+  /// Abre Moderación; solo se ofrece a administradores (en computador también está en el menú lateral).
+  final VoidCallback? alModerar;
 
   @override
   State<PerfilPantalla> createState() => _PerfilPantallaState();
@@ -121,6 +124,18 @@ class _PerfilPantallaState extends State<PerfilPantalla> {
                   ),
                   child: const Text('Ver la bienvenida otra vez'),
                 ),
+                if (cuenta.esAdministrador && widget.alModerar != null) ...[
+                  const TituloSeccion('Administración', subtitulo: 'Reportes de la comunidad'),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.shield_outlined, color: ColoresUtb.azulClaro),
+                      title: const Text('Moderación'),
+                      subtitle: const Text('Revisar reportes y ocultar publicaciones'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: widget.alModerar,
+                    ),
+                  ),
+                ],
                 const TituloSeccion('Privacidad', subtitulo: 'Tus datos son tuyos'),
                 Card(
                   child: Column(

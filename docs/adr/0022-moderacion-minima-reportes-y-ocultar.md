@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Reemplazada parcialmente por [ADR-0031](0031-una-sola-interfaz-la-app-flutter-reemplaza-la-vitrina.md)** (2026-11-19): el panel de moderación pasó de la vitrina a la app Flutter; las reglas de moderación siguen vigentes.
+
 Aceptada — 2026-10-18. Cierra el pendiente de "reportes de abuso (moderación)"
 que dejó [ADR-0021](0021-privacidad-y-datos-personales.md). Contrato 5.1.0
 (cambio compatible: rutas y campos nuevos).

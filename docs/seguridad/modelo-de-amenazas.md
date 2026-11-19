@@ -11,7 +11,7 @@ lo que se acepta, en [arc42 §11](../arc42/arc42.md#112-riesgos-y-deuda).
 
 ## 1. Método
 
-1. **Elementos y flujos.** Se tomaron los elementos del C4 (persona, app, vitrina,
+1. **Elementos y flujos.** Se tomaron los elementos del C4 (persona, app instalada, app web,
    API y sus componentes, bus de eventos, PostgreSQL) y se agregaron los dos que el C4
    de aplicación no dibuja pero que también se atacan: el **despliegue** (Dokploy y su
    webhook) y el **pipeline** (GitHub Actions, la imagen y las dependencias).
@@ -44,8 +44,8 @@ flowchart LR
     end
 
     subgraph cliente["Dispositivo y navegador de la persona — semiconfiable"]
-        app["App Flutter<br/><i>token en preferencias</i>"]
-        web["Vitrina web<br/><i>token en localStorage</i>"]
+        app["App Flutter instalada<br/><i>token en preferencias</i>"]
+        web["App Flutter web (/app/)<br/><i>token en el almacenamiento del navegador</i>"]
     end
 
     subgraph lab["Servidor del laboratorio (Dokploy) — frontera TB1"]
@@ -111,14 +111,14 @@ sube se ejecuta en producción).
 | **T02** | S | API (Identidad) | Registrar el correo de otra persona para publicar o reclamar en su nombre, o impedirle registrarse | 3 | 3 | 9 | Media | La entrega siempre la aprueba una persona y el contacto se revela solo tras aprobar; la eliminación de la cuenta pide la contraseña. La verificación del correo exige un proveedor de correo | Equipo | ⚖️ Aceptada hasta tener proveedor | arc42 §11.2, ADR-0013 |
 | **T06** | D | API REST (`POST /cuentas`) | Registro masivo automatizado de cuentas | 3 | 3 | 9 | Media | Límite por origen de 60 cuentas por hora (holgado: la red del campus comparte dirección) | Camilo | ✅ | `test/limites.e2e-spec.ts` |
 | **T26** | I | PostgreSQL (respaldos, DF9) | Los respaldos conservan lo que la aplicación ya borró (fotos, cuentas eliminadas) | 3 | 3 | 9 | Media | Retención corta (7–14 días) en el respaldo programado y decidir con la UTB si el aviso de privacidad lo menciona | Camilo (Dokploy) y UTB | ⏳ Pendiente | [`respaldos.md`](../despliegue/respaldos.md) |
-| **T03** | I, S | Vitrina web (DF3) | Un script inyectado (XSS) lee el token de `localStorage` y toma la cuenta | 2 | 4 | 8 | Media | Todo se pinta con `textContent` (una prueba lo exige); CSP que solo permite el script de la vitrina por hash, verificada en un navegador; el token vence a los 7 días | Camilo | ✅ | `seguridad-http.spec.ts` (guardia de la vitrina) |
+| **T03** | I, S | App web en el navegador (DF3) | Un script inyectado (XSS) lee el token del almacenamiento del navegador y toma la cuenta | 2 | 4 | 8 | Media | La interfaz la dibuja Flutter, sin HTML armado con datos del usuario; la CSP de `/app/` solo permite sus propios archivos (sin scripts en línea ni de otros sitios); el token vence a los 7 días. Hasta el 2026-11-19 esta fila era la vitrina, con CSP por hash; se retiró ([ADR-0031](../adr/0031-una-sola-interfaz-la-app-flutter-reemplaza-la-vitrina.md)) | Camilo | ✅ | `seguridad-http.spec.ts` (CSP de la app) |
 | **T04** | I | Canal HTTPS (DF1, DF2, DF3) | Intercepción o degradación a HTTP | 2 | 4 | 8 | Media | HTTPS en Traefik y `Strict-Transport-Security` (seis meses, sin subdominios) | Camilo | ✅ | `cabeceras-de-seguridad.ts` |
 | **T12** | T, E | API (guardias y casos de uso) | Hacerse pasar por el autor o cambiar estados desde el cliente (escalada horizontal) | 2 | 4 | 8 | Media | La cuenta sale siempre del token, nunca del cuerpo; cada operación comprueba autoría o rol; cambios de estado de comparar y fijar | Camilo | ✅ | `test/reclamaciones.e2e-spec.ts`, `test/fotos.e2e-spec.ts` (403) |
 | **T17** | T | Pipeline (DF7, DF8) | Compromiso de una acción de terceros o de la imagen base para ejecutar código en el flujo | 2 | 4 | 8 | Media | Acciones fijadas por SHA, imagen de PostgreSQL por digest, permisos mínimos del flujo (`contents: read`) | Camilo | ✅ | `.github/workflows/ci.yml` |
 | **T27** | I, D | App Flutter web | La app pide la fuente a `fonts.gstatic.com` en cada arranque: cuenta a Google quién la usa y depende de un tercero | 4 | 2 | 8 | Media | Roboto va empaquetada (licencia Apache 2.0) y la CSP no admite hosts de terceros | Camilo | ✅ | `mobile/assets/fonts/`, `pubspec.yaml` |
 | **T08** | S, D | API (IniciarSesion) | Fuerza bruta de contraseñas; o bloquear la cuenta de otra persona fallando a propósito | 3 | 2 | 6 | Media | 5 fallos por correo en 15 min (429), 300 inicios por origen en 15 min, scrypt, mismo mensaje y mismo tiempo con o sin cuenta. Residual: bloquear 15 min un correo ajeno | Camilo | ✅ / ⚖️ residual | `control-de-intentos.spec.ts` |
 | **T19** | I | App Flutter (dispositivo) | El token queda en las preferencias del dispositivo sin cifrar (robo físico o malware) | 2 | 3 | 6 | Media | Vence a los 7 días y se revoca al cerrar sesión. Almacenamiento seguro del sistema queda como mejora | Equipo | ⚖️ Aceptada | arc42 §11.2 |
-| **T22** | T | Vitrina web | Meter la vitrina en un marco de otra página para engañar con clics | 2 | 3 | 6 | Media | `frame-ancestors 'none'` y `X-Frame-Options: DENY` | Camilo | ✅ | `test/seguridad.e2e-spec.ts` |
+| **T22** | T | App web (`/app/`) | Meter la app en un marco de otra página para engañar con clics | 2 | 3 | 6 | Media | `frame-ancestors 'none'` y `X-Frame-Options: DENY` | Camilo | ✅ | `test/seguridad.e2e-spec.ts` |
 | **T24** | S | API (origen del cliente) | Falsificar `X-Forwarded-For` para esquivar los límites por origen | 3 | 2 | 6 | Media | Un salto de proxy de confianza (Traefik), `proxy-addr` parcheado y, para la dirección real detrás de Cloudflare, `CF-Connecting-IP` solo si la conexión salió de un rango de Cloudflare ([ADR-0029](../adr/0029-cabeceras-de-seguridad-csp-y-cors.md), ajuste del 28-oct). Residual: si el servicio se expusiera sin proxy | Camilo | ✅ / ⚖️ residual | `seguridad-http.spec.ts` |
 | **T11** | T | API → PostgreSQL (DF5) | Inyección SQL por filtros, textos o correos | 1 | 5 | 5 | Baja | Todas las consultas van parametrizadas (cero interpolaciones en los adaptadores) y hay una prueba con entradas hostiles contra memoria y PostgreSQL real | Camilo | ✅ | `test/adaptadores.e2e-spec.ts` («Entradas hostiles») |
 | **T14** | I | API (Identidad) | Saber qué correos tienen cuenta por el mensaje del registro | 4 | 1 | 4 | Baja | Los correos institucionales no son secretos; el inicio de sesión no lo revela | Equipo | ⚖️ Aceptada | arc42 §11.2 |

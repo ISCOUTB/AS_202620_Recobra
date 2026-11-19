@@ -156,7 +156,7 @@ Vista estática del backend, actualizada para el segundo corte (diagramas en
 | Adaptadores HTTP | Controladores Nest, `AutenticacionGuard`, filtros de error (400, 401, 403, 404, 409, 422 y 503) | `src/publicaciones/`, `src/emparejamiento/`, `src/identidad/`, `src/reclamaciones/`, `src/notificaciones/`, `src/salud/` |
 | Observabilidad | Logs JSON, `GET /metrics` (S5 y S1), `GET /health` y `GET /health/ready` | `src/observabilidad/`, `src/salud/` |
 | Composition root | Cableado de módulos Nest y selección del adaptador | `src/app.module.ts`, `src/publicaciones/publicaciones.module.ts` |
-| Clientes | App Flutter (estilo de la app UTB, `docs/diseno-ui.md`) y vitrina web; ambos con cuentas, reclamaciones y campana de avisos | `mobile/`, `public/index.html` |
+| Cliente | App Flutter, **única interfaz** ([ADR-0031](../adr/0031-una-sola-interfaz-la-app-flutter-reemplaza-la-vitrina.md)): estilo de la app UTB (`docs/diseno-ui.md`), menú lateral en computador y barra inferior en celular, cuentas, reclamaciones, campana de avisos y moderación para administradores. La raíz `/` redirige a `/app/` y una ruta inexistente responde 404 | `mobile/`, `src/raiz/` |
 
 Relación con C4 nivel 2: el contenedor API agrupa dominio, aplicación y
 adaptadores; la persistencia es un contenedor PostgreSQL aparte.
@@ -168,7 +168,7 @@ Propiedad de datos por módulo (regla de dueño único): ver
 
 Flujo **crear publicación**:
 
-1. El usuario envía el formulario desde Flutter o desde la vitrina.
+1. El usuario envía el formulario desde la app Flutter (web o instalada).
 2. `PublicacionesController` recibe `POST /publicaciones` (con la medición de latencia, S5).
 3. `CrearPublicacion` valida vía la entidad `Publicacion` y llama al puerto
    `PublicacionRepository`.
@@ -244,7 +244,7 @@ reemplaza a ADR-0005 y, en lo del alojamiento, a ADR-0006):
 
 | Pieza | Dónde se ejecuta | Cómo se recrea |
 |---|---|---|
-| API backend NestJS (y la vitrina web que sirve) | Contenedor Docker en **Dokploy**, servidor del laboratorio, a partir de [`Dockerfile`](../../Dockerfile) + [`deploy/compose.lab.yaml`](../../deploy/compose.lab.yaml); dominio `recobra.iscoutb.dev` | `docker build -t recobra-backend .` (mismo Dockerfile que valida el CI); en Dokploy, servicio Compose con la ruta `./deploy/compose.lab.yaml` |
+| API backend NestJS (y la app Flutter web que sirve en `/app/`) | Contenedor Docker en **Dokploy**, servidor del laboratorio, a partir de [`Dockerfile`](../../Dockerfile) + [`deploy/compose.lab.yaml`](../../deploy/compose.lab.yaml); dominio `recobra.iscoutb.dev` | `docker build -t recobra-backend .` (mismo Dockerfile que valida el CI); en Dokploy, servicio Compose con la ruta `./deploy/compose.lab.yaml` |
 | Cliente Flutter | Dispositivo/emulador del usuario (no es un servicio desplegado) | `cd mobile && flutter run` |
 | Persistencia (`Publicacion`) | **PostgreSQL como servicio del mismo proyecto de Dokploy**, alcanzado por la red interna (`DATABASE_URL` en las variables del servicio; `DATABASE_SSL=false` porque la base interna no ofrece TLS) | `PostgresPublicacionRepository` crea su propia tabla al iniciar y reintenta en segundo plano si la base no responde; sin `DATABASE_URL` cae a memoria |
 | Coincidencias | Memoria del proceso (`MemoriaCoincidenciaRepository`) | Se pierden al reiniciar; persistirlas está pendiente |
@@ -414,7 +414,7 @@ en el sistema**: qué mecanismo hay en cada capa y dónde vive en el código.
 | Capa | Mecanismo | Dónde | Amenazas |
 |---|---|---|---|
 | **Borde** (Cloudflare → Traefik → API) | HTTPS en el proxy; `trust proxy` de un salto (`PROXY_CONFIABLES`); la dirección real del cliente sale de `CF-Connecting-IP` solo si la conexión vino de un rango de Cloudflare; HSTS de 6 meses; `GET /metrics` muestra la huella del origen que el servidor ve, para comprobarlo | `configurar-seguridad.ts`, `origen-del-cliente.ts` | T04, T24 |
-| **Cabeceras** | CSP por superficie (la vitrina permite solo su script y su estilo **por hash**, calculado al arrancar; `/app/` sin scripts en línea; la API `default-src 'none'`), `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, COOP | `cabeceras-de-seguridad.ts`, [ADR-0029](../adr/0029-cabeceras-de-seguridad-csp-y-cors.md) | T03, T22, T27 |
+| **Cabeceras** | CSP por superficie (`/app/` solo sus propios archivos, sin scripts en línea; la API y la raíz `default-src 'none'`; la política por hash de la vitrina se retiró con ella, [ADR-0031](../adr/0031-una-sola-interfaz-la-app-flutter-reemplaza-la-vitrina.md)), `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, COOP | `cabeceras-de-seguridad.ts`, [ADR-0029](../adr/0029-cabeceras-de-seguridad-csp-y-cors.md) | T03, T22, T27 |
 | **CORS** | Lista blanca (`CORS_ORIGENES`); `localhost` solo fuera de producción | `cors.ts` | T21 |
 | **Cuerpo de la petición** | Se rechaza todo `Content-Encoding` distinto de `identity` (415); tope de tamaño; el único endpoint binario recibe `image/jpeg` crudo | `configurar-seguridad.ts`, `FotosController` | T07, T25 |
 | **Límites de uso** | Ventanas fijas por cuenta o por origen, con 429 y `Retry-After`; huella del origen en el registro | `limite-de-uso.ts`, [ADR-0028](../adr/0028-limites-de-uso-por-cuenta-y-por-origen.md) | T05, T06, T08 |
@@ -506,7 +506,7 @@ Detalle completo, con código y pruebas de cada fila, en
 - **Correo sin verificar por propiedad (T01, T02):** se exige `@utb.edu.co`, pero no hay código por correo (sin proveedor gratuito); lo mitiga que la entrega la aprueba una persona (ADR-0013, ADR-0014). Para los administradores se agregó detección: aviso al arrancar y cada 6 h por cada correo de `ADMIN_CORREOS` sin cuenta, y métrica. Ver §11.3.
 - **Moderación ([ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md)):** cualquier cuenta reporta y los administradores (`ADMIN_CORREOS`) ocultan o descartan, con una línea de auditoría en el registro; no hay roles en base de datos ni apelación desde la aplicación. Una publicación oculta no se reabre. Pendiente: que la universidad defina un procedimiento propio.
 - **Fotos ([ADR-0023](../adr/0023-fotos-con-privacidad.md)):** la foto completa de un encontrado solo la ven su autor y quien tiene la reclamación aprobada; el público ve una miniatura de 24 px, y el servidor quita el EXIF. Se guardan en PostgreSQL (hasta 1 MB cada una); no se revisa qué hay en la imagen y todavía no hay copias de seguridad que respeten la retención.
-- **Seguridad de la cuenta:** hay límite de intentos de inicio de sesión (5 por correo en 15 minutos, en memoria del proceso, ADR-0021) pero no recuperación de contraseña. El token vive en `localStorage` de la vitrina (la CSP de ADR-0029 impide que un script ajeno lo lea o lo envíe fuera, T03) y en las preferencias del dispositivo en la app (T19, §11.3).
+- **Seguridad de la cuenta:** hay límite de intentos de inicio de sesión (5 por correo en 15 minutos, en memoria del proceso, ADR-0021) pero no recuperación de contraseña. El token vive en las preferencias del dispositivo en la app (en la versión web, el almacenamiento del navegador; la CSP de `/app/` impide que un script ajeno se ejecute, T03; en Android/iOS, T19, §11.3).
 - **Límites de uso en memoria (ADR-0028):** se reinician con el proceso y, con más de una instancia, cada una contaría por su lado; la ventana es fija (en su borde se puede hacer hasta el doble). No hay un tope global de escrituras a la base.
 - **Credencial filtrada fuera del repositorio (T15, riesgo 25):** la contraseña de la base y la URL del webhook de despliegue aparecieron en capturas de pantalla. El repositorio está limpio (barrido de 180 commits), pero **hasta que se rote la contraseña, se cierre el puerto externo y se regenere el webhook, el riesgo sigue abierto**. Es una acción de quien administra el panel de Dokploy.
 - **Dependencias con avisos (T16):** 7 paquetes de producción con 13 avisos, todos por NestJS 10, revisados uno por uno (la función afectada no se usa; lo vigila `alcance-de-dependencias.spec.ts`). Las decisiones **vencen el 15-dic-2026**; el plan es migrar a NestJS 11 o 12 antes (ADR-0030).

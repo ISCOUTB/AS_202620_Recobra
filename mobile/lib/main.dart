@@ -9,6 +9,7 @@ import 'estado/sesion.dart';
 import 'pantallas/bienvenida.dart';
 import 'pantallas/inicio.dart';
 import 'pantallas/mis_cosas.dart';
+import 'pantallas/moderacion.dart';
 import 'pantallas/perfil.dart';
 import 'pantallas/publicar.dart';
 import 'servicios/fotos.dart';
@@ -116,6 +117,7 @@ class _NavegacionState extends State<Navegacion> {
   static const _publicar = 1;
   static const _misCosas = 2;
   static const _perfil = 3;
+  static const _moderacion = 4;
 
   int _indice = _inicio;
   bool _bienvenidaTerminada = false;
@@ -128,6 +130,7 @@ class _NavegacionState extends State<Navegacion> {
   final _claveInicio = GlobalKey<InicioPantallaState>();
   final _clavePublicar = GlobalKey<PublicarPantallaState>();
   final _claveMisCosas = GlobalKey<MisCosasPantallaState>();
+  final _claveModeracion = GlobalKey<ModeracionPantallaState>();
 
   static const _elementos = [
     ElementoNavegacion(_inicio, Icons.home_outlined, Icons.home_rounded, 'Inicio'),
@@ -135,7 +138,19 @@ class _NavegacionState extends State<Navegacion> {
     ElementoNavegacion(_perfil, Icons.person_outline_rounded, Icons.person_rounded, 'Perfil'),
   ];
 
+  /// En computador, Publicar va en el menú lateral junto a los demás destinos.
+  static const _elementoPublicar =
+      ElementoNavegacion(_publicar, Icons.add_circle_outline_rounded, Icons.add_circle_rounded, 'Publicar');
+  static const _elementoModeracion = ElementoNavegacion(_moderacion, Icons.shield_outlined, Icons.shield_rounded, 'Moderación');
+
   void _ir(int i) => setState(() => _indice = i);
+
+  /// Lo que pasa al tocar un destino en la barra inferior o en el menú lateral.
+  void _alTocarDestino(int i) {
+    if (i == _misCosas) _claveMisCosas.currentState?.mostrar(reclame: false);
+    if (i == _moderacion) _claveModeracion.currentState?.recargar();
+    _ir(i);
+  }
 
   /// Lleva a iniciar sesión o crear la cuenta y, al terminar, a donde estaba.
   void _pedirCuenta({required bool crearCuenta, VoidCallback? alVolver, required int volverA}) {
@@ -175,9 +190,10 @@ class _NavegacionState extends State<Navegacion> {
         }),
       );
     }
-    return Scaffold(
-      extendBody: true,
-      body: IndexedStack(
+    // Sin cuenta de administrador (o al cerrar sesión) no se queda en Moderación.
+    final esAdmin = sesion.cuenta?.esAdministrador ?? false;
+    if (!esAdmin && _indice == _moderacion) _indice = _inicio;
+    final pantallas = IndexedStack(
         index: _indice,
         children: [
           InicioPantalla(
@@ -200,18 +216,46 @@ class _NavegacionState extends State<Navegacion> {
             },
           ),
           MisCosasPantalla(key: _claveMisCosas),
-          PerfilPantalla(registroInicial: _registroPrimero),
+          PerfilPantalla(registroInicial: _registroPrimero, alModerar: () => _alTocarDestino(_moderacion)),
+          ModeracionPantalla(key: _claveModeracion),
         ],
-      ),
-      bottomNavigationBar: BarraNavegacionUtb(
-        indice: _indice,
-        alCambiar: (i) {
-          if (i == _misCosas) _claveMisCosas.currentState?.mostrar(reclame: false);
-          _ir(i);
-        },
-        elementos: _elementos,
-        alPublicar: () => _ir(_publicar),
-      ),
-    );
+      );
+
+    // Computador: menú lateral y contenido centrado con ancho máximo. Celular:
+    // barra flotante abajo, como la app UTB.
+    return LayoutBuilder(builder: (context, limites) {
+      if (limites.maxWidth >= anchoEscritorio) {
+        return Scaffold(
+          body: Row(
+            children: [
+              MenuLateralUtb(
+                indice: _indice,
+                alCambiar: _alTocarDestino,
+                elementos: [_elementos[0], _elementoPublicar, ..._elementos.sublist(1), if (esAdmin) _elementoModeracion],
+              ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: anchoMaximoContenido),
+                    child: pantallas,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      return Scaffold(
+        extendBody: true,
+        body: pantallas,
+        bottomNavigationBar: BarraNavegacionUtb(
+          indice: _indice,
+          alCambiar: _alTocarDestino,
+          elementos: _elementos,
+          alPublicar: () => _ir(_publicar),
+        ),
+      );
+    });
   }
 }

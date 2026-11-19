@@ -3,8 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Dónde se guardan, en el dispositivo, el token de la sesión y las
 /// preferencias de arranque. El token es opaco, vence a los 7 días y se revoca
 /// en el servidor al cerrar sesión (ADR-0013); aun así, quien tenga acceso al
-/// dispositivo desbloqueado podría leerlo (riesgo igual al de la vitrina, que
-/// lo guarda en `localStorage`).
+/// dispositivo desbloqueado podría leerlo (en la versión web, el navegador
+/// lo guarda en su almacenamiento local).
 abstract class AlmacenLocal {
   Future<String?> leer(String clave);
   Future<void> escribir(String clave, String valor);

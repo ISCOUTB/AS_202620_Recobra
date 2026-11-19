@@ -132,7 +132,7 @@ class Cuenta {
   final String correo;
   final String nombre;
 
-  /// Solo informativo: los administradores resuelven reportes en la vitrina web (ADR-0022).
+  /// Muestra la sección de moderación (ADR-0022); el servidor lo vuelve a verificar con 403.
   final bool esAdministrador;
 
   factory Cuenta.fromJson(Map<String, dynamic> json) => Cuenta(
@@ -141,6 +141,46 @@ class Cuenta {
         nombre: json['nombre'] as String,
         esAdministrador: json['esAdministrador'] as bool? ?? false,
       );
+}
+
+/// Un reporte abierto con lo justo de la publicación para decidir (ADR-0022).
+class ReporteParaModerar {
+  ReporteParaModerar({
+    required this.id,
+    required this.motivo,
+    required this.creadoEn,
+    required this.reportesDeLaPublicacion,
+    this.detalle,
+    this.publicacionTipo,
+    this.publicacionDescripcion,
+    this.publicacionUbicacion,
+  });
+
+  final String id;
+  final String motivo;
+  final String creadoEn;
+  final int reportesDeLaPublicacion;
+  final String? detalle;
+
+  /// Null si la publicación ya no existe.
+  final String? publicacionTipo;
+  final String? publicacionDescripcion;
+  final String? publicacionUbicacion;
+
+  factory ReporteParaModerar.fromJson(Map<String, dynamic> json) {
+    final reporte = json['reporte'] as Map<String, dynamic>;
+    final publicacion = json['publicacion'] as Map<String, dynamic>?;
+    return ReporteParaModerar(
+      id: reporte['id'] as String,
+      motivo: reporte['motivo'] as String,
+      creadoEn: reporte['creadoEn'] as String,
+      detalle: reporte['detalle'] as String?,
+      reportesDeLaPublicacion: json['reportesDeLaPublicacion'] as int? ?? 1,
+      publicacionTipo: publicacion?['tipo'] as String?,
+      publicacionDescripcion: publicacion?['descripcion'] as String?,
+      publicacionUbicacion: publicacion?['ubicacion'] as String?,
+    );
+  }
 }
 
 /// Reclamación vista por quien publicó el objeto: el correo solo llega si se aprobó.
@@ -502,7 +542,7 @@ class RecobraApi {
     return Publicacion.fromJson(_cuerpoO(r, {201}, 'No se pudo avisar') as Map<String, dynamic>);
   }
 
-  /// Catálogo de lugares con sus pisos; es la misma lista para la app y la vitrina.
+  /// Catálogo de lugares con sus pisos; la misma lista en web, Android e iOS.
   Future<List<LugarCampus>> lugares() async {
     final r = await _enviar(_client.get(_uri('/lugares')));
     final lista = _cuerpoO(r, {200}, 'No se pudieron cargar los lugares') as List<dynamic>;
@@ -603,6 +643,25 @@ class RecobraApi {
   Future<void> marcarTodasLeidas() async {
     final r = await _enviar(_client.post(_uri('/notificaciones/leidas'), headers: _cabeceras()));
     _cuerpoO(r, {204}, 'No se pudieron marcar los avisos');
+  }
+
+  // ---------------- Moderación (solo administradores, ADR-0022) ----------------
+
+  /// Reportes abiertos; el servidor responde 403 a quien no es administrador.
+  Future<List<ReporteParaModerar>> reportesAbiertos() async {
+    final r = await _enviar(_client.get(_uri('/moderacion/reportes'), headers: _cabeceras()));
+    final lista = _cuerpoO(r, {200}, 'No se pudieron cargar los reportes') as List<dynamic>;
+    return lista.map((e) => ReporteParaModerar.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// `decision`: "ocultar" (cierra la publicación como moderada) o "descartar".
+  Future<void> resolverReporte(String reporteId, String decision) async {
+    final r = await _enviar(_client.post(
+      _uri('/moderacion/reportes/$reporteId/resolver'),
+      headers: _cabeceras(json: true),
+      body: jsonEncode({'decision': decision}),
+    ));
+    _cuerpoO(r, {200}, 'No se pudo resolver el reporte');
   }
 
   String? _extractError(String body) {

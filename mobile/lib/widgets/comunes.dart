@@ -593,6 +593,93 @@ class BarraNavegacionUtb extends StatelessWidget {
   }
 }
 
+/// Ancho desde el que la app se trata como de computador: menú lateral en vez
+/// de barra inferior y contenido centrado con ancho máximo.
+const anchoEscritorio = 900.0;
+
+/// Ancho máximo del contenido en computador, para que las tarjetas no se
+/// estiren de borde a borde.
+const anchoMaximoContenido = 820.0;
+
+/// Menú lateral para pantallas anchas: los mismos destinos que la barra
+/// inferior más Publicar, con la marca arriba.
+class MenuLateralUtb extends StatelessWidget {
+  const MenuLateralUtb({super.key, required this.indice, required this.alCambiar, required this.elementos});
+
+  final int indice;
+  final ValueChanged<int> alCambiar;
+  final List<ElementoNavegacion> elementos;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 232,
+      decoration: const BoxDecoration(
+        color: ColoresUtb.fondoProfundo,
+        border: Border(right: BorderSide(color: ColoresUtb.borde)),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 28, 14, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(10, 0, 10, 24),
+            child: Text('Recobra', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+          ),
+          for (final e in elementos)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: _ItemMenuLateral(e, activo: e.indice == indice, alTocar: alCambiar),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemMenuLateral extends StatelessWidget {
+  const _ItemMenuLateral(this.elemento, {required this.activo, required this.alTocar});
+
+  final ElementoNavegacion elemento;
+  final bool activo;
+  final ValueChanged<int> alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = activo ? ColoresUtb.texto : ColoresUtb.textoSuave;
+    return Semantics(
+      selected: activo,
+      button: true,
+      label: elemento.etiqueta,
+      excludeSemantics: true,
+      child: Material(
+        color: activo ? ColoresUtb.azul.withValues(alpha: 0.32) : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => alTocar(elemento.indice),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              children: [
+                Icon(activo ? elemento.iconoActivo : elemento.icono, color: activo ? ColoresUtb.azulClaro : color),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    elemento.etiqueta,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ItemNavegacion extends StatelessWidget {
   const _ItemNavegacion(this.elemento, {required this.activo, required this.alTocar});
 

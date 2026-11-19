@@ -1,7 +1,7 @@
 /**
  * Aviso de privacidad de Recobra (ADR-0021). Es la única fuente del texto: la
- * API lo sirve en `GET /privacidad` y la vitrina y la app lo muestran, así
- * nunca dicen cosas distintas. Debe describir lo que el sistema hace de verdad;
+ * API lo sirve en `GET /privacidad` y la app lo muestra, así
+ * nunca dice cosas distintas. Debe describir lo que el sistema hace de verdad;
  * si cambia el tratamiento de datos, cambia aquí y sube la versión.
  *
  * Borrador del equipo (proyecto académico de la UTB): pendiente de revisión por

@@ -15,6 +15,7 @@ import { FotosModule } from './fotos/fotos.module';
 import { ConciliacionAvisosModule } from './notificaciones/conciliacion-avisos.module';
 import { politicaDeCache } from './observabilidad/politica-de-cache.middleware';
 import { SeguridadModule } from './seguridad/seguridad.module';
+import { RaizController } from './raiz/raiz.controller';
 
 @Module({
   imports: [
@@ -23,11 +24,13 @@ import { SeguridadModule } from './seguridad/seguridad.module';
     // forma asíncrona, sin acoplar la respuesta de crear al resultado del
     // matching.
     EventEmitterModule.forRoot(),
-    // Página de demostración del corte vertical (public/index.html), para
-    // mostrar la funcionalidad en clase sin depender de Postman/Thunder
-    // Client. No forma parte del corte vertical en sí, es solo la vitrina.
+    // La app Flutter compilada para web (etapa `app-web` del Dockerfile) es la
+    // única interfaz (ADR-0031): se sirve solo en /app/. Sin comodín: una ruta
+    // que no existe responde 404 con el esquema `Error` en vez de la página.
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
+      rootPath: join(__dirname, '..', 'public', 'app'),
+      serveRoot: '/app',
+      renderPath: '/',
     }),
     PublicacionesModule,
     SaludModule,
@@ -42,6 +45,7 @@ import { SeguridadModule } from './seguridad/seguridad.module';
     ConciliacionAvisosModule,
     SeguridadModule,
   ],
+  controllers: [RaizController],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

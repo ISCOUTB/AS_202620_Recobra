@@ -14,15 +14,16 @@ Problema, usuarios objetivo, propuesta de solución y tensiones de calidad
 completas en [`docs/ficha_problema.md`](docs/ficha_problema.md).
 
 **Posicionamiento ([ADR-0016](docs/adr/0016-recobra-semiindependiente-de-la-app-utb.md)):** hoy Recobra es
-**semiindependiente** de la app de la UTB: tiene su propia API, app y
-vitrina, con cuentas `@utb.edu.co` y el mismo lenguaje visual de la app
+**semiindependiente** de la app de la UTB: tiene su propia API y app
+(una sola interfaz, [ADR-0031](docs/adr/0031-una-sola-interfaz-la-app-flutter-reemplaza-la-vitrina.md)), con cuentas `@utb.edu.co` y el mismo lenguaje visual de la app
 institucional. El **objetivo potencial** es integrarse como un módulo de la app
 UTB (inicio de sesión con la cuenta de la universidad, entrada desde su menú y
 avisos por su canal); cada punto de integración ya está detrás de un puerto o
 del contrato de la API para poder darlo sin reescribir el dominio.
 
-**Probar:** vitrina web en https://recobra.iscoutb.dev y la app Flutter
-(versión web) en https://recobra.iscoutb.dev/app/. En ambas: crear cuenta con un
+**Probar:** https://recobra.iscoutb.dev lleva a la app (Flutter, versión web,
+en https://recobra.iscoutb.dev/app/). En computador se ve con menú lateral y en
+celular con la barra inferior: es la misma app. Crear cuenta con un
 correo `@utb.edu.co`, publicar, buscar, reclamar, aprobar, confirmar la entrega,
 cerrar publicaciones y ver avisos. La imagen de Docker compila la app web
 (etapa `app-web` del `Dockerfile`) y la API la sirve en `/app/`, en el mismo
@@ -32,8 +33,8 @@ origen.
 
 | Qué | Dirección | Es |
 |---|---|---|
-| Sitio de Recobra (vitrina web) | https://recobra.iscoutb.dev/ | Interfaz |
-| App de Recobra (Flutter, versión web) | https://recobra.iscoutb.dev/app/ | Interfaz |
+| Sitio de Recobra | https://recobra.iscoutb.dev/ | Redirige (302) a la app |
+| App de Recobra (Flutter, versión web; computador y celular) | https://recobra.iscoutb.dev/app/ | Interfaz (única, ADR-0031) |
 | API REST (mismo host, sin prefijo) | https://recobra.iscoutb.dev/publicaciones, `/lugares`, `/health`, `/health/ready`, `/metrics`… | API: contrato en [`docs/contracts/openapi.yaml`](docs/contracts/openapi.yaml) |
 
 ## Stack
@@ -120,7 +121,7 @@ repositorio; ver [`.env.example`](.env.example)):
 | `CONTACTO_PRIVACIDAD` | Texto con el canal de contacto que muestra el aviso de privacidad (por ejemplo, un correo del equipo) | Indica abrir una solicitud en el repositorio |
 | `ADMIN_CORREOS` | Correos `@utb.edu.co` (separados por comas) de quienes pueden resolver reportes de abuso | Nadie es administrador: se puede reportar, pero nadie resuelve |
 | `DIAS_VIGENCIA_PUBLICACION` | Días sin movimiento antes de cerrar una publicación sola | 60 |
-| `CORS_ORIGENES` | Orígenes (separados por comas) de otros sitios que pueden leer la API desde un navegador. La vitrina y `/app/` son del mismo origen y no lo necesitan | Ninguno (fuera de producción también se admite `localhost`) |
+| `CORS_ORIGENES` | Orígenes (separados por comas) de otros sitios que pueden leer la API desde un navegador. La app (`/app/`) es del mismo origen y no lo necesita | Ninguno (fuera de producción también se admite `localhost`) |
 | `PROXY_CONFIABLES` | Saltos de proxy de confianza para conocer la dirección real del cliente (los límites de uso la usan) | 1 en producción (Traefik), 0 fuera de ella |
 
 El `compose` de producción ([`deploy/compose.lab.yaml`](deploy/compose.lab.yaml)) solo reenvía al contenedor las variables que lista; una variable nueva que se defina en Dokploy debe agregarse también allí. Tras cambiar una variable en el panel hay que volver a desplegar el servicio.
@@ -184,9 +185,9 @@ curl -X POST http://localhost:3000/publicaciones \
   }'
 ```
 
-`201 Created` con la publicación. `ubicacion` es el lugar del campus (filtra y empareja) y `detalleUbicacion`, opcional, el piso, salón o referencia. El catálogo de lugares con sus pisos sale de `GET /lugares`, el mismo para la app y la vitrina. Datos inválidos → `400` con `{ "statusCode": 400, "message": "..." }` (esquema de error único, ADR-0009).
+`201 Created` con la publicación. `ubicacion` es el lugar del campus (filtra y empareja) y `detalleUbicacion`, opcional, el piso, salón o referencia. El catálogo de lugares con sus pisos sale de `GET /lugares`, el que usa la app. Datos inválidos → `400` con `{ "statusCode": 400, "message": "..." }` (esquema de error único, ADR-0009).
 
-Con la cabecera opcional `Idempotency-Key: <clave aleatoria>`, repetir la misma creación no la duplica: el reintento responde `200` con la publicación original, y la misma clave con datos distintos responde `422`. La vitrina y la app la envían. Ver [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md).
+Con la cabecera opcional `Idempotency-Key: <clave aleatoria>`, repetir la misma creación no la duplica: el reintento responde `200` con la publicación original, y la misma clave con datos distintos responde `422`. La app la envía. Ver [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md).
 
 **Cuentas y sesión** (publicar y reclamar exigen sesión; ver [ADR-0013](docs/adr/0013-cuentas-con-correo-institucional-y-sesiones-opacas.md))
 
@@ -227,7 +228,7 @@ Con el token, `POST /publicaciones` se llama con `Authorization: Bearer <token>`
 **Avisos** (escenario S3, [ADR-0015](docs/adr/0015-notificaciones-en-la-aplicacion.md))
 
 - `GET /notificaciones` con sesión → `{"noLeidas": n, "notificaciones": [...]}`: coincidencias con lo que perdiste, reclamaciones nuevas de lo que publicaste y la respuesta a tus reclamaciones.
-- `POST /notificaciones/<id>/leida` y `POST /notificaciones/leidas` → `204`. La vitrina y la app muestran una campana con el contador.
+- `POST /notificaciones/<id>/leida` y `POST /notificaciones/leidas` → `204`. La app muestra una campana con el contador.
 
 **Consultar**
 
@@ -259,7 +260,7 @@ curl "http://localhost:3000/coincidencias?publicacionId=<id>"
 
 Resumen de lo que protege a Recobra (detalle en [`docs/seguridad/`](docs/seguridad/) y arc42 §8.6):
 
-- **Cabeceras y CSP** en todas las respuestas; la vitrina solo ejecuta su propio script (por hash) y CORS admite solo los orígenes de `CORS_ORIGENES`.
+- **Cabeceras y CSP** en todas las respuestas; la app web solo ejecuta sus propios archivos (sin scripts en línea) y CORS admite solo los orígenes de `CORS_ORIGENES`.
 - **Límites de uso** por cuenta y por origen: pasarse devuelve `429` con `Retry-After` ([ADR-0028](docs/adr/0028-limites-de-uso-por-cuenta-y-por-origen.md)).
 - **Dependencias y secretos** revisados en cada commit: `npm run seguridad:dependencias` y `npm run seguridad:secretos` (también corren en el flujo de integración).
 - **Qué sigue abierto**, sin adornos: rotar la contraseña de la base y el webhook de Dokploy (T15), el respaldo programado (T26) y migrar NestJS antes del 15-dic-2026 (T16).
@@ -296,6 +297,6 @@ mobile/              # cliente Flutter
 test/                # e2e backend
 docs/                # arquitectura y evidencias
 .github/workflows/   # CI
-public/              # vitrina HTML de clase
+src/raiz/            # la raíz / redirige a la app (/app/)
 scripts/             # medición de latencia
 ```

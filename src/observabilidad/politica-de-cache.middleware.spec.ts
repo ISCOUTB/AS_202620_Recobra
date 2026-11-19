@@ -17,8 +17,8 @@ describe('Política de caché por omisión (ADR-0025)', () => {
     expect(aplicar('/publicaciones/mias', 'Bearer abc')).toBe('private, no-store');
   });
 
-  it('no toca la vitrina ni la app web: los archivos estáticos tienen su propia política', () => {
-    for (const ruta of ['/', '/index.html', '/app/', '/app/main.dart.js', '/favicon.ico']) {
+  it('no toca la app web: los archivos estáticos tienen su propia política', () => {
+    for (const ruta of ['/app/', '/app/main.dart.js', '/favicon.ico']) {
       expect(aplicar(ruta)).toBeUndefined();
     }
   });

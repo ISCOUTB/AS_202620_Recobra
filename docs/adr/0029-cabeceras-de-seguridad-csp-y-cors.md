@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Reemplazada parcialmente por [ADR-0031](0031-una-sola-interfaz-la-app-flutter-reemplaza-la-vitrina.md)** (2026-11-19): la vitrina se retiró y con ella su política CSP por hash; las políticas de la app (`/app/`) y de la API siguen vigentes.
+
 Aceptada — 2026-10-28. Mitigación estructural de las amenazas **T03** (XSS que roba el token), **T04**
 (degradación a HTTP), **T07** (cuerpo comprimido que tumba el proceso), **T21** (CORS abierto), **T22**
 (clickjacking), **T24** (origen falsificado) y **T27** (fuente de un tercero) del
