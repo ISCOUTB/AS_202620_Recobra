@@ -37,6 +37,16 @@ class AvisosQueFallan extends MemoriaNotificacionRepository {
   }
 }
 
+/** El aviso llega en segundo plano: se espera a que aparezca (o no). */
+async function esperar(condicion: () => Promise<boolean>, ms = 3000): Promise<boolean> {
+  const limite = Date.now() + ms;
+  while (Date.now() < limite) {
+    if (await condicion()) return true;
+    await new Promise((resolver) => setTimeout(resolver, 25));
+  }
+  return false;
+}
+
 describe('Entrega de eventos: duplicado, fallo recuperable y cola de fallidos (e2e)', () => {
   let app: INestApplication;
   let avisos: AvisosQueFallan;
@@ -84,16 +94,6 @@ describe('Entrega de eventos: duplicado, fallo recuperable y cola de fallidos (e
 
   const avisosDeAna = async () =>
     (await request(srv()).get('/notificaciones').set(con(ana))).body.notificaciones as Array<{ tipo: string; publicacionId: string }>;
-
-  /** El aviso llega en segundo plano: se espera a que aparezca (o no). */
-  async function esperar(condicion: () => Promise<boolean>, ms = 3000): Promise<boolean> {
-    const limite = Date.now() + ms;
-    while (Date.now() < limite) {
-      if (await condicion()) return true;
-      await new Promise((resolver) => setTimeout(resolver, 25));
-    }
-    return false;
-  }
 
   it('fallo recuperable: el consumidor falla dos veces, se reintenta con espera creciente y el aviso llega', async () => {
     avisos.fallarProximas(2);

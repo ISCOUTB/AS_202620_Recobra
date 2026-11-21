@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { Publicacion } from '../../domain/entities/publicacion';
+import { Reclamacion } from '../../domain/entities/reclamacion';
 import { PublicacionRepository } from '../../domain/ports/publicacion-repository';
 import { ReclamacionRepository } from '../../domain/ports/reclamacion-repository';
 import { CambiarEstadoPublicacion } from './cambiar-estado-publicacion';
@@ -49,30 +51,38 @@ export class ReconciliarReclamaciones {
 
     for (const r of await this.reclamaciones.listarAbiertas(LIMITE)) {
       const p = await this.publicaciones.buscarPorId(r.publicacionId);
-      if (!p) continue;
-
-      if (r.estado === 'pendiente') {
-        if (p.estado === 'publicado') {
-          if (await this.cambiarEstado.ejecutar(p.id, 'publicado', 'en_verificacion')) resumen.enVerificacion++;
-        } else if (
-          (p.estado === 'por_entregar' || p.estado === 'reclamado') &&
-          p.reclamacionAprobadaId === r.id
-        ) {
-          await this.resolver.completarAprobacion(r.aprobar(instante), p);
-          resumen.aprobaciones++;
-        }
-      } else if (r.estado === 'aprobada' && !r.entregadaEn && p.estado === 'reclamado' && p.reclamacionAprobadaId === r.id) {
-        await this.reclamaciones.guardar(r.confirmarEntrega(instante));
-        resumen.entregas++;
-      }
+      if (p) await this.reconciliarReclamacion(r, p, instante, resumen);
     }
+    await this.devolverAPublicadoSinPendientes(resumen);
+    return resumen;
+  }
 
+  /** Casos 1, 3 y 4: una reclamación abierta y su publicación quedaron en pasos distintos. */
+  private async reconciliarReclamacion(
+    r: Reclamacion,
+    p: Publicacion,
+    instante: string,
+    resumen: ResumenReconciliacion,
+  ): Promise<void> {
+    const aprobadaEsEsta = p.reclamacionAprobadaId === r.id;
+    if (r.estado === 'pendiente' && p.estado === 'publicado') {
+      if (await this.cambiarEstado.ejecutar(p.id, 'publicado', 'en_verificacion')) resumen.enVerificacion++;
+    } else if (r.estado === 'pendiente' && (p.estado === 'por_entregar' || p.estado === 'reclamado') && aprobadaEsEsta) {
+      await this.resolver.completarAprobacion(r.aprobar(instante), p);
+      resumen.aprobaciones++;
+    } else if (r.estado === 'aprobada' && !r.entregadaEn && p.estado === 'reclamado' && aprobadaEsEsta) {
+      await this.reclamaciones.guardar(r.confirmarEntrega(instante));
+      resumen.entregas++;
+    }
+  }
+
+  /** Caso 2: un objeto en verificación sin ninguna reclamación pendiente vuelve a publicado. */
+  private async devolverAPublicadoSinPendientes(resumen: ResumenReconciliacion): Promise<void> {
     for (const p of await this.publicaciones.listarPorEstado('en_verificacion', LIMITE)) {
       const hayPendientes = (await this.reclamaciones.listarPorPublicacion(p.id)).some((r) => r.estado === 'pendiente');
       if (!hayPendientes && (await this.cambiarEstado.ejecutar(p.id, 'en_verificacion', 'publicado'))) {
         resumen.publicadas++;
       }
     }
-    return resumen;
   }
 }

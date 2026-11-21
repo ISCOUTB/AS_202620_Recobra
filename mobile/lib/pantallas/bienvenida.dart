@@ -20,9 +20,14 @@ class BienvenidaPantalla extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // En computador, una columna centrada (como el contenido del menú lateral) en vez de estirarse de borde a borde.
     return Scaffold(
       body: SafeArea(
-        child: ListView(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [
             Row(
@@ -88,6 +93,8 @@ class BienvenidaPantalla extends StatelessWidget {
               child: Text('Tu correo solo se muestra a otra persona cuando aprueban una entrega entre ustedes.'),
             ),
           ],
+            ),
+          ),
         ),
       ),
     );

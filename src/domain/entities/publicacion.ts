@@ -145,9 +145,7 @@ export class Publicacion {
 
   /** Lo que sale por la API: todo menos el dato interno de la aprobación en curso (ADR-0020). */
   toJSON(): Record<string, unknown> {
-    const { reclamacionAprobadaId, ...publica } = this;
-    void reclamacionAprobadaId;
-    return publica;
+    return Object.fromEntries(Object.entries(this).filter(([campo]) => campo !== 'reclamacionAprobadaId'));
   }
 
   /**

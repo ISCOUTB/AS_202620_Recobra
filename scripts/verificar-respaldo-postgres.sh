@@ -21,7 +21,8 @@ TABLAS="publicaciones coincidencias cuentas sesiones reclamaciones notificacione
 
 # "<filas> <huella>" de una tabla; el orden por texto de la fila hace la huella estable.
 huella() {
-  psql -d "$1" -tA -c "SELECT count(*) || ' ' || COALESCE(md5(string_agg(x::text, '|' ORDER BY x::text)), '-') FROM $2 x"
+  local base="$1" tabla="$2"
+  psql -d "${base}" -tA -c "SELECT count(*) || ' ' || COALESCE(md5(string_agg(x::text, '|' ORDER BY x::text)), '-') FROM ${tabla} x"
 }
 
 echo "1/3 Respaldo de ${BASE_ORIGEN} -> ${ARCHIVO}"
@@ -41,7 +42,7 @@ for tabla in ${TABLAS}; do
   restaurada="$(huella "${BASE_RESTAURADA}" "${tabla}")"
   filas="${origen%% *}"
   total_filas=$((total_filas + filas))
-  if [ "${origen}" = "${restaurada}" ]; then
+  if [[ "${origen}" == "${restaurada}" ]]; then
     printf '    OK         %-16s %s filas\n' "${tabla}" "${filas}"
   else
     printf '    DIFERENTE  %-16s origen=[%s] restaurada=[%s]\n' "${tabla}" "${origen}" "${restaurada}"
@@ -49,11 +50,11 @@ for tabla in ${TABLAS}; do
   fi
 done
 
-if [ "${total_filas}" -eq 0 ]; then
+if [[ "${total_filas}" -eq 0 ]]; then
   echo "ERROR: la base de origen no tiene datos; no hay nada que comparar." >&2
   exit 2
 fi
-if [ "${fallos}" -ne 0 ]; then
+if [[ "${fallos}" -ne 0 ]]; then
   echo "ERROR: lo restaurado no coincide con lo respaldado." >&2
   exit 1
 fi
