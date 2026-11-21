@@ -2,7 +2,7 @@
 
 ## Escenario ancla
 
-- **Escenario:** [S5 — Mantenibilidad](escenarios_calidad.md#escenario-s5--mantenibilidad)
+- **Escenario:** [S5 — Mantenibilidad](calidad/escenarios_calidad.md#escenario-s5--mantenibilidad)
 - **Umbral del escenario:** el cambio se implementa sin romper las pruebas
   existentes; el dominio no se reescribe.
 - **Operación de servicio asociada al corte vertical:** `POST /publicaciones`

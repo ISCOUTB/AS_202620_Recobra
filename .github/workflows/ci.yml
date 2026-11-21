@@ -22,7 +22,9 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci --ignore-scripts
-      - name: Unit tests
+      - name: Documentación (enlaces, ADR y arc42 §9)
+        run: node scripts/verificar-documentacion.js
+      - name: Unit tests (incluye las reglas de la arquitectura hexagonal, src/arquitectura.spec.ts)
         run: npm test
       - name: Contract tests (OpenAPI, docs/contracts/openapi.yaml)
         run: npm run test:contract

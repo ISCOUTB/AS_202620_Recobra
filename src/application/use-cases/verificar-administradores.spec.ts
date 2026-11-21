@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Cuenta } from '../../domain/entities/cuenta';
 import { MemoriaCuentaRepository } from '../../infrastructure/persistence/memoria-cuenta.repository';
-import { estadoDeSeguridad } from '../../seguridad/estado-de-seguridad';
+import { estadoDeSeguridad } from '../estado-de-seguridad';
 import { RegistrarCuenta } from './identidad';
 import { VerificarAdministradores } from './verificar-administradores';
 import { ScryptHashContrasenas } from '../../infrastructure/seguridad/scrypt-hash-contrasenas';

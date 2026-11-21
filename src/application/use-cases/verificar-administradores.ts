@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DOMINIO_INSTITUCIONAL } from '../../domain/entities/cuenta';
 import { CuentaRepository } from '../../domain/ports/cuenta-repository';
-import { estadoDeSeguridad } from '../../seguridad/estado-de-seguridad';
+import { estadoDeSeguridad } from '../estado-de-seguridad';
 import { correosAdministradores } from './administradores';
 
 export interface ResultadoVerificacion {

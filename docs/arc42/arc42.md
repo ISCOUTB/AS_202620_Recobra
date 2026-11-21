@@ -455,15 +455,26 @@ recordar; (3) lo que no se puede arreglar se **acepta por escrito, con motivo y 
 | [ADR-0019](../adr/0019-donde-esta-el-objeto-y-lo-tengo-yo.md) | Dónde está el objeto y "Lo tengo yo" | Aceptada |
 | [ADR-0020](../adr/0020-consistencia-entre-publicaciones-y-reclamaciones.md) | Consistencia entre Publicaciones y Reclamaciones: pasos retomables y reconciliación | Aceptada |
 | [ADR-0021](../adr/0021-privacidad-y-datos-personales.md) | Privacidad y datos personales: consentimiento, acceso, supresión y retención | Aceptada |
-| [ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md) | Moderación mínima: reportar una publicación y ocultarla | Aceptada |
+| [ADR-0022](../adr/0022-moderacion-minima-reportes-y-ocultar.md) | Moderación mínima: reportar una publicación y ocultarla | Aceptada; el panel pasó a la app por ADR-0031 |
 | [ADR-0023](../adr/0023-fotos-con-privacidad.md) | Fotos de las publicaciones con privacidad | Aceptada |
 | [ADR-0024](../adr/0024-conciliacion-de-avisos.md) | Conciliación de avisos en lugar de una tabla de eventos pendientes | Aceptada |
 | [ADR-0025](../adr/0025-diseno-de-cache-y-politica-de-invalidacion.md) | Diseño de caché y política de invalidación | Aceptada |
 | [ADR-0026](../adr/0026-entrega-de-avisos-con-eventos-reintentos-y-cola-de-fallidos.md) | Entrega de avisos con eventos, reintentos y cola de fallidos, frente a una llamada síncrona | Aceptada |
 | [ADR-0027](../adr/0027-la-decision-de-datos-mas-costosa-de-revertir.md) | La decisión de datos más costosa de revertir | Aceptada |
 | [ADR-0028](../adr/0028-limites-de-uso-por-cuenta-y-por-origen.md) | Límites de uso por cuenta y por origen | Aceptada |
-| [ADR-0029](../adr/0029-cabeceras-de-seguridad-csp-y-cors.md) | Cabeceras de seguridad, CSP y CORS con lista blanca | Aceptada |
+| [ADR-0029](../adr/0029-cabeceras-de-seguridad-csp-y-cors.md) | Cabeceras de seguridad, CSP y CORS con lista blanca | Aceptada; la CSP de la vitrina se retiró con ADR-0031 |
 | [ADR-0030](../adr/0030-seguridad-en-el-pipeline-dependencias-secretos-y-permisos.md) | Seguridad en el pipeline: dependencias, secretos y permisos | Aceptada |
+| [ADR-0031](../adr/0031-una-sola-interfaz-la-app-flutter-reemplaza-la-vitrina.md) | Una sola interfaz: la app Flutter (computador y celular) reemplaza la vitrina web | Aceptada; reemplaza en parte ADR-0022 y ADR-0029 |
+
+**Validación automática (en cada push, job «Backend NestJS» del CI):**
+
+- [`scripts/verificar-documentacion.js`](../../scripts/verificar-documentacion.js): todo enlace relativo de
+  README, `correcciones.md` y `docs/` llega a un archivo y a un encabezado que existen; cada ADR sigue la
+  convención de nombre, tiene «Estado» y figura en esta tabla.
+- [`src/arquitectura.spec.ts`](../../src/arquitectura.spec.ts): las reglas hexagonales de ADR-0002 como
+  prueba — el dominio no importa nada de fuera, la aplicación solo el dominio (más la inyección y el bus
+  de NestJS) y los adaptadores de salida no dependen de los controladores. Al agregarla encontró una
+  violación real (un caso de uso importaba un módulo del adaptador `src/seguridad/`), que se corrigió.
 
 
 ## 10. Requisitos de calidad
@@ -547,6 +558,13 @@ código, los escenarios y las ADR, y con la medición de [`medicion-s14.md`](../
 Queda registrada en [`docs/ia.md`](../ia.md). **Lo que señalen los pares se agrega a esta tabla con
 el mismo formato.**
 
+**Estado al 2026-11-21 (declaración del equipo):** Recobra **no recibió revisión de pares** de otro
+equipo. La sustitución por la revisión con IA es una indicación del docente comunicada en clase, de la
+que **no hay constancia escrita** en el expediente del curso (la evaluación S13/S14 del 17/11 lo señala
+así). Por eso no se presentan los RV-01 a RV-09 como «señalamientos de pares»: son una revisión
+externa con IA, y los dos criterios de pares de S14 quedan **no cumplidos** mientras el docente no
+confirme la exención por escrito o lleguen revisiones de otro equipo, que se agregarían aquí.
+
 La tabla recoge dos fuentes:
 
 - **RV-01 a RV-09: revisión externa con IA** (descrita arriba).
@@ -571,7 +589,7 @@ equipo debe validar.**
 | RV-07 | Despliegue en Dokploy · S4 | S4 exige una disponibilidad ≥ 99 % mensual y no hay ningún monitor que la mida. En octubre de 2026 hubo 82 commits a `master`, y cada uno redespliega con 30 a 50 s sin servicio (§7): de 41 a 68 min de cortes no anunciados en el mes | Esos 41 a 68 min son el 0,1 % del mes, muy por debajo del 1 % que permite S4, pero el cumplimiento no tiene evidencia. Las caídas del servidor del laboratorio tampoco quedan registradas | Riesgo (sin evidencia) | **Pendiente** | Un sondeo externo gratuito de `/health/ready` cada minuto, y reportar el porcentaje mensual. Agrupar cambios para redesplegar menos en horario de uso |
 | RV-08 | PostgreSQL y respaldos · S4b | S4b pide un RTO ≤ 5 min. El RTO **no se ha medido** con datos de producción ([`respaldos.md`](../despliegue/respaldos.md)) y el respaldo programado no está configurado (T26) | Si se pierde la base, hoy no hay copia reciente que restaurar, y no se sabe si 5 min alcanzan. Es la decisión de datos más costosa de revertir (ADR-0027) | Riesgo | **Pendiente** | Configurar el respaldo en Dokploy y cronometrar una restauración real en una base aparte. Con eso se mide el RTO y se cierra RV-02 a la vez |
 | RV-09 | Fotos en PostgreSQL · S4b y S7 | Los bytes de las fotos (hasta 1 MB cada una) viven en la misma base que los datos (ADR-0023, `postgres-foto.repository.ts`) | Cada foto hace crecer el respaldo y el tiempo de restauración. A mayor volumen, RV-08 se vuelve más difícil de cumplir | Compromiso: un solo almacén y borrado transaccional frente a tamaño de la base | **Asumido** | Con el volumen actual el tamaño no pesa, y el borrado de la foto junto con la publicación es más simple. Se revisa si la restauración pasa de 5 min o la base supera 1 GB: el puerto `FotoRepository` permite moverlas a un almacén de objetos sin tocar el dominio |
-| RV-10 | Imagen y runtime · cadena de suministro | Hay 11 PR de Dependabot abiertas (#1 y #3 a #12) y ninguna está integrada. La #12 propone `node:26-alpine` para la imagen, pero el CI prueba con `node-version: "20"` (`.github/workflows/ci.yml`). Hoy la imagen corre en `node:20-alpine` (`Dockerfile`), y **Node 20 quedó sin soporte el 30-abr-2026** (este último dato es del revisor IA) | Producción corre en un runtime que ya no recibe parches de seguridad. Integrar solo la #12 dejaría las pruebas en una versión y la ejecución en otra | Riesgo | **Corregido** (2026-11-21) | CI y `Dockerfile` en la misma LTS, **Node 24** (no la 26 que proponía la #12: menos salto y LTS hasta 2028). Integradas #1, #3, #8, #14 y #15; aplazadas con motivo #5, #6, #7, #9, #10 y #12 ([análisis de dependencias §5](../seguridad/analisis-de-dependencias.md#5-prs-de-dependabot-decisión-del-21-nov-2026)). Las mayores de NestJS siguen con la migración de T16 (RV-14) |
+| RV-10 | Imagen y runtime · cadena de suministro | Hay 11 PR de Dependabot abiertas (#1 y #3 a #12) y ninguna está integrada. La #12 propone `node:26-alpine` para la imagen, pero el CI prueba con `node-version: "20"` (`.github/workflows/ci.yml`). Hoy la imagen corre en `node:20-alpine` (`Dockerfile`), y **Node 20 quedó sin soporte el 30-abr-2026** (este último dato es del revisor IA) | Producción corre en un runtime que ya no recibe parches de seguridad. Integrar solo la #12 dejaría las pruebas en una versión y la ejecución en otra | Riesgo | **Corregido** (2026-11-21) | CI y `Dockerfile` en la misma LTS, **Node 24** (no la 26 que proponía la #12: menos salto y LTS hasta 2028). Integradas #1, #3, #8 y #14; aplazadas con motivo #5, #6, #7, #9, #10, #12 y #15 (esta última se integró, el CI la rechazó y se revirtió) ([análisis de dependencias §5](../seguridad/analisis-de-dependencias.md#5-prs-de-dependabot-decisión-del-21-nov-2026)). Las mayores de NestJS siguen con la migración de T16 (RV-14) |
 | RV-11 | CI → SonarCloud · S5 | En las PR, el Quality Gate se omite (`if: github.event_name == 'push'`). El scanner con `SONAR_TOKEN` falla con «Not authorized» y se tolera con `continue-on-error: true` (`ci.yml`; [`no-conformidades.md`](../no-conformidades.md), punto 4). Los logs de las PR #11 y #12 lo muestran | Una PR en verde no quiere decir que Sonar la analizó: el gate solo se verifica después de integrarla en `master` | Riesgo | **Pendiente** | Pedir a quien administra la organización `isco-utb` en SonarCloud el permiso Execute Analysis y quitar `continue-on-error`. Mientras tanto, ninguna PR se da por aprobada por Sonar antes del push a `master` |
 | RV-12 | Panel de Dokploy · T15 y T26 | Siguen sin acreditarse dos acciones operativas: rotar la contraseña de la base, cerrar el puerto externo y regenerar el webhook (T15), y programar el respaldo (T26). El CI no puede demostrarlas (§11.2) | Mientras no se hagan, el riesgo 25 de T15 sigue abierto y no hay copia de la base (RV-08) | Riesgo | **Pendiente** | Responsable: quien administra el panel de Dokploy. Acreditarlo con la fecha y una captura sin valores (nombre del servicio y programación del respaldo, sin credenciales ni datos personales) |
 | RV-13 | Despliegue actual · S2 y S13 | El revisor pidió validar en producción los límites, el origen del cliente, las cabeceras y la entrega de avisos, con una aceptación funcional independiente del CI | Lo que se valida solo en CI no prueba la configuración real del proxy ni de Cloudflare | — | **Pendiente (parcial)** | **Comprobado el 08/11 en producción, solo con lecturas:** CSP con hash, HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy` y COOP. CORS no responde a un origen ajeno. `/metrics` muestra un salto de proxy y un origen del cliente distinto del socket del proxy. 43.465 búsquedas sin ningún `429` ([`medicion-s14.md`](../medicion-s14.md)). **Falta:** provocar un `429` de los límites y comprobar un aviso de punta a punta, que exige escribir con cuentas de prueba del equipo (va con RV-06) |

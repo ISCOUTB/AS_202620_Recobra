@@ -1,6 +1,6 @@
 import { Controller, Get, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { estadoDeSeguridad } from '../seguridad/estado-de-seguridad';
+import { estadoDeSeguridad } from '../application/estado-de-seguridad';
 import { huellaDe, LimiteDeUso } from '../seguridad/limite-de-uso';
 import { saltosDeProxy } from '../seguridad/configurar-seguridad';
 import { MetricasService } from './metricas.service';

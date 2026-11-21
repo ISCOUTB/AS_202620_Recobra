@@ -10,6 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "docs:verificar": "node scripts/verificar-documentacion.js",
     "test:contract": "jest --config ./test/jest-e2e.json --testPathPattern=contract",
     "measure:post": "node scripts/measure-post.js",
     "measure:emparejamiento": "node scripts/measure-emparejamiento.js",

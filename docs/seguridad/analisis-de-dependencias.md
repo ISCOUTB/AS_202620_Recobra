@@ -104,12 +104,13 @@ tipografía; ahora Roboto va empaquetada (T27).
 
 Había 12 PR abiertas sin decidir (observación RV-10 de arc42 §11.4). Cada una se integra o se aplaza con
 un motivo técnico; las aceptadas se integraron con su propio commit de Dependabot y se validaron con el
-CI completo (backend, adaptadores contra PostgreSQL, Flutter, seguridad y Quality Gate).
+CI completo (backend, adaptadores contra PostgreSQL, Flutter, seguridad y Quality Gate). El CI es lo que
+decide: la #15 parecía segura (versión menor) y el CI la rechazó, así que se revirtió.
 
 | PR | Cambio | Tipo | Decisión | Motivo |
 |---|---|---|---|---|
 | #8 | `pg` 8.23.0 → 8.23.1 | parche | **Integrada** | Sin cambio de API; la suite de adaptadores corre contra PostgreSQL real |
-| #15 | `image` 4.12 → 4.13.1 (Flutter) | menor | **Integrada** | Compatible; la cubren las pruebas de fotos de la app |
+| #15 | `image` 4.12 → 4.13.1 (Flutter) | menor | **Aplazada** (se integró y se revirtió) | Su lockfile también sube paquetes que el SDK de Flutter 3.41 deja fijos (`matcher`, `test_api`, `meta`): `flutter pub get --enforce-lockfile` falló en el CI ([run 44952555118](https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/44952555118), jobs Flutter y Docker). Se integra junto con #5 (Flutter 3.44) |
 | #14 | acción de SonarCloud 8.3 → 8.5 | menor | **Integrada** | Compatible; el Quality Gate sigue siendo bloqueante |
 | #1, #3 | `actions/checkout` v7, `actions/setup-node` v7 | mayor (CI) | **Integradas** | Solo afectan al flujo; siguen fijadas por hash (ADR-0030) y el propio CI las valida |
 | #12 | imagen `node:20-alpine` → `node:26-alpine` | runtime | **Reemplazada por Node 24 LTS** | Node 20 quedó sin soporte el 30-abr-2026. Se eligió 24 (LTS hasta abr-2028) en vez de 26: menos salto, y el CI y la imagen quedan en **la misma versión** (antes el CI probaba en 20). Las pruebas locales ya corrían en Node 24 |
