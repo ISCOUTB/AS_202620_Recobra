@@ -5,7 +5,7 @@
 # App Flutter compilada para web y servida por la misma API en /app/
 # (mismo origen: no necesita CORS ni una URL de API aparte). Es la única
 # interfaz (ADR-0031): la raíz redirige a /app/.
-FROM ghcr.io/cirruslabs/flutter:3.41.5 AS app-web
+FROM ghcr.io/cirruslabs/flutter:3.44.0 AS app-web
 WORKDIR /mobile
 COPY mobile/pubspec.yaml mobile/pubspec.lock ./
 # --enforce-lockfile: usa exactamente las versiones de pubspec.lock (Sonar docker:S8550).
