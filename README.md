@@ -46,7 +46,7 @@ interna del backend es hexagonal (puertos y adaptadores).
 
 ## Cómo levantar el backend
 
-Requisitos: Node.js 18 o superior.
+Requisitos: Node.js 24 (la misma LTS que el CI y la imagen).
 
 ```bash
 npm install && npm run start

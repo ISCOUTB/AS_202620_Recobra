@@ -97,5 +97,22 @@ tipografía; ahora Roboto va empaquetada (T27).
   vulnerable sin aviso.
 - Que una función «no se use» es una afirmación sobre el código de hoy; la prueba de alcance la vigila,
   pero un cambio que la use y la modifique a la vez exige revisar el aviso a conciencia.
-- Las dependencias transitivas de la imagen base (`node:20-alpine`, `postgres:16`) no se analizan aquí:
+- Las dependencias transitivas de la imagen base (`node:24-alpine`, `postgres:16`) no se analizan aquí:
   Dependabot propone actualizar la imagen, y la imagen de PostgreSQL del CI va fijada por su digest.
+
+## 5. PRs de Dependabot: decisión del 21-nov-2026
+
+Había 12 PR abiertas sin decidir (observación RV-10 de arc42 §11.4). Cada una se integra o se aplaza con
+un motivo técnico; las aceptadas se integraron con su propio commit de Dependabot y se validaron con el
+CI completo (backend, adaptadores contra PostgreSQL, Flutter, seguridad y Quality Gate).
+
+| PR | Cambio | Tipo | Decisión | Motivo |
+|---|---|---|---|---|
+| #8 | `pg` 8.23.0 → 8.23.1 | parche | **Integrada** | Sin cambio de API; la suite de adaptadores corre contra PostgreSQL real |
+| #15 | `image` 4.12 → 4.13.1 (Flutter) | menor | **Integrada** | Compatible; la cubren las pruebas de fotos de la app |
+| #14 | acción de SonarCloud 8.3 → 8.5 | menor | **Integrada** | Compatible; el Quality Gate sigue siendo bloqueante |
+| #1, #3 | `actions/checkout` v7, `actions/setup-node` v7 | mayor (CI) | **Integradas** | Solo afectan al flujo; siguen fijadas por hash (ADR-0030) y el propio CI las valida |
+| #12 | imagen `node:20-alpine` → `node:26-alpine` | runtime | **Reemplazada por Node 24 LTS** | Node 20 quedó sin soporte el 30-abr-2026. Se eligió 24 (LTS hasta abr-2028) en vez de 26: menos salto, y el CI y la imagen quedan en **la misma versión** (antes el CI probaba en 20). Las pruebas locales ya corrían en Node 24 |
+| #5 | imagen de compilación Flutter 3.41 → 3.44 | menor | **Aplazada** | Cambia el compilador de la app web justo antes de la sustentación final; se integra después, con revisión visual de la app |
+| #6, #7, #9 | NestJS 10 → 12 (`@nestjs/schematics`, `@nestjs/event-emitter`, `@nestjs/cli`) | mayor | **Aplazadas** | Van juntas con la migración del framework (T16, RV-14): `@nestjs/event-emitter` 12 exige el núcleo de NestJS 11 o más. Fecha límite: el vencimiento de los avisos aceptados, 15-dic-2026 |
+| #10 | `flutter_lints` 5 → 6 | mayor (desarrollo) | **Aplazada** | Agrega reglas nuevas de análisis; se integra junto con #5, cuando se actualice Flutter |
