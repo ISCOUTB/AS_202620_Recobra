@@ -92,7 +92,7 @@ Todo corre en **Dokploy**, en el servidor del laboratorio, con TLS por Traefik. 
 
 ## 6. Evidencia y proceso
 
-- **Pruebas en cada push:** 216 unitarias, 129 e2e contra el contrato, 37 contra PostgreSQL real y 34 de la app, más SonarCloud con Quality Gate bloqueante.
+- **Pruebas en cada push:** 216 unitarias, 129 e2e contra el contrato, 37 contra PostgreSQL real y 35 de la app, más SonarCloud con Quality Gate bloqueante.
 - **Mediciones:**
   - `medicion-busqueda.md`: S1 en Render.
   - `medicion-s10.md` y `medicion-s14.md`: S1 en Dokploy.

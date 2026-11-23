@@ -115,9 +115,9 @@ class EncabezadoUtb extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: ColoresUtb.degradado,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(RadiosRecobra.encabezado)),
       ),
-      padding: EdgeInsets.fromLTRB(20, arriba + 24, 20, 20),
+      padding: EdgeInsets.fromLTRB(20, arriba + 24 > 58 ? arriba + 24 : 58, 20, 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -131,12 +131,7 @@ class EncabezadoUtb extends StatelessWidget {
                     if (sobretitulo != null) ...[
                       Text(
                         sobretitulo!,
-                        style: const TextStyle(
-                          color: Color(0xCCFFFFFF),
-                          fontSize: 11,
-                          letterSpacing: 1.3,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: TextoRecobra.etiqueta.copyWith(color: const Color(0xCCFFFFFF)),
                       ),
                       const SizedBox(height: 6),
                     ],
@@ -148,11 +143,11 @@ class EncabezadoUtb extends StatelessWidget {
                           TextSpan(text: titulo),
                         ],
                       ),
-                      style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800, height: 1.15),
+                      style: TextoRecobra.tituloPestana.copyWith(color: ColoresUtb.sobreAzul),
                     ),
                     if (subtitulo != null) ...[
                       const SizedBox(height: 6),
-                      Text(subtitulo!, style: const TextStyle(color: Color(0xFFDCE3FF), fontSize: 14, height: 1.4)),
+                      Text(subtitulo!, style: TextoRecobra.secundario.copyWith(color: const Color(0xFFDCE3FF))),
                     ],
                   ],
                 ),
@@ -167,8 +162,8 @@ class EncabezadoUtb extends StatelessWidget {
   }
 }
 
-/// Etiqueta pequeña en mayúsculas ("ENCONTRADO", "EN VERIFICACIÓN"), con el
-/// fondo del mismo color al 16 %, como "IMPORTANTE" en la app UTB.
+/// Etiqueta de estado ("Encontrado", "En verificación"): la palabra en el color
+/// del estado sobre el mismo color al 12 %. Nunca solo color.
 class Etiqueta extends StatelessWidget {
   const Etiqueta(this.texto, {super.key, required this.color, this.icono});
 
@@ -179,16 +174,19 @@ class Etiqueta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 24,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(999)),
+      height: 26,
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(RadiosRecobra.etiqueta),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icono != null) ...[Icon(icono, size: 13, color: color), const SizedBox(width: 4)],
           Text(
-            texto.toUpperCase(),
-            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.7),
+            texto.isEmpty ? texto : texto[0].toUpperCase() + texto.substring(1),
+            style: TextoRecobra.etiquetaEstado.copyWith(color: color),
           ),
         ],
       ),
@@ -261,15 +259,15 @@ class TarjetaPublicacion extends StatelessWidget {
                           children: [Etiqueta(p.tipo, color: colorTipo(p.tipo)), EtiquetaEstado(p.estado)],
                         ),
                         const SizedBox(height: 8),
-                        Text(p.descripcion, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.3)),
+                        Text(p.descripcion, style: TextoRecobra.fila.copyWith(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 6),
                         Text(
                           '${p.categoria} · ${p.lugarCompleto} · ${fechaCorta(p.creadoEn)}',
-                          style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12, fontWeight: FontWeight.w500),
+                          style: TextoRecobra.secundario.copyWith(color: ColoresUtb.textoSuave),
                         ),
                         if (ayuda != null && pie == null) ...[
                           const SizedBox(height: 6),
-                          Text(ayuda, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
+                          Text(ayuda, style: TextoRecobra.secundario.copyWith(color: ColoresUtb.textoSuave)),
                         ],
                         if (pie != null) ...[const SizedBox(height: 12), pie!],
                       ],
@@ -282,7 +280,7 @@ class TarjetaPublicacion extends StatelessWidget {
                     child: Align(alignment: Alignment.center, child: MiniaturaFoto(publicacionId: p.id)),
                   ),
                 if (onTap != null)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(right: 12),
                     child: Icon(Icons.chevron_right_rounded, color: ColoresUtb.textoApagado),
                   ),
@@ -323,7 +321,7 @@ class EstadoVacio extends StatelessWidget {
             const SizedBox(height: 12),
             Text(titulo, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
-            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: ColoresUtb.textoSuave, height: 1.45)),
+            Text(texto, textAlign: TextAlign.center, style: TextStyle(color: ColoresUtb.textoSuave, height: 1.45)),
             for (final a in acciones) ...[const SizedBox(height: 10), SizedBox(width: double.infinity, child: a)],
           ],
         ),
@@ -409,11 +407,11 @@ class TituloSeccion extends StatelessWidget {
         children: [
           Semantics(
             header: true,
-            child: Text(titulo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            child: Text(titulo, style: TextoRecobra.seccion),
           ),
           if (subtitulo != null) ...[
             const SizedBox(height: 2),
-            Text(subtitulo!, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
+            Text(subtitulo!, style: TextoRecobra.secundario.copyWith(color: ColoresUtb.textoSuave)),
           ],
         ],
       ),
@@ -444,11 +442,10 @@ class ControlSegmentado<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: ColoresUtb.superficie,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: ColoresUtb.borde),
+        color: ColoresRecobra.actual.brillo == Brightness.light ? ColoresUtb.ticket : ColoresUtb.superficie,
+        borderRadius: BorderRadius.circular(RadiosRecobra.segmentado),
       ),
       child: Row(
         children: [
@@ -479,7 +476,7 @@ class ControlSegmentado<T> extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: o.valor == valor ? Colors.white : ColoresUtb.textoSuave,
+                                color: o.valor == valor ? ColoresUtb.sobreAzul : ColoresUtb.textoSuave,
                               ),
                             ),
                           ),
@@ -497,7 +494,8 @@ class ControlSegmentado<T> extends StatelessWidget {
   }
 }
 
-/// Círculo naranja con un número ("2", "9+"); texto oscuro sobre naranja (8:1).
+/// Círculo naranja con un número ("2", "9+"); blanco sobre el naranja claro y
+/// fondo sobre el naranja oscuro, para mantener el contraste.
 class Contador extends StatelessWidget {
   const Contador(this.n, {super.key});
 
@@ -513,7 +511,11 @@ class Contador extends StatelessWidget {
       decoration: BoxDecoration(color: ColoresUtb.naranja, borderRadius: BorderRadius.circular(10)),
       child: Text(
         n > 9 ? '9+' : '$n',
-        style: const TextStyle(color: Color(0xFF1A0E02), fontSize: 11, fontWeight: FontWeight.w800),
+        style: TextStyle(
+          color: ColoresRecobra.actual.brillo == Brightness.light ? ColoresUtb.sobreAzul : ColoresUtb.fondo,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -554,12 +556,12 @@ class BarraNavegacionUtb extends StatelessWidget {
         children: [
           Expanded(
             child: Container(
-              constraints: const BoxConstraints(minHeight: 68),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+              constraints: const BoxConstraints(minHeight: 64),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xEB0E0F14),
-                borderRadius: BorderRadius.circular(34),
-                border: Border.all(color: ColoresUtb.borde),
+                color: ColoresUtb.barra,
+                borderRadius: BorderRadius.circular(RadiosRecobra.hoja),
+                border: ColoresRecobra.actual.brillo == Brightness.light ? Border.all(color: ColoresUtb.borde) : null,
                 boxShadow: ColoresUtb.sombra,
               ),
               child: Row(
@@ -572,17 +574,17 @@ class BarraNavegacionUtb extends StatelessWidget {
           Tooltip(
             message: 'Publicar',
             child: Material(
-              color: indice == 1 ? ColoresUtb.azulClaro : ColoresUtb.azul,
+              color: ColoresUtb.azul,
               shape: const CircleBorder(),
               elevation: 0,
               child: InkWell(
                 customBorder: const CircleBorder(),
                 onTap: alPublicar,
                 child: Container(
-                  width: 68,
-                  height: 68,
-                  decoration: const BoxDecoration(shape: BoxShape.circle, boxShadow: ColoresUtb.sombra),
-                  child: Icon(Icons.add_rounded, size: 30, color: indice == 1 ? ColoresUtb.fondo : Colors.white),
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: ColoresUtb.sombra),
+                  child: const Icon(Icons.add_rounded, size: 30, color: ColoresUtb.sobreAzul),
                 ),
               ),
             ),
@@ -614,8 +616,8 @@ class MenuLateralUtb extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 232,
-      decoration: const BoxDecoration(
-        color: ColoresUtb.fondoProfundo,
+      decoration: BoxDecoration(
+        color: ColoresUtb.barra,
         border: Border(right: BorderSide(color: ColoresUtb.borde)),
       ),
       padding: const EdgeInsets.fromLTRB(14, 28, 14, 20),
@@ -653,10 +655,10 @@ class _ItemMenuLateral extends StatelessWidget {
       label: elemento.etiqueta,
       excludeSemantics: true,
       child: Material(
-        color: activo ? ColoresUtb.azul.withValues(alpha: 0.32) : Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        color: activo ? ColoresUtb.superficieAlta : Colors.transparent,
+        borderRadius: BorderRadius.circular(RadiosRecobra.campo),
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(RadiosRecobra.campo),
           onTap: () => alTocar(elemento.indice),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -668,7 +670,7 @@ class _ItemMenuLateral extends StatelessWidget {
                   child: Text(
                     elemento.etiqueta,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 15),
+                    style: TextoRecobra.fila.copyWith(color: color, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -704,8 +706,10 @@ class _ItemNavegacion extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 54),
           padding: const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
-            color: activo ? ColoresUtb.azul.withValues(alpha: 0.32) : Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
+            color: activo && ColoresRecobra.actual.brillo == Brightness.dark
+                ? ColoresUtb.superficieAlta
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(RadiosRecobra.segmentado),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -717,7 +721,7 @@ class _ItemNavegacion extends StatelessWidget {
                 elemento.etiqueta,
                 style: TextStyle(
                   fontSize: 11,
-                  color: activo ? ColoresUtb.texto : ColoresUtb.textoSuave,
+                  color: activo ? ColoresUtb.enlace : ColoresUtb.textoSuave,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -731,11 +735,11 @@ class _ItemNavegacion extends StatelessWidget {
 
 /// Anillo con el porcentaje de parecido, como los anillos de Notas en la app UTB.
 class AnilloParecido extends StatelessWidget {
-  const AnilloParecido({super.key, required this.score, this.fondo = ColoresUtb.fondoProfundo});
+  const AnilloParecido({super.key, required this.score, this.fondo});
 
   /// Entre 0 y 1.
   final double score;
-  final Color fondo;
+  final Color? fondo;
 
   @override
   Widget build(BuildContext context) {
@@ -785,11 +789,11 @@ class EncabezadoHoja extends StatelessWidget {
             children: [
               Semantics(
                 header: true,
-                child: Text(titulo, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.25)),
+                child: Text(titulo, style: TextoRecobra.seccion),
               ),
               if (subtitulo != null) ...[
                 const SizedBox(height: 2),
-                Text(subtitulo!, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
+                Text(subtitulo!, style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
               ],
             ],
           ),
@@ -817,22 +821,41 @@ class BotonCerrar extends StatelessWidget {
   }
 }
 
-/// Caja informativa azul ("Si es tuyo, te pediremos…").
-class CajaInfo extends StatelessWidget {
-  const CajaInfo({super.key, required this.child, this.icono = Icons.info_outline_rounded, this.color = ColoresUtb.azulClaro});
+/// Icono de una fila de lista: blanco dentro de un cuadro azulUtb de 38 px.
+class IconoFila extends StatelessWidget {
+  const IconoFila(this.icono, {super.key, this.color = ColoresUtb.azul});
 
-  final Widget child;
   final IconData icono;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(RadiosRecobra.icono)),
+      child: Icon(icono, size: 21, color: ColoresUtb.sobreAzul),
+    );
+  }
+}
+
+/// Caja informativa azul ("Si es tuyo, te pediremos…").
+class CajaInfo extends StatelessWidget {
+  const CajaInfo({super.key, required this.child, this.icono = Icons.info_outline_rounded, Color? color})
+      : _color = color;
+
+  final Widget child;
+  final IconData icono;
+  final Color? _color;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _color ?? ColoresUtb.enlace;
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
+        borderRadius: BorderRadius.circular(RadiosRecobra.campo),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -841,7 +864,7 @@ class CajaInfo extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: DefaultTextStyle.merge(
-              style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFFD3DCFF)),
+              style: TextoRecobra.secundario.copyWith(color: ColoresUtb.texto),
               child: child,
             ),
           ),
@@ -872,10 +895,13 @@ class PasosNumerados extends StatelessWidget {
                   height: 26,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: ColoresUtb.azul.withValues(alpha: 0.32),
+                    color: ColoresUtb.azul,
                     shape: BoxShape.circle,
                   ),
-                  child: Text('${i + 1}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  child: Text(
+                    '${i + 1}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ColoresUtb.sobreAzul),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -903,7 +929,7 @@ class AvatarIniciales extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: radio,
-      backgroundColor: ColoresUtb.azul.withValues(alpha: 0.4),
+      backgroundColor: ColoresUtb.azul,
       child: Text(
         iniciales(nombre),
         style: TextStyle(fontSize: radio * 0.7, color: Colors.white, fontWeight: FontWeight.w700),

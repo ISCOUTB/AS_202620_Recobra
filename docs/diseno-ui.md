@@ -13,27 +13,70 @@ incluía sistema de diseño, componentes, un flujo anotado en siete pasos,
 estados y la vitrina; abajo se resume lo que se implementó y lo que quedó como
 propuesta.
 
-## Paleta (medida en la app UTB)
+## Sistema de diseño de Recobra (desde el 2026-11-23)
 
-| Rol | Color | Uso |
-|---|---|---|
-| Fondo | `#05060B` | Fondo de todas las pantallas (tema oscuro) |
-| Superficie | `#17181B` | Tarjetas |
-| Superficie alta | `#22242A` | Campos de texto, hojas, bloques dentro de tarjetas |
-| Borde | `#2C2E35` | Bordes y separadores |
-| Azul UTB | `#0A39D0` → `#0C288D` → `#081A5E` | Degradado del encabezado (155°), botón principal, opción activa. Nunca como texto sobre fondo oscuro |
-| Azul claro | `#7B9BFF` (texto `#9DB4FF`) | Enlaces, íconos activos, foco, estado "publicado" |
-| Naranja | `#F28C28` | Objeto **perdido**; "en verificación"; reclamación pendiente; contadores (texto oscuro encima, 8:1) |
-| Verde | `#3CCB6E` | Objeto **encontrado**; "entregado"; reclamación aprobada |
-| Rojo | `#FF6B6B` (texto `#FF8A8A`) | Errores, rechazar, cerrar sesión |
+La app aplica el **sistema de diseño de Recobra**: el mismo lenguaje de la app
+UTB (encabezado azul, superficies limpias, una sola acción azul por pantalla),
+ahora con **modo claro y oscuro**. Los colores viven en
+`mobile/lib/tema/tema_utb.dart` como `ColoresRecobra.claro` y
+`ColoresRecobra.oscuro` (una `ThemeExtension` con los nombres de los
+tokens), y el tema usa `ColorScheme.fromSeed(seedColor: azulUtb)` con
+`primary: azulUtb`. Las pantallas siguen leyendo `ColoresUtb`, que ahora
+resuelve cada nombre contra el juego de colores en uso.
 
-## Tipografía, espaciado y formas
+**Apariencia:** Sistema, Claro u Oscuro desde Perfil; se recuerda en el
+dispositivo. El cambio es inmediato (sin animación del tema, para que ningún
+texto quede a medio camino entre los dos modos).
 
-- Sin serifa del sistema (Roboto en Android, SF en iOS). Escala 28–30 / 22 / 16
-  / 14 / 12 / 11; las etiquetas y la fecha van en mayúsculas, 11 px, peso 700.
-- Margen lateral de pantalla 20 px, padding de tarjeta 16, 12 entre tarjetas.
-- Radios: tarjetas 20, campos 14, encabezado y hojas 28, botones en píldora.
-- Única sombra: barra flotante y hojas inferiores.
+### Color
+
+| Token | Claro | Oscuro | Uso |
+|---|---|---|---|
+| `fondo` | `#F2F3F7` | `#010208` | Detrás de todo, debajo del encabezado |
+| `tarjeta` | `#FFFFFF` | `#19181B` | Listas agrupadas, tarjetas, hojas |
+| `tarjetaAlta` | `#EEF0F5` | `#2C2B30` | Campos en oscuro, botón secundario en oscuro, pestaña activa (oscuro) |
+| `ticket` | `#E9EBF2` | `#343338` | Fondo del segmentado en claro |
+| `separador` | `#E3E5EB` | `#2A2A2E` | Líneas de 1 px; borde de la barra en claro |
+| `texto` | `#0B0D17` | `#FFFFFF` | Texto principal; relleno del chip activo |
+| `textoSuave` | `#5F6470` | `#98989F` | Metadatos y ayudas (AA en los dos modos) |
+| `enlace` | `#2545C9` | `#4F86FF` | Enlaces, acciones de texto, pestaña activa, estado Publicado |
+| `azulUtb` | `#2545C9` | `#2545C9` | Botón principal, segmento activo, botón +, cuadros de icono |
+| Encabezado | `#1A36CF` → `#1232B8` (55 %) → `#0B2384` | igual | Degradado vertical, esquinas inferiores de 28 |
+| `naranjaTexto` | `#B45309` | `#F5A35A` | Perdido, En verificación, Pendiente, insignia de avisos |
+| `verdeTexto` | `#157F3C` | `#4CD07D` | Encontrado, Entregado, Aprobada |
+| `rojoTexto` | `#C4261D` | `#FF6961` | Rechazada, Rechazar, Cerrar sesión, errores |
+| `magentaTexto` | `#8A12C2` | `#D08CFF` | Posible coincidencia |
+| `barra` | `#FFFFFF` | `#141414` | Barra inferior flotante y menú lateral |
+
+El color se usa solo para estados y **siempre junto a su palabra**
+("Perdido", "Encontrado", "En verificación"); por eso los accesos rápidos de
+Inicio dejaron de ser botones naranja y verde: son tarjetas con cuadro de
+icono azul y la palabra "PUBLICAR" en el color del estado.
+
+### Tipografía (familia del sistema; Roboto empaquetada)
+
+`tituloPestana` 34/800 · `seccion` 22/700 · `tarjetaBarra` 17/600 (botones,
+títulos de tarjeta) · `fila` 16 · `secundario` 14 en `textoSuave` ·
+`etiquetaEstado` 13/600 · `etiqueta` 12/600 en mayúsculas (única línea en
+mayúsculas). Están en `TextoRecobra`.
+
+### Forma y profundidad
+
+- Radios (`RadiosRecobra`): etiqueta 8, cuadro de icono 10, campo 16, tarjeta
+  20, segmentado 22, encabezado 28, hoja y barra 32, botones en píldora.
+- Encabezado de pestaña con padding 58 / 20 / 22; botones de 52; barra y
+  botón + de 64; cuadro de icono de fila de 38 (`IconoFila`, icono blanco).
+- Sin sombras, salvo la barra flotante y el botón +, y solo en claro.
+- Listas agrupadas en una tarjeta con separadores, en vez de tarjetas sueltas.
+- Dos ajustes propios, para que se distingan sobre `fondo` en claro: los
+  campos y el botón secundario van en `tarjeta` con línea de 1 px
+  `separador` (en oscuro, `tarjetaAlta` sin línea, como dice el sistema).
+
+### Paleta anterior (hasta el 2026-11-22, solo oscuro)
+
+Fondo `#05060B`, superficie `#17181B`, degradado `#0A39D0` → `#0C288D` →
+`#081A5E`, azul claro `#7B9BFF`, naranja `#F28C28`, verde `#3CCB6E`, rojo
+`#FF6B6B`. Se reemplazó por el sistema de diseño de arriba.
 
 ## Patrones de la app UTB que se reutilizan
 

@@ -79,7 +79,7 @@ class _HojaReporteState extends State<_HojaReporte> {
         children: [
           EncabezadoHoja(titulo: 'Reportar publicación', subtitulo: widget.publicacion.descripcion),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Recobra es para devolver objetos: no se permiten publicaciones falsas, spam, contenido ofensivo ni datos '
             'personales de otras personas.',
             style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13, height: 1.45),
@@ -111,7 +111,7 @@ class _HojaReporteState extends State<_HojaReporte> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 6),
-            Text(_error!, style: const TextStyle(color: ColoresUtb.rojoTexto)),
+            Text(_error!, style: TextStyle(color: ColoresUtb.rojoTexto)),
           ],
           const SizedBox(height: 10),
           FilledButton(

@@ -163,7 +163,7 @@ class _AccesoPantallaState extends State<AccesoPantalla> {
                     ),
                   ),
                   if (_errorPrivacidad != null)
-                    Text(_errorPrivacidad!, style: const TextStyle(color: ColoresUtb.rojoTexto, fontSize: 12)),
+                    Text(_errorPrivacidad!, style: TextStyle(color: ColoresUtb.rojoTexto, fontSize: 12)),
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
@@ -172,7 +172,7 @@ class _AccesoPantallaState extends State<AccesoPantalla> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: ColoresUtb.rojoTexto)),
+                  Text(_error!, style: TextStyle(color: ColoresUtb.rojoTexto)),
                 ],
                 const SizedBox(height: 12),
                 const TituloSeccion('¿Por qué necesito una cuenta?'),

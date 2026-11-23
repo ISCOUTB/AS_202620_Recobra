@@ -127,12 +127,12 @@ class _TarjetaReporte extends StatelessWidget {
             ],
             Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             if (reporte.publicacionUbicacion != null)
-              Text(reporte.publicacionUbicacion!, style: const TextStyle(color: ColoresUtb.textoSuave)),
+              Text(reporte.publicacionUbicacion!, style: TextStyle(color: ColoresUtb.textoSuave)),
             const SizedBox(height: 10),
             Text(
               '${motivosReporte[reporte.motivo] ?? reporte.motivo} · ${fechaCorta(reporte.creadoEn)} · '
               '${reporte.reportesDeLaPublicacion} reporte(s) sobre esta publicación',
-              style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13),
+              style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13),
             ),
             if (reporte.detalle != null && reporte.detalle!.isNotEmpty) ...[
               const SizedBox(height: 6),

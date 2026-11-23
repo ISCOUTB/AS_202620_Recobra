@@ -64,12 +64,7 @@ class RazonesCuenta extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(color: ColoresUtb.azulClaro.withValues(alpha: 0.14), shape: BoxShape.circle),
-                  child: Icon(icono, size: 19, color: ColoresUtb.azulClaro),
-                ),
+                IconoFila(icono),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -77,7 +72,7 @@ class RazonesCuenta extends StatelessWidget {
                     children: [
                       Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 2),
-                      Text(texto, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13, height: 1.45)),
+                      Text(texto, style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13, height: 1.45)),
                     ],
                   ),
                 ),

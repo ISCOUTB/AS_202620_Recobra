@@ -83,7 +83,7 @@ class _ReclamarPantallaState extends State<ReclamarPantalla> {
             Text(
               widget.publicacion.descripcion,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, color: ColoresUtb.textoSuave),
+              style: TextStyle(fontSize: 13, color: ColoresUtb.textoSuave),
             ),
           ],
         ),
@@ -101,7 +101,7 @@ class _ReclamarPantallaState extends State<ReclamarPantalla> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '¿QUÉ ES LA PRUEBA?',
                   style: TextStyle(color: ColoresUtb.azulTexto, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.3),
                 ),
@@ -157,11 +157,11 @@ class _ReclamarPantallaState extends State<ReclamarPantalla> {
                   style: TextStyle(fontSize: 12, color: suficiente ? ColoresUtb.verde : ColoresUtb.textoSuave),
                 ),
               ),
-              Text('$largo / $pruebaMaxima', style: const TextStyle(fontSize: 12, color: ColoresUtb.textoSuave)),
+              Text('$largo / $pruebaMaxima', style: TextStyle(fontSize: 12, color: ColoresUtb.textoSuave)),
             ],
           ),
           const SizedBox(height: 12),
-          const CajaInfo(
+          CajaInfo(
             icono: Icons.shield_outlined,
             color: ColoresUtb.naranja,
             child: Text('No escribas contraseñas, números de documento ni de tarjeta.'),
@@ -178,14 +178,14 @@ class _ReclamarPantallaState extends State<ReclamarPantalla> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(color: ColoresUtb.rojoTexto)),
+            Text(_error!, style: TextStyle(color: ColoresUtb.rojoTexto)),
           ],
         ],
       ),
       bottomNavigationBar: SafeArea(
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: ColoresUtb.fondo,
             border: Border(top: BorderSide(color: ColoresUtb.borde)),
           ),
@@ -197,7 +197,7 @@ class _ReclamarPantallaState extends State<ReclamarPantalla> {
                 child: Text(_ocupado ? 'Enviando…' : 'Enviar reclamación'),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Solo puedes tener una reclamación pendiente por objeto.',
                 style: TextStyle(fontSize: 12, color: ColoresUtb.textoSuave),
               ),

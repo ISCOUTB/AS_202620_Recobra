@@ -32,7 +32,7 @@ ButtonStyle get _estiloDestructivo => OutlinedButton.styleFrom(
       side: BorderSide(color: ColoresUtb.rojo.withValues(alpha: 0.5)),
     );
 
-const _estiloSobretitulo = TextStyle(
+final _estiloSobretitulo = TextStyle(
   color: ColoresUtb.textoSuave,
   fontSize: 11,
   fontWeight: FontWeight.w700,
@@ -199,7 +199,7 @@ class MisCosasPantallaState extends State<MisCosasPantalla> {
           ],
         ),
       if (p.tipo == 'encontrado' && total == 0 && p.estado == 'publicado')
-        const Text('Nadie lo ha reclamado todavía.', style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
+        Text('Nadie lo ha reclamado todavía.', style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
       if (total > 0) _reclamacionesDe(item),
       if (p.estado == 'publicado') ...[const SizedBox(height: 10), _AccionesCierre(p, alCambiar: _recargar)],
     ];
@@ -336,7 +336,7 @@ class _TarjetaReclamacion extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('${r.reclamanteNombre} dice que es suyo', style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text('Reclamación $posicion de $total', style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
+                    Text('Reclamación $posicion de $total', style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
                   ],
                 ),
               ),
@@ -344,16 +344,16 @@ class _TarjetaReclamacion extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Text('SU PRUEBA', style: _estiloSobretitulo),
+          Text('SU PRUEBA', style: _estiloSobretitulo),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.only(left: 12),
-            decoration: const BoxDecoration(border: Border(left: BorderSide(color: ColoresUtb.azulClaro, width: 2))),
+            decoration: BoxDecoration(border: Border(left: BorderSide(color: ColoresUtb.azulClaro, width: 2))),
             child: Text('“${r.prueba}”', style: const TextStyle(fontSize: 14, height: 1.5)),
           ),
           if (r.estado == 'pendiente') ...[
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Compárala con el objeto que tienes. ¿Coinciden las señas?',
               style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
             ),
@@ -382,11 +382,11 @@ class _TarjetaReclamacion extends StatelessWidget {
           ],
           if (r.entregadaEn != null) ...[
             const SizedBox(height: 8),
-            Text('Entregado el ${fechaCorta(r.entregadaEn!)}', style: const TextStyle(color: ColoresUtb.verde, fontSize: 13)),
+            Text('Entregado el ${fechaCorta(r.entregadaEn!)}', style: TextStyle(color: ColoresUtb.verde, fontSize: 13)),
           ],
           if (r.motivoRechazo != null) ...[
             const SizedBox(height: 8),
-            Text('Motivo: ${r.motivoRechazo}', style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
+            Text('Motivo: ${r.motivoRechazo}', style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
           ],
         ],
       ),
@@ -436,7 +436,7 @@ class ConfirmarEntrega extends StatelessWidget {
                         'Su prueba: “${reclamacion.prueba}”',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13),
+                        style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13),
                       ),
                     ],
                   ),
@@ -444,7 +444,7 @@ class ConfirmarEntrega extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 18),
-            const Text('AL CONFIRMAR', style: _estiloSobretitulo),
+            Text('AL CONFIRMAR', style: _estiloSobretitulo),
             const SizedBox(height: 8),
             for (final c in consecuencias)
               Padding(
@@ -452,7 +452,7 @@ class ConfirmarEntrega extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.arrow_right_rounded, color: ColoresUtb.azulClaro),
+                    Icon(Icons.arrow_right_rounded, color: ColoresUtb.azulClaro),
                     const SizedBox(width: 4),
                     Expanded(child: Text(c, style: const TextStyle(height: 1.45))),
                   ],
@@ -553,7 +553,7 @@ class _TarjetaReclamoPropio extends StatelessWidget {
     final p = item.publicacion;
     final Widget cuerpo;
     if (r.estado == 'rechazada') {
-      cuerpo = Text('Motivo: “${r.motivoRechazo ?? 'sin motivo'}”', style: const TextStyle(color: ColoresUtb.textoSuave));
+      cuerpo = Text('Motivo: “${r.motivoRechazo ?? 'sin motivo'}”', style: TextStyle(color: ColoresUtb.textoSuave));
     } else if (r.estado == 'aprobada' && r.entregadaEn != null) {
       cuerpo = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -561,7 +561,7 @@ class _TarjetaReclamoPropio extends StatelessWidget {
           const _Pasos(actual: 3),
           const SizedBox(height: 10),
           Text('Lo recibiste el ${fechaCorta(r.entregadaEn!)}. ¡Qué bueno que volvió!',
-              style: const TextStyle(color: ColoresUtb.verde, fontSize: 13)),
+              style: TextStyle(color: ColoresUtb.verde, fontSize: 13)),
         ],
       );
     } else if (r.estado == 'aprobada') {
@@ -582,7 +582,7 @@ class _TarjetaReclamoPropio extends StatelessWidget {
         ],
       );
     } else {
-      cuerpo = const Column(
+      cuerpo = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _Pasos(actual: 1),
@@ -611,7 +611,7 @@ class _TarjetaReclamoPropio extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         [if (p != null) p.lugarCompleto, 'Enviada el ${fechaCorta(r.creadoEn)}'].join(' · '),
-                        style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
+                        style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
                       ),
                     ],
                   ),
@@ -816,7 +816,7 @@ class _Contacto extends StatelessWidget {
         children: [
           Text(texto, style: const TextStyle(height: 1.45)),
           const SizedBox(height: 8),
-          SelectableText(correo, style: const TextStyle(fontWeight: FontWeight.w700, color: ColoresUtb.verde)),
+          SelectableText(correo, style: TextStyle(fontWeight: FontWeight.w700, color: ColoresUtb.verde)),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             icon: const Icon(Icons.copy_rounded, size: 18),

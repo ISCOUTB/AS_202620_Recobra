@@ -226,7 +226,7 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Cuéntanos qué es' : null,
                 ),
                 const SizedBox(height: 12),
-                const Text('Categoría', style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600)),
+                Text('Categoría', style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 FormField<String>(
                   validator: (_) => _categoria == null ? 'Elige una categoría' : null,
@@ -248,7 +248,7 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                       if (campo.hasError)
                         Padding(
                           padding: const EdgeInsets.only(top: 6),
-                          child: Text(campo.errorText!, style: const TextStyle(color: ColoresUtb.rojoTexto, fontSize: 12)),
+                          child: Text(campo.errorText!, style: TextStyle(color: ColoresUtb.rojoTexto, fontSize: 12)),
                         ),
                     ],
                   ),
@@ -286,7 +286,7 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                 ],
                 if (_niveles.isNotEmpty) ...[
                   const SizedBox(height: 14),
-                  const Text(
+                  Text(
                     'Sugerencias de piso o zona (opcional)',
                     style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600),
                   ),
@@ -335,7 +335,7 @@ class PublicarPantallaState extends State<PublicarPantalla> {
                       ? 'Al publicar buscamos coincidencias y te avisamos.'
                       : 'Al tocar Publicar te pediremos iniciar sesión.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
+                  style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
                 ),
               ],
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/recobra_api.dart';
+import '../estado/apariencia.dart';
 import '../estado/sesion.dart';
 import '../tema/tema_utb.dart';
 import '../widgets/comunes.dart';
@@ -58,14 +59,14 @@ class _PerfilPantallaState extends State<PerfilPantalla> {
           Container(
             decoration: const BoxDecoration(
               gradient: ColoresUtb.degradado,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(RadiosRecobra.encabezado)),
             ),
-            padding: EdgeInsets.fromLTRB(20, arriba + 24, 20, 28),
+            padding: EdgeInsets.fromLTRB(20, arriba + 24 > 58 ? arriba + 24 : 58, 20, 28),
             child: Column(
               children: [
                 const Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Perfil', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+                  child: Text('Perfil', style: TextStyle(color: ColoresUtb.sobreAzul, fontSize: 34, fontWeight: FontWeight.w800)),
                 ),
                 const SizedBox(height: 16),
                 CircleAvatar(
@@ -128,7 +129,7 @@ class _PerfilPantallaState extends State<PerfilPantalla> {
                   const TituloSeccion('Administración', subtitulo: 'Reportes de la comunidad'),
                   Card(
                     child: ListTile(
-                      leading: const Icon(Icons.shield_outlined, color: ColoresUtb.azulClaro),
+                      leading: const IconoFila(Icons.shield_outlined),
                       title: const Text('Moderación'),
                       subtitle: const Text('Revisar reportes y ocultar publicaciones'),
                       trailing: const Icon(Icons.chevron_right_rounded),
@@ -136,19 +137,22 @@ class _PerfilPantallaState extends State<PerfilPantalla> {
                     ),
                   ),
                 ],
+                const TituloSeccion('Apariencia'),
+                const _SelectorApariencia(),
+                const SizedBox(height: 8),
                 const TituloSeccion('Privacidad', subtitulo: 'Tus datos son tuyos'),
                 Card(
                   child: Column(
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.policy_outlined, color: ColoresUtb.azulClaro),
+                        leading: const IconoFila(Icons.policy_outlined),
                         title: const Text('Aviso de privacidad'),
                         trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => abrirAvisoPrivacidad(context),
                       ),
                       const Divider(height: 1),
                       ListTile(
-                        leading: const Icon(Icons.download_outlined, color: ColoresUtb.azulClaro),
+                        leading: const IconoFila(Icons.download_outlined),
                         title: const Text('Descargar mis datos'),
                         subtitle: const Text('Todo lo que Recobra guarda de tu cuenta'),
                         trailing: const Icon(Icons.chevron_right_rounded),
@@ -156,8 +160,8 @@ class _PerfilPantallaState extends State<PerfilPantalla> {
                       ),
                       const Divider(height: 1),
                       ListTile(
-                        leading: const Icon(Icons.delete_outline_rounded, color: ColoresUtb.rojoTexto),
-                        title: const Text('Eliminar mi cuenta', style: TextStyle(color: ColoresUtb.rojoTexto)),
+                        leading: IconoFila(Icons.delete_outline_rounded, color: ColoresUtb.rojoTexto),
+                        title: Text('Eliminar mi cuenta', style: TextStyle(color: ColoresUtb.rojoTexto)),
                         trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => abrirEliminarCuenta(context),
                       ),
@@ -166,10 +170,7 @@ class _PerfilPantallaState extends State<PerfilPantalla> {
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ColoresUtb.rojoTexto,
-                    side: BorderSide(color: ColoresUtb.rojo.withValues(alpha: 0.5)),
-                  ),
+                  style: OutlinedButton.styleFrom(foregroundColor: ColoresUtb.rojoTexto),
                   icon: const Icon(Icons.logout_rounded),
                   label: const Text('Cerrar sesión'),
                   onPressed: () => sesion.salir(),
@@ -179,6 +180,26 @@ class _PerfilPantallaState extends State<PerfilPantalla> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Apariencia: Sistema, Claro u Oscuro. Se recuerda en el dispositivo.
+class _SelectorApariencia extends StatelessWidget {
+  const _SelectorApariencia();
+
+  @override
+  Widget build(BuildContext context) {
+    final apariencia = AlcanceApariencia.de(context);
+    if (apariencia == null) return const SizedBox.shrink();
+    return ControlSegmentado<ThemeMode>(
+      opciones: const [
+        OpcionSegmento(ThemeMode.system, 'Sistema'),
+        OpcionSegmento(ThemeMode.light, 'Claro'),
+        OpcionSegmento(ThemeMode.dark, 'Oscuro'),
+      ],
+      valor: apariencia.value,
+      alCambiar: apariencia.elegir,
     );
   }
 }
@@ -200,8 +221,8 @@ class _Indicador extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(
-              width: 48,
-              height: 48,
+              width: 44,
+              height: 44,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -222,8 +243,12 @@ class _Indicador extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  Text(detalle, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(titulo, maxLines: 1, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                  Text(detalle, style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
                 ],
               ),
             ),

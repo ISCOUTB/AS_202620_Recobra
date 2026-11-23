@@ -148,7 +148,6 @@ class InicioPantallaState extends State<InicioPantalla> {
                         child: _AccesoRapido(
                           icono: Icons.manage_search_rounded,
                           color: ColoresUtb.naranja,
-                          colorTexto: ColoresUtb.textoSobreNaranja,
                           titulo: 'Perdí algo',
                           texto: 'Publícalo y te avisamos si aparece',
                           alTocar: () => widget.alPublicar('perdido'),
@@ -159,7 +158,6 @@ class InicioPantallaState extends State<InicioPantalla> {
                         child: _AccesoRapido(
                           icono: Icons.inventory_2_outlined,
                           color: ColoresUtb.verde,
-                          colorTexto: ColoresUtb.textoSobreVerde,
                           titulo: 'Encontré algo',
                           texto: 'Ayuda a que vuelva a su dueño',
                           alTocar: () => widget.alPublicar('encontrado'),
@@ -274,14 +272,14 @@ class _TarjetaDestacada extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const BarraLateral(color: ColoresUtb.azulClaro),
+              BarraLateral(color: ColoresUtb.azulClaro),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(0, 14, 0, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'POSIBLE COINCIDENCIA',
                         style: TextStyle(
                           color: ColoresUtb.azulTexto,
@@ -297,13 +295,13 @@ class _TarjetaDestacada extends StatelessWidget {
                         aviso.mensaje,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
+                        style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
               ),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Icon(Icons.chevron_right_rounded, color: ColoresUtb.textoSuave),
               ),
@@ -321,7 +319,6 @@ class _AccesoRapido extends StatelessWidget {
   const _AccesoRapido({
     required this.icono,
     required this.color,
-    required this.colorTexto,
     required this.titulo,
     required this.texto,
     required this.alTocar,
@@ -329,7 +326,6 @@ class _AccesoRapido extends StatelessWidget {
 
   final IconData icono;
   final Color color;
-  final Color colorTexto;
   final String titulo;
   final String texto;
   final VoidCallback alTocar;
@@ -341,10 +337,10 @@ class _AccesoRapido extends StatelessWidget {
       label: '$titulo. $texto. Publicar',
       excludeSemantics: true,
       child: Material(
-        color: color,
-        borderRadius: BorderRadius.circular(22),
+        color: ColoresUtb.superficie,
+        borderRadius: BorderRadius.circular(RadiosRecobra.tarjeta),
         child: InkWell(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(RadiosRecobra.tarjeta),
           onTap: alTocar,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -353,34 +349,24 @@ class _AccesoRapido extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(color: colorTexto.withValues(alpha: 0.14), shape: BoxShape.circle),
-                      child: Icon(icono, color: colorTexto, size: 23),
-                    ),
+                    IconoFila(icono),
                     const Spacer(),
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(color: colorTexto, shape: BoxShape.circle),
-                      child: Icon(Icons.add_rounded, color: color, size: 22),
-                    ),
+                    Icon(Icons.add_rounded, color: ColoresUtb.textoSuave, size: 24),
                   ],
                 ),
                 const SizedBox(height: 14),
-                Text(titulo, style: TextStyle(color: colorTexto, fontSize: 19, fontWeight: FontWeight.w800)),
+                Text(titulo, style: TextoRecobra.tarjetaBarra.copyWith(color: ColoresUtb.texto)),
                 const SizedBox(height: 2),
-                Text(texto, style: TextStyle(color: colorTexto.withValues(alpha: 0.85), fontSize: 12.5, height: 1.35)),
+                Text(texto, style: TextoRecobra.secundario.copyWith(color: ColoresUtb.textoSuave)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Text(
                       'PUBLICAR',
-                      style: TextStyle(color: colorTexto, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.3),
+                      style: TextoRecobra.etiqueta.copyWith(color: color),
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_rounded, color: colorTexto, size: 16),
+                    Icon(Icons.arrow_forward_rounded, color: color, size: 16),
                   ],
                 ),
               ],

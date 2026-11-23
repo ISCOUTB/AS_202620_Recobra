@@ -36,7 +36,7 @@ class MiniaturaFoto extends StatelessWidget {
             width: lado,
             height: lado,
             color: ColoresUtb.superficieAlta,
-            child: const Icon(Icons.image_outlined, color: ColoresUtb.textoApagado),
+            child: Icon(Icons.image_outlined, color: ColoresUtb.textoApagado),
           ),
         ),
       ),
@@ -73,7 +73,7 @@ class CampoFoto extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Foto (opcional)', style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600)),
+        Text('Foto (opcional)', style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         if (foto == null)
           OutlinedButton.icon(
@@ -107,7 +107,7 @@ class CampoFoto extends StatelessWidget {
             ],
           ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'La reducimos en tu dispositivo y le quitamos los datos ocultos, como la ubicación. '
           'De un objeto encontrado, el público solo ve una miniatura borrosa.',
           style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12, height: 1.4),
@@ -282,7 +282,7 @@ class _FotoDetalleState extends State<FotoDetalle> {
         if (_mensaje != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Text(_mensaje!, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13, height: 1.4)),
+            child: Text(_mensaje!, style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13, height: 1.4)),
           ),
       ],
     );

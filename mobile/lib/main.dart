@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'api/recobra_api.dart';
 import 'estado/almacen_local.dart';
+import 'estado/apariencia.dart';
 import 'estado/avisos.dart';
 import 'estado/fotos.dart';
 import 'estado/sesion.dart';
@@ -45,10 +46,20 @@ void main() {
   runApp(RecobraApp(api: RecobraApi(baseUrl: defaultApiBaseUrl()), almacen: AlmacenPreferencias()));
 }
 
-/// Aplicación con el estilo de la app UTB (tema oscuro, encabezados con
-/// degradado azul y barra de navegación flotante).
+/// Aplicación con el sistema de diseño de Recobra: modo claro y oscuro,
+/// encabezado con degradado azul UTB y barra de navegación flotante.
 class RecobraApp extends StatefulWidget {
-  const RecobraApp({super.key, required this.api, this.almacen, this.mostrarBienvenida = true, this.selectorFoto});
+  const RecobraApp({
+    super.key,
+    required this.api,
+    this.almacen,
+    this.mostrarBienvenida = true,
+    this.selectorFoto,
+    this.apariencia = ThemeMode.system,
+  });
+
+  /// Apariencia inicial, antes de leer la guardada (las pruebas fijan una).
+  final ThemeMode apariencia;
 
   final RecobraApi api;
 
@@ -69,15 +80,18 @@ class _RecobraAppState extends State<RecobraApp> {
   late final SesionApp _sesion = SesionApp(widget.api, almacen: widget.almacen);
   late final AvisosApp _avisos = AvisosApp(_sesion);
   late final SelectorFoto _selectorFoto = widget.selectorFoto ?? SelectorFotoDispositivo();
+  late final AparienciaApp _apariencia = AparienciaApp(almacen: widget.almacen, inicial: widget.apariencia);
 
   @override
   void initState() {
     super.initState();
     _sesion.restaurar();
+    _apariencia.restaurar();
   }
 
   @override
   void dispose() {
+    _apariencia.dispose();
     _avisos.dispose();
     _sesion.dispose();
     super.dispose();
@@ -91,11 +105,29 @@ class _RecobraAppState extends State<RecobraApp> {
         avisos: _avisos,
         child: AlcanceFotos(
           selector: _selectorFoto,
-          child: MaterialApp(
-            title: 'Recobra',
-            debugShowCheckedModeBanner: false,
-            theme: temaUtb(),
-            home: Navegacion(mostrarBienvenida: widget.mostrarBienvenida),
+          child: AlcanceApariencia(
+            apariencia: _apariencia,
+            child: ValueListenableBuilder<ThemeMode>(
+              valueListenable: _apariencia,
+              builder: (context, modo, _) => MaterialApp(
+                title: 'Recobra',
+                debugShowCheckedModeBanner: false,
+                theme: temaUtb(Brightness.light),
+                darkTheme: temaUtb(Brightness.dark),
+                themeMode: modo,
+                // Sin animación: los colores sin contexto (ColoresUtb) cambian de golpe
+                // y una transición dejaría textos a medio camino entre los dos modos.
+                themeAnimationDuration: Duration.zero,
+                builder: (context, child) {
+                  // Los widgets leen ColoresUtb sin contexto: se fija el juego
+                  // de colores y, si cambia el brillo, se reconstruye todo.
+                  final brillo = Theme.of(context).brightness;
+                  ColoresRecobra.actual = ColoresRecobra.para(brillo);
+                  return KeyedSubtree(key: ValueKey(brillo), child: child ?? const SizedBox.shrink());
+                },
+                home: Navegacion(mostrarBienvenida: widget.mostrarBienvenida),
+              ),
+            ),
           ),
         ),
       ),

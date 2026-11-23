@@ -161,7 +161,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
                 ),
                 if (ayuda != null) ...[
                   const SizedBox(height: 6),
-                  Text(ayuda, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
+                  Text(ayuda, style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13)),
                 ],
                 const SizedBox(height: 16),
                 Row(
@@ -216,12 +216,12 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
                               child: Text('Coincidencias', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                             ),
                             if (lista.isNotEmpty)
-                              Text('${lista.length}', style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
+                              Text('${lista.length}', style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
                           ],
                         ),
                         const SizedBox(height: 10),
                         if (lista.isEmpty)
-                          const Text(
+                          Text(
                             'Todavía no hay coincidencias. Te avisamos cuando aparezca algo parecido.',
                             style: TextStyle(color: ColoresUtb.textoSuave),
                           )
@@ -259,7 +259,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
           if (_puedeReclamar(sesion) || (esEncontradoAjeno && !sesion.activa && estadosReclamables.contains(p.estado)))
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-              decoration: const BoxDecoration(border: Border(top: BorderSide(color: ColoresUtb.borde))),
+              decoration: BoxDecoration(border: Border(top: BorderSide(color: ColoresUtb.borde))),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -274,7 +274,7 @@ class _DetallePublicacionState extends State<DetallePublicacion> {
           if (_puedeDecirLoTengo(sesion) || (p.tipo == 'perdido' && !sesion.activa && estadosReclamables.contains(p.estado)))
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-              decoration: const BoxDecoration(border: Border(top: BorderSide(color: ColoresUtb.borde))),
+              decoration: BoxDecoration(border: Border(top: BorderSide(color: ColoresUtb.borde))),
               child: FilledButton.icon(
                 icon: const Icon(Icons.volunteer_activism_outlined),
                 onPressed: () => _loTengo(sesion),
@@ -301,7 +301,7 @@ class _Dato extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(etiqueta, style: const TextStyle(fontSize: 11, color: ColoresUtb.textoSuave)),
+          Text(etiqueta, style: TextStyle(fontSize: 11, color: ColoresUtb.textoSuave)),
           const SizedBox(height: 2),
           Text(valor, maxLines: 2, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         ],
@@ -365,7 +365,7 @@ class _Comparacion extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const _Razon(Icons.check_rounded, ColoresUtb.verde, 'Misma categoría'),
+                        _Razon(Icons.check_rounded, ColoresUtb.verde, 'Misma categoría'),
                         const SizedBox(height: 4),
                         _Razon(
                           Icons.place_outlined,
@@ -421,7 +421,7 @@ class _Lado extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     '${p.categoria}\n${p.lugarCompleto}\n${fechaCorta(p.creadoEn)}',
-                    style: const TextStyle(fontSize: 12, color: ColoresUtb.textoSuave, height: 1.4),
+                    style: TextStyle(fontSize: 12, color: ColoresUtb.textoSuave, height: 1.4),
                   ),
                 ],
               ),

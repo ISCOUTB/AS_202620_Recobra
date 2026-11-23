@@ -66,7 +66,7 @@ class _HojaAvisoState extends State<_HojaAviso> {
                           child: Text(s.titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                         ),
                         const SizedBox(height: 4),
-                        Text(s.texto, style: const TextStyle(color: ColoresUtb.textoSuave, height: 1.5)),
+                        Text(s.texto, style: TextStyle(color: ColoresUtb.textoSuave, height: 1.5)),
                       ],
                     ),
                   ),
@@ -149,7 +149,7 @@ class _HojaDatosState extends State<_HojaDatos> {
                   ),
                   child: SelectableText(
                     estado.data!,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.45, color: ColoresUtb.textoSuave),
+                    style: TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.45, color: ColoresUtb.textoSuave),
                   ),
                 ),
               ],
@@ -237,7 +237,7 @@ class _HojaEliminarState extends State<_HojaEliminar> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 10),
-            Text(_error!, style: const TextStyle(color: ColoresUtb.rojoTexto, height: 1.4)),
+            Text(_error!, style: TextStyle(color: ColoresUtb.rojoTexto, height: 1.4)),
           ],
           const SizedBox(height: 16),
           OutlinedButton(

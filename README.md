@@ -70,7 +70,7 @@ flutter run -d chrome          # web contra localhost:3000
 flutter run
 ```
 
-El backend debe estar corriendo. La app sigue el estilo de la app UTB (tema oscuro; ver
+El backend debe estar corriendo. La app sigue el sistema de diseño de Recobra, con modo claro y oscuro (ver
 [`docs/diseno-ui.md`](docs/diseno-ui.md)) y tiene cuatro secciones: **Inicio** (buscar y ver
 coincidencias, sin cuenta), **Publicar**, **Mis cosas** (lo que publicaste, con sus
 reclamaciones para aprobar o rechazar, y lo que reclamaste) y **Perfil**. Publicar y reclamar

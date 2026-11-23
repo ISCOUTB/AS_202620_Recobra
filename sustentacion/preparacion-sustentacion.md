@@ -121,7 +121,7 @@ Las 129 pruebas e2e recorren los mismos flujos contra el contrato OpenAPI.
 | S1 búsqueda (umbral p95 ≤ 400 ms; medimos p97,5, más exigente) | Render: **1.113 ms** (20 conexiones) → Dokploy: **157 ms** (200 conexiones, S10) → **203 ms** (S14) |
 | Capacidad medida | 1.490 peticiones/s sin errores (S14) |
 | S3 detección | ~2 ms, medido en local (falta medir de punta a punta en producción) |
-| Pruebas | 216 unitarias · 129 e2e · 37 contra PostgreSQL real · 34 de la app Flutter |
+| Pruebas | 216 unitarias · 129 e2e · 37 contra PostgreSQL real · 35 de la app Flutter |
 | Contrato | OpenAPI **5.4.0**, validado con jest-openapi |
 | Amenazas (STRIDE) | 26: 18 mitigadas · 6 parciales/aceptadas · 2 pendientes (T15 la más alta) |
 | Puertos hexagonales | 10 |

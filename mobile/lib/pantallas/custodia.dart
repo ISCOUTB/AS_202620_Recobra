@@ -32,7 +32,7 @@ class SelectorCustodia extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('¿Dónde está ahora?', style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600)),
+        Text('¿Dónde está ahora?', style: TextStyle(color: ColoresUtb.textoSuave, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         ControlSegmentado<String>(
           opciones: const [
@@ -126,7 +126,7 @@ class _HojaCustodiaState extends State<_HojaCustodia> {
             FilledButton(onPressed: _guardar, child: const Text('Guardar')),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: const TextStyle(color: ColoresUtb.rojoTexto)),
+              Text(_error!, style: TextStyle(color: ColoresUtb.rojoTexto)),
             ],
           ],
         ),
@@ -223,7 +223,7 @@ class _ReportarHallazgoPantallaState extends State<ReportarHallazgoPantalla> {
             Text(
               widget.perdido.descripcion,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, color: ColoresUtb.textoSuave),
+              style: TextStyle(fontSize: 13, color: ColoresUtb.textoSuave),
             ),
           ],
         ),
@@ -279,7 +279,7 @@ class _ReportarHallazgoPantallaState extends State<ReportarHallazgoPantalla> {
             SelectorCustodia(custodia: _custodia, alCambiar: (v) => setState(() => _custodia = v), punto: _punto),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: ColoresUtb.rojoTexto)),
+              Text(_error!, style: TextStyle(color: ColoresUtb.rojoTexto)),
             ],
           ],
         ),
@@ -287,7 +287,7 @@ class _ReportarHallazgoPantallaState extends State<ReportarHallazgoPantalla> {
       bottomNavigationBar: SafeArea(
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: ColoresUtb.fondo,
             border: Border(top: BorderSide(color: ColoresUtb.borde)),
           ),

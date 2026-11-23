@@ -104,7 +104,7 @@ class HojaAvisos extends StatelessWidget {
               padding: const EdgeInsets.only(top: 6, bottom: 10),
               child: Text(
                 titulo,
-                style: const TextStyle(
+                style: TextStyle(
                   color: ColoresUtb.textoSuave,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -193,7 +193,7 @@ class TarjetaAviso extends StatelessWidget {
                           style: TextStyle(fontSize: 15, fontWeight: aviso.leida ? FontWeight.w600 : FontWeight.w700),
                         ),
                         const SizedBox(height: 2),
-                        Text(aviso.mensaje, style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 13, height: 1.4)),
+                        Text(aviso.mensaje, style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 13, height: 1.4)),
                       ],
                     ),
                   ),
@@ -204,7 +204,7 @@ class TarjetaAviso extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(fechaCorta(aviso.creadoEn).split(' · ').first,
-                          style: const TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
+                          style: TextStyle(color: ColoresUtb.textoSuave, fontSize: 12)),
                       if (!aviso.leida) ...[
                         const SizedBox(height: 8),
                         Semantics(
@@ -212,7 +212,7 @@ class TarjetaAviso extends StatelessWidget {
                           child: Container(
                             width: 10,
                             height: 10,
-                            decoration: const BoxDecoration(color: ColoresUtb.naranja, shape: BoxShape.circle),
+                            decoration: BoxDecoration(color: ColoresUtb.naranja, shape: BoxShape.circle),
                           ),
                         ),
                       ],

@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:recobra_mobile/api/recobra_api.dart';
 import 'package:recobra_mobile/estado/almacen_local.dart';
 import 'package:recobra_mobile/main.dart';
+import 'package:recobra_mobile/tema/tema_utb.dart';
 import 'package:recobra_mobile/pantallas/avisos.dart';
 import 'package:recobra_mobile/servicios/fotos.dart';
 import 'package:recobra_mobile/widgets/comunes.dart';
@@ -671,14 +672,39 @@ void main() {
       expect(find.textContaining('Así nadie lo reclama solo por haberlo visto'), findsOneWidget);
     });
 
-    testWidgets('Los accesos rápidos son botones de color con la palabra Publicar', (tester) async {
+    testWidgets('La apariencia usa los colores del sistema de diseño en claro y en oscuro', (tester) async {
+      pantallaAlta(tester);
+      Color fondoCon(ThemeMode _) =>
+          Theme.of(tester.element(find.text('En el campus'))).scaffoldBackgroundColor;
+
+      await tester.pumpWidget(RecobraApp(
+        api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor()),
+        mostrarBienvenida: false,
+        apariencia: ThemeMode.light,
+      ));
+      await tester.pumpAndSettle();
+      expect(fondoCon(ThemeMode.light), ColoresRecobra.claro.fondo);
+
+      await tester.pumpWidget(RecobraApp(
+        key: const ValueKey('oscuro'),
+        api: RecobraApi(baseUrl: 'http://localhost:3000', client: _servidor()),
+        mostrarBienvenida: false,
+        apariencia: ThemeMode.dark,
+      ));
+      await tester.pumpAndSettle();
+      expect(fondoCon(ThemeMode.dark), ColoresRecobra.oscuro.fondo);
+      expect(ColoresUtb.azul, ColoresRecobra.azulUtb); // el azul UTB es igual en los dos modos
+    });
+
+    testWidgets('Los accesos rápidos son tarjetas con la palabra Publicar en el color del estado', (tester) async {
       pantallaAlta(tester);
       await tester.pumpWidget(app(_servidor()));
       await tester.pumpAndSettle();
 
       expect(find.text('PUBLICAR'), findsNWidgets(2));
-      final perdi = find.ancestor(of: find.text('Perdí algo'), matching: find.byType(Material)).first;
-      expect(tester.widget<Material>(perdi).color, const Color(0xFFF28C28)); // relleno sólido, no solo texto
+      // Color solo para el estado y junto a la palabra: Perdido en naranja.
+      final publicar = tester.widgetList<Text>(find.text('PUBLICAR')).first;
+      expect(publicar.style?.color, ColoresRecobra.claro.naranjaTexto);
       await tester.tap(find.text('Encontré algo'));
       await tester.pumpAndSettle();
       expect(find.widgetWithText(FilledButton, 'Publicar objeto encontrado'), findsOneWidget);
