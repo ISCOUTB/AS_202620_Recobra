@@ -70,7 +70,17 @@ C4-C3 no cambia: no hay componentes nuevos. La compresión es una configuración
 - **Código y pruebas:** 223 unitarias (antes 216: +4 de la selección de persistencia y +3 de la
   compresión), 129 e2e, 10 de contrato, 37 de adaptadores contra PostgreSQL real y 35 de la app. Ninguna
   prueba existente se modificó ni se borró.
-- **Run del pipeline posterior al último cambio:** se registra abajo, tras el push de este documento.
+- **Run del pipeline posterior al último cambio de código y documentación:**
+  [run 46146551105](https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/46146551105), commit
+  `ff81c7d` (2026-11-28), **en verde**: Backend NestJS (unitarias, contrato, e2e, documentación y la
+  imagen que no arranca sin base), Adaptadores contra PostgreSQL real, Seguridad, Flutter y Quality Gate.
+  El job del scanner aparece con su advertencia visible (D3). El único commit posterior es este registro,
+  que solo toca documentos.
+- **Medición de rendimiento posterior a los índices:**
+  [run 46145746943](https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/46145746943), las 9
+  mediciones dentro de S1.
+- **Producción:** `/health/ready` con `almacenamiento: "postgres"`, `/` con 302 y `/app/` con 200,
+  después de los redespliegues de hoy.
 
 ## Retrospectiva
 
