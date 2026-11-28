@@ -34,7 +34,7 @@ El objetivo arquitectónico no fue acumular funciones, sino que **cada decisión
 
 ## 3. Vista general
 
-Recobra es un **monolito modular** con **arquitectura hexagonal**:
+Recobra usa **arquitectura hexagonal** (puertos y adaptadores), desplegada como **un solo proceso**:
 
 - Una API NestJS organizada en contextos: Publicaciones, Emparejamiento, Reclamaciones, Notificaciones, Moderación, Fotos e Identidad.
 - Una **app Flutter** compilada para web y servida en `/app/`.
@@ -44,9 +44,9 @@ Todo corre en **Dokploy**, en el servidor del laboratorio, con TLS por Traefik. 
 
 ## 4. Decisiones principales: contexto, base técnica y costo
 
-**4.1 Monolito modular y hexagonal (ADR-0001, 0002, 0012).**
+**4.1 Hexagonal en un solo desplegable (ADR-0001 → 0002, 0012).** Se compararon tres estilos con una matriz ponderada: capas 2,7, monolito modular 3,5 y hexagonal 4,1 (arc42 §4.2).
 - *Contexto de Recobra:* lo opera un equipo de 4 personas en un semestre, con un solo servidor compartido y unos 200 usuarios. Ningún escenario pedía distribuir. Lo que sí sabíamos es que la plataforma y la base iban a cambiar (S5).
-- *Base técnica:* con servicios separados habría que operar red, despliegues y fallas parciales entre ellos sin ganar nada medible. En cambio, se hacen 10 puertos y el dominio no depende de la infraestructura, así que cambiar de proveedor o de base no toca las reglas de negocio. `arquitectura.spec.ts` revisa en el CI que ninguna capa importe a otra que no debe, y ya atrapó una violación real.
+- *Base técnica:* con servicios separados habría que operar red, despliegues y fallas parciales entre ellos sin ganar nada medible. En cambio, hay 10 puertos (9 repositorios y el hash de contraseñas) y el dominio no depende de la infraestructura, así que cambiar de proveedor o de base no toca las reglas de negocio. `arquitectura.spec.ts` revisa en el CI que ninguna capa importe a otra que no debe, y ya atrapó una violación real.
 - *Costo:* un fallo grave afecta a todo el proceso. ADR-0012 dice qué dato haría extraer Emparejamiento a un servicio aparte.
 
 **4.2 Plataforma: de Render + Neon a Dokploy (ADR-0005 → ADR-0010).**

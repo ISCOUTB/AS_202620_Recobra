@@ -37,7 +37,7 @@ Cada respuesta tiene dos patas: **la base técnica** (qué propiedad da la tecno
 |---|---|---|---|---|
 | 1 | Portada | Camilo | 0:30 | Problema: objetos perdidos en el campus, hoy por grupos de WhatsApp |
 | 2 | Escenarios | Camilo | 1:00 | S1–S7 son los que mandan; las decisiones salen de ahí |
-| 3 | Vista C4 | Fernando | 0:45 | Monolito modular: una API NestJS, una app Flutter, una base PostgreSQL |
+| 3 | Vista C4 | Fernando | 0:45 | Hexagonal en un solo proceso: una API NestJS, una app Flutter, una base PostgreSQL |
 | 4 | Hexagonal | Fernando | 1:00 | Dominio sin dependencias; 10 puertos; el CI lo verifica |
 | 5 | Render → Dokploy | Miguel | 1:00 | 1.113 ms → 157 ms; $0 y sin tarjeta |
 | 6 | PostgreSQL | Miguel | 1:00 | Escrituras atómicas condicionales; la decisión más cara de revertir |
@@ -57,8 +57,8 @@ Regla: **cada quien defiende su decisión con el porqué**. Si el jurado pregunt
 
 1. **Portada.** "Recobra conecta a quien perdió algo en el campus con quien lo encontró. Hoy no les vamos a mostrar pantallas: les vamos a mostrar por qué el sistema es como es."
 2. **Escenarios.** "Partimos de siete escenarios de calidad. Los que más pesan: S1, búsqueda en menos de 400 ms; S2, cero entregas sin verificación; S3, aviso de coincidencia en menos de 60 s. Todo lo que sigue responde a alguno."
-3. **C4.** "Recobra es para un campus: unos 200 usuarios, un equipo de 4 que lo opera y un servidor compartido. Por eso es un monolito modular, no microservicios: una API NestJS con contextos separados, una app Flutter y PostgreSQL. Ningún escenario pedía distribuir y cada pieza extra es un punto de falla en un servidor compartido (ADR-0012)."
-4. **Hexagonal.** "El dominio no importa nada de infraestructura. Diez puertos: repositorios, reloj, correo, eventos… Por eso cambiamos de proveedor sin tocar reglas de negocio. Y no es una promesa: una prueba en el CI falla si una capa importa a otra que no debe; ya atrapó una violación real."
+3. **C4.** "Recobra es para un campus: unos 200 usuarios, un equipo de 4 que lo opera y un servidor compartido. Por eso todo va en un solo proceso, no en microservicios: una API NestJS hexagonal con un módulo por contexto, una app Flutter y PostgreSQL. Ningún escenario pedía distribuir y cada pieza extra es un punto de falla en un servidor compartido (ADR-0012)."
+4. **Hexagonal.** "El dominio no importa nada de infraestructura. Diez puertos: nueve repositorios y el hash de contraseñas, cada repositorio con un adaptador de PostgreSQL y otro en memoria. Por eso cambiamos de proveedor sin tocar reglas de negocio. Y no es una promesa: una prueba en el CI falla si una capa importa a otra que no debe; ya atrapó una violación real."
 5. **Plataforma.** "Es un proyecto de curso: $0 y sin tarjeta. Empezamos en Render + Neon porque eran gratis. Medimos S1 y dio 1.113 ms con 20 conexiones, además de arranques en frío de 20–50 s. Pagar rompía la restricción de $0 sin tarjeta. Pasamos a Dokploy del laboratorio con la base al lado: 157 ms con 200 conexiones. Mismo Dockerfile (ADR-0010)."
 6. **PostgreSQL.** "En Recobra varias personas pueden decir es mío sobre el mismo objeto; si dos reclamaciones se aprueban a la vez, entregamos a quien no es. S2 necesita 'comparar y fijar' en una sola operación atómica: que dos personas no reclamen y se aprueben a la vez. PostgreSQL lo da nativo: `ON CONFLICT` y `UPDATE … WHERE estado = …`. Además el modelo es relacional. Es la decisión más cara de revertir (ADR-0027), por eso se respalda y se restaura en cada push."
 7. **Reclamación.** "Hoy por WhatsApp cualquiera dice es mío y todos ven tu número. Aquí quien reclama aporta una prueba; quien encontró el objeto, que es quien mejor puede juzgarla, la aprueba o la rechaza. Solo después de aprobar se ven los correos de ambos. Sin aprobación no hay 'Entregado', por diseño y por prueba (ADR-0014, ADR-0020)."
@@ -136,7 +136,7 @@ Las 129 pruebas e2e recorren los mismos flujos contra el contrato OpenAPI.
 ## 7. Las decisiones en una línea (chuleta de ADR)
 
 **Estilo y estructura**
-- **0001/0002** Monolito modular con hexagonal; NestJS + Flutter (el reto del corte 1 obligó el stack, **0003**).
+- **0001/0002** Hexagonal (matriz: capas 2,7 · monolito modular 3,5 · hexagonal 4,1) en un solo proceso; NestJS + Flutter (el reto del corte 1 obligó el stack, **0003**).
 - **0012** No extraer Emparejamiento a un servicio: ningún dato lo pide todavía.
 - **0031** Una sola interfaz: la app Flutter reemplaza la vitrina HTML (reemplaza parte de 0022/0029).
 
