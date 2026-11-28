@@ -1,6 +1,7 @@
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { NextFunction, Request, Response } from 'express';
 import { crearCabecerasDeSeguridad } from './cabeceras-de-seguridad';
+import { crearCompresionDeLaApp } from './compresion-de-la-app';
 import { opcionesCors } from './cors';
 import { usarOrigenDeCloudflare } from './origen-del-cliente';
 
@@ -43,4 +44,6 @@ export function configurarSeguridad(app: NestExpressApplication): void {
   app.use(crearCabecerasDeSeguridad());
   app.enableCors(opcionesCors());
   app.use(rechazarCuerpoComprimido);
+  // Respuestas comprimidas solo para los archivos de la app, nunca para la API (ADR-0032).
+  app.use(crearCompresionDeLaApp());
 }
