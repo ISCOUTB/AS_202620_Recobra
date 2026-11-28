@@ -1,0 +1,58 @@
+# Medición de la búsqueda (S1) con un catálogo representativo: 1.000, 10.000 y
+# 100.000 publicaciones sembradas en un PostgreSQL efímero de este trabajo.
+# Responde a la observación S16 (la medición S14 tenía dos publicaciones). No
+# toca producción: el backend y la base viven solo dentro del runner.
+# Los resultados quedan como anotaciones del run (públicas) y en el registro.
+name: medicion-catalogo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - scripts/medir-catalogo.js
+      - .github/workflows/medicion-catalogo.yml
+      - src/infrastructure/persistence/postgres-publicacion.repository.ts
+
+permissions:
+  contents: read
+
+jobs:
+  medir:
+    name: Búsqueda con 1k, 10k y 100k publicaciones
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16@sha256:a902560563d3a5661228585f53474c5065e7f273b21ffd77e555a8b5682c5690
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: recobra_medicion
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d recobra_medicion"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/recobra_medicion
+      DATABASE_SSL: "false"
+      NODE_ENV: production
+      PORT: "3000"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Instalar y compilar
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+      - name: Arrancar el backend contra la base de prueba
+        run: |
+          node dist/main.js > backend.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:3000/health && break; sleep 1; done
+      - name: Medir
+        run: node scripts/medir-catalogo.js
