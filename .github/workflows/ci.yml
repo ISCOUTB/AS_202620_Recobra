@@ -34,6 +34,16 @@ jobs:
         run: npm run build
       - name: Docker build (valida Dockerfile, evidencia S8)
         run: docker build -t recobra-backend-ci .
+      - name: La imagen no arranca en producción sin base de datos (corte final)
+        # Sin DATABASE_URL, la imagen (NODE_ENV=production) debe detenerse con
+        # error en vez de atender en memoria. Si siguiera viva a los 30 s, fallar.
+        run: |
+          set +e
+          timeout 30 docker run --rm recobra-backend-ci > arranque.log 2>&1
+          codigo=$?
+          cat arranque.log
+          if [ "$codigo" -eq 124 ]; then echo 'Arrancó sin base de datos'; exit 1; fi
+          grep -q 'Producción sin DATABASE_URL' arranque.log
 
   postgres:
     name: Adaptadores contra PostgreSQL real
@@ -102,24 +112,11 @@ jobs:
       - name: Barrido de secretos (árbol e historial)
         run: node scripts/barrido-secretos.js
 
-  sonarcloud:
-    name: SonarCloud Scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # SonarCloud necesita el historial completo para el periodo de codigo nuevo
-      # SONAR_TOKEN existe, pero el token es personal y SonarCloud responde
-      # "Not authorized or project not found" al crear el análisis: falta el
-      # permiso Execute Analysis sobre el proyecto de la organización isco-utb
-      # (ver docs/no-conformidades.md, punto 4). Mientras tanto el paso no
-      # bloquea el pipeline; el Quality Gate público sigue corriendo por la
-      # GitHub App.
-      - name: SonarCloud Scan
-        continue-on-error: true
-        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  # El job "SonarCloud Scan" con SONAR_TOKEN se retiró el 2026-11-28: fallaba
+  # siempre con "Not authorized" y aparecía en verde por continue-on-error
+  # (observación S16). El análisis real lo hace el análisis automático de
+  # SonarCloud (check externo "SonarCloud Code Analysis"), y el job de abajo
+  # exige su Quality Gate para este commit. Ver docs/no-conformidades.md, punto 4.
 
   quality-gate:
     name: Quality Gate (SonarCloud)

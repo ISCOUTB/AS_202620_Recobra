@@ -3,9 +3,10 @@
 # https://recobra.iscoutb.dev. Reutiliza el mismo Dockerfile que se usó en
 # Render (render.yaml), que dejó de ser el despliegue oficial.
 #
-# Sin DATABASE_URL el backend usa el adaptador en memoria (ver
-# src/publicaciones/publicaciones.module.ts): los datos se pierden en cada
-# despliegue. Para persistir, crear un servicio PostgreSQL en el mismo
+# Sin DATABASE_URL la imagen (NODE_ENV=production) NO arranca: se detiene con
+# error en vez de usar el adaptador en memoria y perder los datos en cada
+# despliegue (src/infrastructure/persistence/seleccion-de-persistencia.ts).
+# Solo para una demostración sin base existe PERMITIR_MEMORIA=true. Crear un servicio PostgreSQL en el mismo
 # proyecto de Dokploy y definir DATABASE_URL (URL interna) en la pestaña
 # Environment del panel, nunca en este archivo.
 #
