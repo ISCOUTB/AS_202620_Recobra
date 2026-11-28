@@ -112,11 +112,29 @@ jobs:
       - name: Barrido de secretos (árbol e historial)
         run: node scripts/barrido-secretos.js
 
-  # El job "SonarCloud Scan" con SONAR_TOKEN se retiró el 2026-11-28: fallaba
-  # siempre con "Not authorized" y aparecía en verde por continue-on-error
-  # (observación S16). El análisis real lo hace el análisis automático de
-  # SonarCloud (check externo "SonarCloud Code Analysis"), y el job de abajo
-  # exige su Quality Gate para este commit. Ver docs/no-conformidades.md, punto 4.
+  sonarcloud:
+    name: SonarCloud Scan (sin permiso; no bloquea)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # SonarCloud necesita el historial completo para el periodo de codigo nuevo
+      # SONAR_TOKEN existe, pero SonarCloud responde "Not authorized or project not
+      # found": la cuenta del token no tiene el permiso Execute Analysis sobre el
+      # proyecto de la organizacion isco-utb, y solo un administrador de esa
+      # organizacion puede darlo (docs/no-conformidades.md, punto 4). El paso no
+      # bloquea, pero su falla ya no queda escondida en verde: el paso siguiente
+      # deja una advertencia visible en el run (observacion S16). Lo que bloquea es
+      # el job Quality Gate, con el analisis automatico de SonarCloud.
+      - name: SonarCloud Scan
+        id: scanner
+        continue-on-error: true
+        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Avisar si el scanner fallo
+        if: steps.scanner.outcome == 'failure'
+        run: echo "::warning title=SonarCloud Scan fallo::El scanner con SONAR_TOKEN fallo (falta el permiso Execute Analysis en isco-utb). No es un analisis exitoso; el Quality Gate se verifica en el job Quality Gate con el analisis automatico."
 
   quality-gate:
     name: Quality Gate (SonarCloud)
