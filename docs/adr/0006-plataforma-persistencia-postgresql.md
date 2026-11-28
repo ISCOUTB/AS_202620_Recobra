@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Reemplazada parcialmente por [ADR-0033](0033-produccion-no-arranca-sin-base-de-datos.md)** (2026-11-28): sin `DATABASE_URL` la memoria queda solo para pruebas y desarrollo; en producción el proceso no arranca.
+
 **Parcialmente reemplazada por [ADR-0010](0010-despliegue-en-dokploy-servidor-del-laboratorio.md)** (2026-10-08): solo el alojamiento de la base; PostgreSQL detrás del puerto sigue vigente. Ediciones posteriores registradas en [ADR-0011](0011-registro-de-enmiendas-a-adrs-aceptados.md).
 
 Aceptada — 2026-09-27. Pieza decidida aquí: dónde vive la base de datos

@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Reemplazada parcialmente por [ADR-0032](0032-primera-carga-de-la-app-web-compresion-y-umbral.md)** (2026-11-28): la primera carga se comprime y el criterio de revisión pasa a ser un umbral medible (5 MB comprimidos).
+
 Aceptada — 2026-11-19. Reemplaza parcialmente a
 [ADR-0029](0029-cabeceras-de-seguridad-csp-y-cors.md) (la política CSP por hash de la vitrina deja de
 existir; la de la app y la de la API siguen igual) y a

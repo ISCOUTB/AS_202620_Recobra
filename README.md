@@ -279,6 +279,9 @@ La documentación del proyecto se encuentra en la carpeta `docs/`.
 - [`docs/context-map.md`](docs/context-map.md) — mapa de contextos delimitados.
 - [`docs/modulo-datos.md`](docs/modulo-datos.md) — módulo → datos, con dueño único.
 - [`docs/medicion-corte1.md`](docs/medicion-corte1.md) — línea base y resultado del reto de corte 1.
+- [`docs/medicion-catalogo.md`](docs/medicion-catalogo.md) — S1 con 1.000, 10.000 y 100.000 publicaciones en un PostgreSQL de prueba: antes y después de los índices de ADR-0034.
+- [`docs/retroalimentacion-final.md`](docs/retroalimentacion-final.md) — matriz de retroalimentación de la sustentación final, cambios aplicados y retrospectiva.
+- [`docs/decisiones-en-contexto.md`](docs/decisiones-en-contexto.md) — cada decisión de arquitectura justificada desde el contexto de Recobra.
 - [`docs/medicion-s10.md`](docs/medicion-s10.md) — experimento del segundo corte: escenario S1 sobre el despliegue en Dokploy.
 - [`docs/medicion-s14.md`](docs/medicion-s14.md) — S1 repetido con los controles de S11-S13: resultado contrastado con el umbral de 400 ms p95 y con S10.
 - [`docs/modos-de-fallo.md`](docs/modos-de-fallo.md) — modos de fallo de cada integración, su mitigación, código y prueba (S11).

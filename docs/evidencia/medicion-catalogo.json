@@ -1,0 +1,33 @@
+{
+  "escenario": "S1 (p95 <= 400 ms con hasta 200 usuarios concurrentes); se reporta p97,5, más estricto",
+  "entorno": "GitHub Actions ubuntu-latest, backend y PostgreSQL 16 en la misma máquina (no es el servidor del laboratorio)",
+  "conexiones": 200,
+  "duracionSegundos": 10,
+  "consultas": {
+    "frecuente": "/publicaciones?categoria=electronica&ubicacion=Biblioteca&limite=20",
+    "sinFiltros": "/publicaciones?limite=20",
+    "sinCoincidencias": "/publicaciones?categoria=paraguas&limite=20"
+  },
+  "antes": {
+    "descripcion": "Solo índice por creado_en",
+    "run": "https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/46145262833",
+    "commit": "0c19b9f",
+    "resultados": [
+      { "publicaciones": 1000, "frecuente": { "p50": 59, "p97_5": 100, "pps": 3174, "no2xx": 0 }, "sinFiltros": { "p50": 68, "p97_5": 82, "pps": 2853, "no2xx": 0 }, "sinCoincidencias": { "p50": 53, "p97_5": 65, "pps": 3594, "no2xx": 0 } },
+      { "publicaciones": 10000, "frecuente": { "p50": 265, "p97_5": 285, "pps": 748, "no2xx": 0 }, "sinFiltros": { "p50": 69, "p97_5": 84, "pps": 2784, "no2xx": 0 }, "sinCoincidencias": { "p50": 251, "p97_5": 430, "pps": 656, "no2xx": 0 } },
+      { "publicaciones": 100000, "frecuente": { "p50": 2628, "p97_5": 2783, "pps": 75, "no2xx": 0 }, "sinFiltros": { "p50": 74, "p97_5": 92, "pps": 2017, "no2xx": 0 }, "sinCoincidencias": { "p50": 3074, "p97_5": 3199, "pps": 62, "no2xx": 89 } }
+    ],
+    "planPeorCaso100000": "Index Scan using idx_publicaciones_creado_en; Rows Removed by Filter: 100000; Execution Time: 264.755 ms"
+  },
+  "despues": {
+    "descripcion": "Índices por lower(trim(categoria)), lower(trim(ubicacion)) y fecha (ADR-0034)",
+    "run": "https://github.com/ISCOUTB/AS_202620_Recobra/actions/runs/46145746943",
+    "commit": "a369178",
+    "resultados": [
+      { "publicaciones": 1000, "frecuente": { "p50": 71, "p97_5": 117, "pps": 2647, "no2xx": 0 }, "sinFiltros": { "p50": 100, "p97_5": 119, "pps": 1908, "no2xx": 0 }, "sinCoincidencias": { "p50": 58, "p97_5": 72, "pps": 3244, "no2xx": 0 } },
+      { "publicaciones": 10000, "frecuente": { "p50": 62, "p97_5": 75, "pps": 3089, "no2xx": 0 }, "sinFiltros": { "p50": 99, "p97_5": 120, "pps": 1977, "no2xx": 0 }, "sinCoincidencias": { "p50": 59, "p97_5": 76, "pps": 3219, "no2xx": 0 } },
+      { "publicaciones": 100000, "frecuente": { "p50": 78, "p97_5": 100, "pps": 2465, "no2xx": 0 }, "sinFiltros": { "p50": 107, "p97_5": 126, "pps": 1848, "no2xx": 0 }, "sinCoincidencias": { "p50": 59, "p97_5": 77, "pps": 3206, "no2xx": 0 } }
+    ],
+    "planPeorCaso100000": "Index Scan using idx_publicaciones_categoria_fecha; Index Cond: lower(TRIM(BOTH FROM categoria)) = 'paraguas'; Execution Time: 0.024 ms"
+  }
+}

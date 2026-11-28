@@ -122,10 +122,14 @@ resuelto, ver [`correcciones.md`](../correcciones.md).
   corregido, lo dejó en verde (run `38070527030`). El scanner explícito se
   conserva con `continue-on-error` hasta que exista el permiso *Execute
   Analysis*.
-- **Estado:** parcialmente resuelta — el Quality Gate funciona y es público
-  hoy (vía GitHub App); el paso explícito en el workflow que el revisor
-  automático exige está escrito y lista para activarse en cuanto exista
-  `SONAR_TOKEN`.
+- **Actualización 2026-11-28 (observación S16):** el job aparecía en verde
+  aunque el scanner fallaba (`continue-on-error`). Ahora se llama «SonarCloud
+  Scan (sin permiso; no bloquea)» y, si el scanner falla, deja una
+  advertencia visible en el run. El Quality Gate sigue bloqueando con el
+  análisis automático.
+- **Estado:** parcialmente resuelta — el Quality Gate funciona, es público y
+  bloquea; el scanner explícito falla a la vista hasta que un administrador de
+  `isco-utb` conceda *Execute Analysis*.
 
 ## 5. PDF de Moodle con cifra de latencia desactualizada
 

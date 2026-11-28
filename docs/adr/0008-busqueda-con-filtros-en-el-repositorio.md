@@ -2,6 +2,8 @@
 
 ## Estado
 
+**Reemplazada parcialmente por [ADR-0034](0034-indices-de-busqueda-por-categoria-y-lugar.md)** (2026-11-28): se agregan índices por categoría y lugar; la consulta y el puerto no cambian.
+
 Aceptada — 2026-10-04. Evidencia S9: es la porción nueva del sistema
 construida con apoyo de IA dentro de la semana 9 (código, prueba de
 mutación, medición y auditoría en
