@@ -146,6 +146,23 @@ export class PostgresPublicacionRepository
     await this.pool.query(
       'CREATE INDEX IF NOT EXISTS idx_publicaciones_creado_en ON publicaciones (creado_en DESC)',
     );
+    // Búsqueda con filtros (S1, ADR-0008): con solo el índice por fecha, un filtro
+    // recorría todo el catálogo — 2.783 ms de p97,5 con 100.000 publicaciones
+    // (docs/medicion-catalogo.md). Índices sobre la misma expresión que usa
+    // `buscar` (lower(trim(...))) y la fecha, para leer solo lo que coincide y ya
+    // en el orden en que se devuelve.
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_publicaciones_categoria_fecha
+         ON publicaciones (lower(trim(categoria)), creado_en DESC)`,
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_publicaciones_ubicacion_fecha
+         ON publicaciones (lower(trim(ubicacion)), creado_en DESC)`,
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_publicaciones_categoria_ubicacion_fecha
+         ON publicaciones (lower(trim(categoria)), lower(trim(ubicacion)), creado_en DESC)`,
+    );
     // Cuentas (ADR-0013): columna nueva, nula en las publicaciones anteriores.
     await this.pool.query('ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS autor_id TEXT');
     await this.pool.query('CREATE INDEX IF NOT EXISTS idx_publicaciones_autor ON publicaciones (autor_id)');
