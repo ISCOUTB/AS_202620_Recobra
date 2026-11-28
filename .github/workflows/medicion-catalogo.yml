@@ -38,7 +38,6 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres@localhost:5432/recobra_medicion
       DATABASE_SSL: "false"
-      NODE_ENV: production
       PORT: "3000"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,6 +50,10 @@ jobs:
           npm ci --ignore-scripts
           npm run build
       - name: Arrancar el backend contra la base de prueba
+        # NODE_ENV solo aquí: en la instalación haría que npm omita las
+        # herramientas de compilación.
+        env:
+          NODE_ENV: production
         run: |
           node dist/main.js > backend.log 2>&1 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:3000/health && break; sleep 1; done
